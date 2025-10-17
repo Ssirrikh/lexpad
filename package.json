@@ -1,0 +1,28 @@
+{
+  "name": "lexpad",
+  "version": "0.0.1",
+  "description": "Work on your language's lexicon in a clean, modern interface with support for automated checks and formatting. Manage your data, then convert it into a print-ready dictionary or a searchable online dictionary, all from one cross-platform tool.",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ssirrikh/lexpad.git"
+  },
+  "keywords": [
+    "lexicon",
+    "linguistics",
+    "dictionary"
+  ],
+  "author": "Narayana \"Kat\" Adisasmito-Smith",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/Ssirrikh/lexpad/issues"
+  },
+  "homepage": "https://github.com/Ssirrikh/lexpad#readme",
+  "devDependencies": {
+    "electron": "^38.3.0"
+  }
+}
