@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang='en' xml:lang='en'>
+<head>
+	<meta charset = 'utf-8'>
+	<title>LexPad</title>
+    <meta name='robots' content='index, follow'>
+    <meta name='description' content="Work on your language's lexicon in a clean, modern interface with support for automated checks and formatting.">
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <link rel='stylesheet' href='style/common.css'>
+    <link rel='stylesheet' href='style/lexpad.css'>
+</head>
+<body>
+    
+    <!-- main covers entire viewport; it should allow zooming but not scrolling -->
+    <div id='main' class='flex-col'>
+        <!-- HEADER BARS -->
+        <div id='navbar' class='flex-row'>
+            <div class='flex-sep'></div>
+            <button id='navtab-0' class='navtab active-navtab'>Project Settings</button>
+            <button id='navtab-1' class='navtab'>Lexicon Editor</button>
+            <button id='navtab-2' class='navtab'>Advanced Search</button>
+            <div class='flex-sep'></div>
+        </div>
+        <div id='statbar' class='flex-row'>
+            <p id='statbar-left'>No project loaded...</p>
+            <p id='statbar-right'>0 entries</p>
+        </div>
+        <!-- CONTENT -->
+        <div id='r-content' class='flex-col'>
+            <div class='flex-col r-list-item'>
+                <h2>Item Title</h2>
+                <p>Subtitle Goes Here</p>
+            </div>
+            <!-- this r-list-item will be duplicated 50 times once dynamic page builder is done -->
+        </div>
+    </div>
+
+    <script type='module' src='script/lexpad.js'></script>
+
+</body>
+</html>

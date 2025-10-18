@@ -1,0 +1,89 @@
+
+/**** DOM ****/
+
+:root {
+    --border-tabs: white;
+}
+
+body {
+    background-color: magenta;
+}
+
+
+
+/**** HEADER BARS ****/
+
+#navbar {
+    background-color: var(--primary);
+    /* background-color: var(--primary-black); */
+    /* border: thin solid white; */
+    padding-top: 0.25em;
+    font-size: 0.8em;
+    flex-shrink: 0;
+}
+
+#navbar > .flex-sep {
+    border-bottom: medium solid var(--border-tabs);
+    height: 100%;
+}
+.navtab {
+    color: var(--bg-offwhite);
+    border: none;
+    border-bottom: medium solid var(--border-tabs);
+    border-radius: 0.5em 0.5em 0 0;
+    width: 12em;
+    height: 100%;
+    padding: 0.5em;
+    font-size: 1em;
+    text-align: center;
+}
+.navtab:hover {
+    color: white;
+    background-color: var(--primary-selection);
+    /* background-color: var(--primary-dark); */
+}
+/* active navtab must override hover styling */
+.active-navtab {
+    color: black !important;
+    background-color: var(--bg-offwhite) !important;
+    border: medium solid var(--border-tabs);
+    border-bottom: medium solid var(--bg-offwhite);
+}
+
+#statbar {
+    color: grey;
+    background-color: var(--bg-offwhite);
+    padding: 0.25em 0.5em;
+    font-size: 0.6em;
+    justify-content: space-between;
+}
+
+/**** CONTENT STYLING ****/
+
+#r-content {
+    background-color: var(--bg-offwhite);
+    /* border: thin solid green; */
+    padding: 1em;
+    font-size: 0.8em;
+    gap: 0.5em;
+
+    overflow: scroll;
+    min-height: 0;
+    flex-grow: 1;
+}
+
+.r-list-item {
+    background-color: white;
+    border-radius: 0.25em;
+    padding: 0.5em;
+    gap: 0.5em;
+    font-size: 1em;
+}
+.r-list-item > h2 {
+    color: black;
+    font-size: 1em;
+}
+.r-list-item > p {
+    color: grey;
+    font-size: 0.8em;
+}

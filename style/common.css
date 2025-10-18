@@ -1,0 +1,272 @@
+
+/**** common.css ****/
+
+/* Common styling shared across entire site. */
+/* Includes themeing, destyling, flexbox utilities, and the shared navbar. */
+
+/* Website (C) 2025 Narayana "Kat" Adisasmito-Smith */
+/* Text and images from this site may not be used as training data for AI. */
+
+:root {
+    /**** color palette and theming ****/
+
+    --text-dark: #323440;
+    --text-subtitle: #636570;
+    --bg-white: #ffffff;
+    --bg-light: #f5f5f5;
+    --bg-medium: #3b454a;
+    --bg-dark: #1a282f;
+    --border-light: #e2e4e5;
+    --border-medium: #cfcfcf;
+    --text-error: #dc0019;
+
+    --text-white: #ffffff;
+    --text-light: #f5f5f5;
+    --text-dark: #323440;
+    --text-subtitle: #636570;
+    --bg-white: #ffffff;
+    --bg-light: #f5f5f5;
+    --bg-light: #e7eef7;
+    --bg-offwhite: #d7dee7;
+    --bg-highlight: #65b9ff;
+    --bg-highlight: #2f91ff;
+    --bg-medium: #3b454a;
+    --bg-dark: #1a282f;
+    --border-light-unfocused: #484f58;
+    --border-light: #e2e4e5;
+    --border-medium: #cfcfcf;
+
+    --grey-white: #f5f5f5;
+    --grey-dark: #222;
+
+    --warning-white: #fee;
+    --warning-light: #fcc;
+    --warning-dark: #600;
+    --warning-highlight: #f00;
+    --warning-highlight-light: #f44;
+
+    --primary-dark: #2d3d44;
+    --primary-black: #1a282f;
+    --primary-highlight: #2f91ff;
+    --primary-highlight-dark: #0c48a3;
+    --primary-grey-light: #7fcbeb;
+    --primary-medium: #75bad8;
+    --primary-medium: #60e0ff;
+    --primary-grey: #bccdd3;
+    --primary-grey-medium: #70abc3;
+    --primary-grey-dark: #2d738f;
+    --primary-grey-dark: #135570;
+    --primary-white: #cefbff;
+
+    --primary: #2950e5;
+    /* --primary: #1d7aea; */
+    /* --primary: #4292c7; */
+    /* --primary: #5074ff; */
+    --primary-selection: #2043c2;
+    /* --primary-selection: #0664d6; */
+
+    --secondary-white: #cec9c1;
+    --secondary: #c2ae8f;
+
+    --popout-shadow: 0 0 10px #00000038;
+
+    /**** positioning ****/
+
+    --layer-background: -1; /* static backgrounds */
+    --layer-front: 2; /* elems that hover over content */
+    --layer-nav: 3; /* nav elements, and elements that hang from navbar */
+    --layer-overlay: 5; /* modals and overlays */
+
+    --thumbnail-position: center center / cover no-repeat;
+
+    /**** responsive layout and fluid typography ****/
+
+    /* dynamic units calculated mobile-first; see media queries for desktop layout */
+    --fluid-font-size: max(2.5vh, calc(1rem + 1.0vw));
+    /* --title-font-size: calc(1.17 * var(--fluid-font-size)); */
+}
+
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Times New Roman';
+}
+body {
+    background-color: var(--background-nav);
+    font-size: var(--fluid-font-size);
+    /*overflow-x: hidden; /* 100vw overflows horizontally only on chrome; chrome scrollbars contribute to viewport size, but position themselves outside it, forcing it to expand */
+}
+button {
+    /* color: var(--text-dark); */
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-size: 1em;
+    font-weight: normal;
+}
+input, select {
+    font-size: 1em;
+}
+
+
+
+/**** FLEXBOX UTILITY ****/
+
+.flex-sep {
+    width: 0;
+    flex-grow: 1;
+}
+.flex-row {
+    display: flex;
+    flex-direction: row !important;
+    align-items: center;
+}
+.flex-col {
+    display: flex;
+    flex-direction: column !important;
+}
+.flex-adapt {
+    /* column on mobile, row on desktop */
+    display: flex;
+    flex-direction: column !important;
+    align-items: center;
+}
+.flex-adapt-reverse {
+    /* row on mobile, column on desktop */
+    display: flex;
+    flex-direction: row !important;
+    align-items: normal;
+    justify-content: center;
+}
+.flex-centered {
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-separated-row {
+    display: flex;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+}
+.flex-fill {
+    justify-content: center;
+    flex-grow: 1;
+}
+
+
+/**** BEHAVIOR ****/
+
+.no-scrollbar {
+    overflow: scroll;
+    -ms-overflow-style: none;  /* Hide scrollbar for IE and Edge */
+    scrollbar-width: none;  /* Hide scrollbar for Firefox */
+}
+.no-scrollbar::-webkit-scrollbar { display: none; } /* Hide scrollbar for Chrome, Safari, and Opera */
+.desktop-only {
+    /* visibility: hidden; */
+    /* display: none; */
+}
+.no-wrap {
+    white-space: nowrap;
+}
+
+
+
+/**** SITE LAYOUT ****/
+
+#main {
+    /* border: thin solid red; */
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+#progress {
+    --scroll: 10%;
+    background: linear-gradient(to right, var(--bg-highlight) var(--scroll), #222 0);
+    background-repeat: no-repeat;
+    height: 4px;
+}
+#content {
+    background-color: var(--bg-light);
+    background-color: var(--bg-white);
+
+    overflow: scroll;
+    min-height: 0;
+    flex-grow: 1;
+}
+
+
+
+
+/**** NAV BAR ****/
+
+#nav-bar {
+    color: var(--grey-white);
+    background-color: var(--primary-black);
+    /* background-color: var(--primary-dark); */
+    /* padding: 0 1em; */
+    /* position: fixed;
+    top: 0;
+    left: 0; */
+}
+#nav-bar > h1 {
+    padding: 0 1em;
+    font-size: 1.2em;
+}
+nav > ul {
+    list-style: none;
+}
+nav > ul > li {
+    /* display: block; */
+}
+nav > ul > li > a {
+    display: block;
+    padding: 1em 1em;
+}
+nav > ul > li > a:hover {
+    color: var(--text-white);
+    text-decoration: underline;
+}
+.nav-selected {
+    color: white;
+    background-color: var(--primary-dark);
+}
+
+
+
+/**** MEDIA QUERIES ****/
+
+@media (max-aspect-ratio: 5/4) { /* mobile mode */
+    /* all styling is mobile-first, but if an element requires specific overrides, those go here */
+    .desktop-only {
+        display: none;
+    }
+}
+@media (min-aspect-ratio: 5/4) { /* desktop mode */
+    :root {
+        /*  */
+    }
+    .flex-adapt {
+        display: flex;
+        flex-direction: row !important;
+        align-items: normal;
+        justify-content: center;
+    }
+    .flex-adapt-reverse {
+        display: flex;
+        flex-direction: column !important;
+        align-items: center;
+    }
+    .desktop-only {
+        /* visibility: visible; */
+        /* display: ''; */
+    }
+}
