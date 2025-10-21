@@ -17,19 +17,20 @@ body {
     background-color: var(--primary);
     /* background-color: var(--primary-black); */
     /* border: thin solid white; */
-    padding-top: 0.25em;
+    padding: 0.25em;
+    padding-bottom: 0;
     font-size: 0.8em;
     flex-shrink: 0;
 }
 
 #navbar > .flex-sep {
-    border-bottom: medium solid var(--border-tabs);
+/*    border-bottom: medium solid var(--border-tabs);*/
     height: 100%;
 }
 .navtab {
     color: var(--bg-offwhite);
     border: none;
-    border-bottom: medium solid var(--border-tabs);
+/*    border-bottom: medium solid var(--border-tabs);*/
     border-radius: 0.5em 0.5em 0 0;
     width: 12em;
     height: 100%;
@@ -45,14 +46,14 @@ body {
 /* active navtab must override hover styling */
 .active-navtab {
     color: black !important;
-    background-color: var(--bg-offwhite) !important;
-    border: medium solid var(--border-tabs);
-    border-bottom: medium solid var(--bg-offwhite);
+    background-color: var(--bg-grey) !important;
+/*    border: medium solid var(--border-tabs);*/
+/*    border-bottom: medium solid var(--bg-grey);*/
 }
 
 #statbar {
     color: grey;
-    background-color: var(--bg-offwhite);
+    background-color: var(--bg-grey);
     padding: 0.25em 0.5em;
     font-size: 0.6em;
     justify-content: space-between;
@@ -61,7 +62,7 @@ body {
 /**** CONTENT STYLING ****/
 
 #r-content {
-    background-color: var(--bg-offwhite);
+    background-color: var(--bg-grey);
     /* border: thin solid green; */
     padding: 1em;
     font-size: 0.8em;

@@ -1,0 +1,50 @@
+{
+	"project" : {
+		"path" : "",
+		"togglePrimary" : false
+	},
+	"language" : {
+		"name" : "Wikchamni",
+		"abbr" : "wik",
+		"alph" : "a c č e f h i k l m n ŋ o p s š t ṭ u w x y ʔ",
+		"usesForms" : true,
+		"forms" : {
+			"noun" : [ "Subject","Object","Locative" ],
+			"verb" : [ "Past","Medio Passive","Durative Aorist","Future","Passive Gerundial","Durative Present","Neutral Verbal Noun","Causative","Neutral Agentive","UNDERLYING" ],
+			"adjective" : [],
+		},
+		"catgs" : {
+			"noun" : "n",
+			"verb" : "v",
+			"adjective" : "adj",
+		}
+	},
+	"lexicon" : [
+		{
+			"L1" : "get sick; get ill",
+			"catg" : "v",
+			"L2" : [
+				{ "form" : 1, "L2" : "čʰɨxčʰin/" },
+				{ "form" : 2, "L2" : "čʰə·xačʰnaš" },
+				{ "form" : 3, "L2" : "čʰɨxčʰin" },
+				{ "form" : 4, "L2" : "cʰɨxčʰɨnšɨ" },
+				{ "form" : 5, "L2" : "čʰə·xɨčʰin" },
+				{ "form" : 6, "L2" : "čʰɨxčʰin/" },
+				{ "form" : 7, "L2" : "čʰɨxa·čʰanʼši" },
+				{ "form" : 7, "L2" : "čʰɨxa·čʰin" },
+				{ "form" : 7, "L2" : "čʰɨxa·čʰantit" },
+				{ "form" : 7, "L2" : "čʰɨxa·čʰanti" },
+				{ "form" : 7, "L2" : "čʰɨxa·čʰantʰa" },
+				{ "form" : 8, "L2" : "čʰɨxačʰničʼa" },
+				{ "form" : 9, "L2" : "#čʰɨxičʰ -in" },
+			],
+			"sents" : [
+				{ "form" : -1, "L1" : "This is the first sentence.", "L2" : "First sentence translation goes here." },
+				{ "form" : 2, "L1" : "Hello world.", "L2" : "Wikchamni says hello." }
+			],
+			"notes" : [
+				"Related language Chukchansi tʰixtʰinitʰ 'sick'"
+			]
+		}
+	]
+}

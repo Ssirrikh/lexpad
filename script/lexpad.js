@@ -9,6 +9,7 @@ const eNavTabs = [
 ];
 const eContent = document.getElementById('r-content');
 const eStatbarLeft = document.getElementById('statbar-left');
+const eStatbarRight = document.getElementById('statbar-right');
 
 // tab switching
 function loadTab (tabId) {
@@ -36,4 +37,8 @@ eContent.innerHTML = eStr;
 for (let i = 0; i < eNavTabs.length; i++) {
 	eNavTabs[i].onclick = e => loadTab(i);
 }
-eStatbarLeft.onclick = e => window.electronAPI.flipToggle();
+eStatbarRight.onclick = e => window.electronAPI.flipToggle();
+eStatbarLeft.onclick = async e => {
+    const res = await window.electronAPI.openProject();
+    console.log(res);
+}
