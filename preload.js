@@ -1,9 +1,18 @@
 const { contextBridge, ipcRenderer } = require('electron/renderer');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-	// use ipcRenderer.send() for ipcMain.on() one-way comms
-	// use ipcRenderer.invoke() for ipcMain.handle() two-way comms
+	// ipcRenderer.send() for ipcMain.on() one-way comms
+	// ipcRenderer.invoke() for ipcMain.handle() two-way comms
 	
-	flipToggle: () => ipcRenderer.send('flip-toggle'),
+	// debug
+	flipToggle: () => ipcRenderer.send('dbg-flip-toggle'),
+	requestObject: () => ipcRenderer.invoke('dbg-request-object'),
+	checkObject: () => ipcRenderer.send('dbg-check-object'),
+	
+	// I/O
 	openProject: () => ipcRenderer.invoke('open-project'),
+	// database access
+	getLangInfo : () => ipcRenderer.invoke('get-lang-info'),
+	getOrderedWords : () => ipcRenderer.invoke('get-ordered-words'),
+	getEntry : (entryId) => ipcRenderer.invoke('get-entry', entryId),
 });

@@ -11,6 +11,14 @@ const eContent = document.getElementById('r-content');
 const eStatbarLeft = document.getElementById('statbar-left');
 const eStatbarRight = document.getElementById('statbar-right');
 
+
+
+// dictionary
+
+//
+
+
+
 // tab switching
 function loadTab (tabId) {
     console.log(`Load tab ${tabId}`);
@@ -42,3 +50,15 @@ eStatbarLeft.onclick = async e => {
     const res = await window.electronAPI.openProject();
     console.log(res);
 }
+
+
+
+// (async () => {
+//     // test confirms objects get deep copied when piped from main to renderer
+//     // changes here will not mutate data on main
+//     let res = await window.electronAPI.requestObject();
+//     console.log(res);
+//     res.v = 9;
+//     console.log(res);
+//     window.electronAPI.checkObject();
+// })();

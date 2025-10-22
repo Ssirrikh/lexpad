@@ -28,7 +28,7 @@ body {
     height: 100%;
 }
 .navtab {
-    color: var(--bg-offwhite);
+    color: var(--bg-light);
     border: none;
 /*    border-bottom: medium solid var(--border-tabs);*/
     border-radius: 0.5em 0.5em 0 0;
@@ -46,14 +46,14 @@ body {
 /* active navtab must override hover styling */
 .active-navtab {
     color: black !important;
-    background-color: var(--bg-grey) !important;
+    background-color: var(--bg-light) !important;
 /*    border: medium solid var(--border-tabs);*/
 /*    border-bottom: medium solid var(--bg-grey);*/
 }
 
 #statbar {
     color: grey;
-    background-color: var(--bg-grey);
+    background-color: var(--bg-light);
     padding: 0.25em 0.5em;
     font-size: 0.6em;
     justify-content: space-between;

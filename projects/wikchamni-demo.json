@@ -11,12 +11,12 @@
 		"forms" : {
 			"noun" : [ "Subject","Object","Locative" ],
 			"verb" : [ "Past","Medio Passive","Durative Aorist","Future","Passive Gerundial","Durative Present","Neutral Verbal Noun","Causative","Neutral Agentive","UNDERLYING" ],
-			"adjective" : [],
+			"adjective" : []
 		},
 		"catgs" : {
 			"noun" : "n",
 			"verb" : "v",
-			"adjective" : "adj",
+			"adjective" : "adj"
 		}
 	},
 	"lexicon" : [
@@ -36,7 +36,7 @@
 				{ "form" : 7, "L2" : "čʰɨxa·čʰanti" },
 				{ "form" : 7, "L2" : "čʰɨxa·čʰantʰa" },
 				{ "form" : 8, "L2" : "čʰɨxačʰničʼa" },
-				{ "form" : 9, "L2" : "#čʰɨxičʰ -in" },
+				{ "form" : 9, "L2" : "#čʰɨxičʰ -in" }
 			],
 			"sents" : [
 				{ "form" : -1, "L1" : "This is the first sentence.", "L2" : "First sentence translation goes here." },
