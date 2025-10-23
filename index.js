@@ -185,7 +185,7 @@ const openProject = async e => {
 		if (activeFile.contents) {
 			populateLexicon(activeFile.contents);
 		}
-		return activeFile.contents;
+		return { path: activeFile.path };
 	} catch (err) {
 		return { error: 'read_or_parse_failed', message: String(err) };
 	}
