@@ -20,26 +20,60 @@ const tabContents = [];
 (() => {
     let e = document.createElement('div');
         e.id = 'r-content';
+        e.classList.add('flex-col');
     let eStr = ``;
     eStr += `<div id='project-lang-info' class='flex-col'>`;
         eStr += `<label id='label-lang-name' for='lang-name'>Language Full Name</label>`;
-        eStr += `<input id='lang-name' type='text'>`;
+        eStr += `<input id='lang-name' type='text' spellcheck='false'>`;
         eStr += `<label id='label-lang-abbr' for='lang-abbr'>Abbreviation</label>`;
-        eStr += `<input id='lang-abbr' type='text'>`;
+        eStr += `<input id='lang-abbr' type='text' spellcheck='false'>`;
+        eStr += `<p class='subtitle'>2-3 letter abbreviation of language name, for example "eng" for English.</p>`;
         eStr += `<label id='label-lang-alph' for='lang-alph'>Alphabet</label>`;
-        eStr += `<input id='lang-alph' type='text'>`;
-        eStr += `<div class='separator-line'></div>`;
-        eStr += `<p id='wip-stats'>Project Statistics section coming soon.</p>`;
+        eStr += `<input id='lang-alph' type='text' spellcheck='false'>`;
+        eStr += `<p class='subtitle'>Work in progress. Will eventually allow for custom alphabetization and multi-character letters.</p>`;
+        // eStr += `<div class='separator-line'></div>`;
+        // eStr += `<p id='wip-stats'>Project Statistics section coming soon.</p>`;
     eStr += `</div>`;
+    eStr += `<p id='project-coming-soon'>Project statistics coming soon...</p>`;
     e.innerHTML = eStr;
     tabContents[TAB_PROJECT] = e;
 })();
 (() => {
     let e = document.createElement('div');
         e.id = 'r-content';
+        // easier to override unwanted styling than mess with container-ception everywhere else
+        e.style.padding = '0';
     let eStr = ``;
-    eStr += `<div id='project-lexicon' class='flex-col'>`;
-        eStr += `<h1>Lexicon under construction...</h1>`;
+    eStr += `<div id='lexicon-wrapper' class='flex-row'>`;
+        // left panel: lexicon search
+        eStr += `<div id='lexicon' class='flex-col'>`;
+            eStr += `<div id='lexicon-header' class='flex-col'>`;
+                eStr += `<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search...'>`;
+            eStr += `</div>`;
+            eStr += `<div id='lexicon-content-header' class='flex-row'>`;
+                eStr += `<p>Catg</p>`;
+                eStr += `<p>Entry</p>`;
+                eStr += `<div class='flex-sep'></div>`;
+                eStr += `<p>Media</p>`;
+            eStr += `</div>`;
+            eStr += `<div id='lexicon-content' class='flex-col no-scrollbar'>`;
+                eStr += `<div class='lexicon-entry active-entry'>to run; to sprint</div>`;
+                for (let i = 0; i < 30; i++) eStr += `<div class='lexicon-entry'>Entry ${i}</div>`;
+            eStr += `</div>`;
+        eStr += `</div>`;
+        // right panel: entry editor
+        eStr += `<div id='entry-editor' class='flex-col'>`;
+            eStr += `<div id='entry-header' class='flex-row'>`;
+                eStr += `<label for='entry-L1'>English Word(s)</label>`;
+                eStr += `<input id='entry-L1' type='text' >`;
+                eStr += `<div class='flex-row flex-fill'>`;
+                    eStr += `<p id='entry-catg'>Verb</p>`;
+                eStr += `</div>`;
+                eStr += `<button id='entry-image'>No Image</button>`;
+            eStr += `</div>`;
+            eStr += `<h1>Lexicon under construction...</h1>`;
+        eStr += `</div>`;
+        // eStr += ``;
     eStr += `</div>`;
     e.innerHTML = eStr;
     tabContents[TAB_LEXICON] = e;
@@ -80,6 +114,7 @@ const tryGetLangInfo = async () => {
     // save data in renderer context, then refresh project tab
     L2 = res.L2;
     buildProjectTab();
+    loadTab(TAB_PROJECT);
 };
 
 
@@ -104,7 +139,9 @@ const buildProjectTab = () => {
     if (!project.path) {
         buildWelcomePage();
     } else {
-        // project status page
+        tabContents[TAB_PROJECT].querySelector('#lang-name').value = L2.name;
+        tabContents[TAB_PROJECT].querySelector('#lang-abbr').value = L2.abbr;
+        tabContents[TAB_PROJECT].querySelector('#lang-alph').value = L2.alph;
     }
 };
 

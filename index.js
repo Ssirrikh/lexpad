@@ -97,6 +97,11 @@ const populateLexicon = jsonParse => {
 		L2.catgs[catg] = jsonParse.language.catgs[catg];
 	}
 	// lexicon
+	lexicon = {
+		data : [],
+		orderedL1 : [],
+		orderedL2 : []
+	};
 	let entry;
 	for (let i = 0; i < jsonParse.lexicon.length; i++) {
 		entry = jsonParse.lexicon[i];
@@ -200,8 +205,10 @@ const saveProject = () => {
 
 const createWindow = () => {
 	const win = new BrowserWindow({
-		width: 800,
-		height: 600,
+		// discord uses 1325 x 885 default size
+		// electron has a max height 825 on a 1920x1080 screen
+		width: 1300,
+		height: 800,
 		// fullscreen: true,
 		// frame: false,
 		webPreferences: {
@@ -209,7 +216,7 @@ const createWindow = () => {
     	},
 	});
 
-	win.openDevTools();
+	// win.openDevTools();
 
 	win.loadFile('lexpad.html');
 };
