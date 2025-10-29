@@ -41,6 +41,7 @@ const tabContents = [];
 (() => {
     let e = document.createElement('div');
         e.id = 'r-content';
+        e.classList.add('no-scrollbar');
         // easier to override unwanted styling than mess with container-ception everywhere else
         e.style.padding = '0';
     let eStr = ``;
@@ -63,21 +64,105 @@ const tabContents = [];
         eStr += `</div>`;
         // right panel: entry editor
         eStr += `<div id='entry-editor' class='flex-col'>`;
+            // entry header
             eStr += `<div id='entry-header' class='flex-row'>`;
                 eStr += `<label for='entry-L1'>English Word(s)</label>`;
                 eStr += `<input id='entry-L1' type='text' >`;
                 eStr += `<div class='flex-row flex-fill'>`;
-                    eStr += `<p id='entry-catg'>Verb</p>`;
+                    eStr += `<p id='entry-catg'>---</p>`;
                 eStr += `</div>`;
                 eStr += `<button id='entry-image'>No Image</button>`;
             eStr += `</div>`;
-            eStr += `<h1>Lexicon under construction...</h1>`;
+            eStr += `<div id='entry-content' class='flex-col'>`;
+                // wordforms
+                eStr += `<h3 class='section-title'>Wordforms <span id='entry-forms-count'>(13)</span></h3>`;
+                eStr += `<div class='flex-row entry-legend'>`;
+                    eStr += `<p id='entry-forms-legend-case'>Form/Case</p>`;
+                    eStr += `<p id='entry-forms-legend-form'>Wikchamni Word</p>`;
+                    // eStr += `<div class='flex-sep'></div>`;
+                    eStr += `<p class='flex-fill'>Audio</p>`;
+                    // eStr += `<div class='flex-sep'></div>`;
+                    eStr += `<p id='entry-forms-legend-options'></p>`;
+                eStr += `</div>`;
+                eStr += `<div id='entry-forms-wrapper' class='flex-col'>`;
+                    // eStr += `<div class='flex-row entry-form-wrapper'>Wordform 0</div>`;
+                    for (let i = 0; i < 6; i++) eStr += `<div class='flex-row entry-form-wrapper'>Wordform ${i}</div>`;
+                eStr += `</div>`;
+                eStr += `<button id='entry-add-wordform' class='button-highlight'>Add New Wordform</button>`;
+                // sentences
+                eStr += `<h3 class='section-title'>Sentences <span id='entry-sentences-count'>(5)</span></h3>`;
+                eStr += `<div class='flex-row entry-legend'>`;
+                    eStr += `<p id='entry-sents-legend-case'>Form/Case</p>`;
+                    eStr += `<div class='flex-sep'></div>`;
+                    eStr += `<p>Audio</p>`;
+                    eStr += `<div class='flex-sep'></div>`;
+                    eStr += `<p id='entry-sents-legend-options'></p>`;
+                eStr += `</div>`;
+                eStr += `<div id='entry-sentences-wrapper' class='flex-col'>`;
+                    // eStr += `<div class='flex-row entry-sentence-wrapper'>Sentence 0</div>`;
+                    // for (let i = 0; i < 3; i++) eStr += `<div class='flex-row entry-sentence-wrapper'>Sentence ${i}</div>`;
+                eStr += `</div>`;
+                eStr += `<button id='entry-add-sentence' class='button-highlight'>Add New Sentence</button>`;
+                // notes
+                eStr += `<h3 class='section-title'>Notes <span id='entry-notes-count'>(2)</span></h3>`;
+                eStr += `<div id='entry-notes-wrapper' class='flex-col'>`;
+                    eStr += `<div class='flex-col entry-note-wrapper'>`;
+                        eStr += `<p>Note #1</p>`;
+                        eStr += `<textarea rows='3'>Related language Chukchansi tʰixtʰinitʰ 'sick'</textarea>`;
+                    eStr += `</div>`;
+                    eStr += `<div class='flex-col entry-note-wrapper'>`;
+                        eStr += `<p>Note #2</p>`;
+                        eStr += `<textarea rows='3'>Other note</textarea>`;
+                    eStr += `</div>`;
+                eStr += `</div>`;
+                eStr += `<button id='entry-add-note' class='button-highlight'>Add New Note</button>`;
+                // danger zone
+                eStr += `<div class='separator-line'></div>`;
+                eStr += `<div class='flex-col'>`;
+                    eStr += `<h3 id='entry-danger-zone-header' class='flex-col'>The Danger Zone</h3>`;
+                    eStr += `<div id='entry-danger-zone' class='flex-col'>`;
+                        eStr += `<div class='flex-row'>`;
+                            eStr += `<button id='entry-delete' class='button-caution'>Delete Entry</button>`;
+                            eStr += `<p>This will delete the current entry PERMANENTLY. This action cannot be undone.</p>`;
+                        eStr += `</div>`;
+                    eStr += `</div>`;
+                eStr += `</div>`;
+            eStr += `</div>`;
         eStr += `</div>`;
         // eStr += ``;
     eStr += `</div>`;
     e.innerHTML = eStr;
+    e.querySelector('#entry-forms-count').onclick = () => tryLoadEntry(0);
     tabContents[TAB_LEXICON] = e;
 })();
+
+const nWelcomePage = (() => {
+    let e = document.createElement('div');
+        e.id = 'r-content';
+        e.classList.add('no-scrollbar');
+    let eStr = ``;
+    eStr += `<div id='welcome' class='flex-col no-scrollbar'>`;
+        eStr += `<h1>Welcome to LexPad</h1>`;
+        eStr += `<div class='flex-row'>`;
+            eStr += `<button id='btn-open-project' class='button-highlight'>Open Project</button>`;
+            eStr += `<button id='btn-new-project' class='button-highlight'>New Project</button>`;
+        eStr += `</div>`;
+    eStr += `</div>`;
+    e.innerHTML = eStr;
+    e.querySelector('#btn-open-project').onclick = () => tryOpenProject(); // needs to be lambda, so function can be hoisted properly
+    // document.getElementById('btn-open-project').onclick = tryOpenProject;
+    return e;
+})();
+
+// const tplFormSelect = (() => {
+//     let tpl = document.createElement('template');
+//     let eStr = ``;
+//     eStr += ``;
+//     tpl.innerHTML = eStr;
+//     return tpl;
+// })();
+
+
 
 // program state
 let project = {
@@ -93,6 +178,7 @@ let L1 = {
 let L2 = {};
 let orderedWordsL1 = [];
 let orderedWordsL2 = [];
+let activeEntry = {};
 
 const tryOpenProject = async () => {
     const res = await window.electronAPI.openProject();
@@ -104,8 +190,7 @@ const tryOpenProject = async () => {
     project.path = res.path;
     console.log(`Loading project: ${project.path}`);
     eStatbarLeft.textContent = project.path;
-    await tryGetLangInfo();
-    // TODO: refresh project tab
+    await tryGetLangInfo(); // refreshes project tab
 };
 const tryGetLangInfo = async () => {
     const res = await window.electronAPI.getLangInfo();
@@ -116,24 +201,41 @@ const tryGetLangInfo = async () => {
     buildProjectTab();
     loadTab(TAB_PROJECT);
 };
+const tryLoadEntry = async (i) => {
+    const res = await window.electronAPI.getEntry(i);
+    console.log(res);
+    if (res.error) { console.error(res.message); return; }
+    // set as active entry, then refresh UI
+    activeEntry = res;
+    // debug mod form select template
+    let tpl = document.getElementById('tpl-form-select');
+    let opt = document.createElement('option');
+        opt.value = '9';
+        opt.textContent = 'New Option';
+    // setting innerHTML seems to be the only way to mod a template; it's all or nothing
+    tpl.innerHTML = `<select><option value='-1'>New Option</option></select>`;
+    // TODO: rebuild entry editor window
+    tabContents[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
+    tabContents[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
+    for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
+    // for (let i = 0; i < activeEntry.L2.length; i++) {
+    //     //
+    // }
+    tabContents[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
+    tabContents[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sentences.length})`;
+    for (let i = 0; i < activeEntry.sentences.length; i++) renderSentence(i);
+    tabContents[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = '';
+    tabContents[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
+    for (let i = 0; i < activeEntry.notes.length; i++) renderNote(i);
+};
 
 
 
 // Project Tab
 
 const buildWelcomePage = () => {
-    // open project / new project dialogue
-    let eStr = ``;
-    eStr += `<div id='welcome' class='flex-col'>`;
-        eStr += `<h1>Welcome to LexPad</h1>`;
-        eStr += `<div class='flex-row'>`;
-            eStr += `<button id='btn-open-project' class='button-highlight'>Open Project</button>`;
-            eStr += `<button id='btn-new-project' class='button-highlight'>New Project</button>`;
-        eStr += `</div>`;
-    eStr += `</div>`;
-    eContent.innerHTML = eStr; // self-contained and uneditable; guaranteed safe
-    // attach onclick events
-    document.getElementById('btn-open-project').onclick = tryOpenProject;
+    eContent.replaceWith(nWelcomePage);
+    eContent = document.getElementById('r-content'); // need to rebind var to whatever content container is active
 };
 const buildProjectTab = () => {
     if (!project.path) {
@@ -149,7 +251,73 @@ const buildProjectTab = () => {
 
 // Lexicon Tab
 
-//
+const renderWordform = i => {
+    // TODO: use refreshable off-DOM <template> elems instead of innerHTML constructor strings
+        // support nesting of <template> elems
+        // entry-wordform <template> has blank <option id='replace-me'>
+        // create second <template> containing actual constructed <option>
+        // then use wordformTemplate.clone().querySelector('replace-me').replaceWith(optionsTemplate.clone())
+
+    console.log(`Render form ${i}`);
+
+    let e = document.createElement('div');
+        e.classList.add('flex-row');
+        e.classList.add('entry-form-wrapper');
+    // form <select>
+    e.appendChild( document.getElementById('tpl-form-select').content.cloneNode(true) );
+    // word <input>
+    let eFormContent = document.createElement('input');
+    Object.assign(eFormContent, {
+        id : `entry-form-${i}-content`,
+        type : 'text',
+        spellcheck : 'false',
+        value : activeEntry.L2[i].synonyms.join('; '),
+        // value : 'hello world'
+    });
+    e.appendChild(eFormContent);
+    // audio
+    let eFormAudio = document.createElement('div');
+        eFormAudio.classList.add('flex-row');
+        eFormAudio.classList.add('flex-fill');
+        eFormAudio.classList.add('entry-audio-gallery');
+        eFormAudio.innerHTML = `<p class='entry-no-audio'>No Audio</p><button class='icon-plus'></button>`;
+    e.appendChild(eFormAudio);
+    // menu
+    let eMenuButton = document.createElement('button');
+        eMenuButton.classList.add('icon-tridot');
+    e.appendChild(eMenuButton);
+    let eMenu = document.createElement('div');
+        eMenu.id = `entry-form-${i}-menu`;
+        eMenu.classList.add('flex-col');
+        eMenu.classList.add('options-menu');
+        // eMenu.style.visibility = 'hidden';
+        eMenu.innerHTML = `<button id='entry-form-${i}-manage-audio' class='menu-option-standard'>Manage Audio</button><div class='menu-separator'></div><button id='entry-form-${i}-delete' class='menu-option-caution'>Delete Wordform</button>`;
+    e.appendChild(eMenu);
+    // events
+    tabContents[TAB_LEXICON].querySelector('#entry-forms-wrapper').appendChild(e);
+};
+const renderSentence = i => {
+    let e = document.getElementById('tpl-entry-sentence').content.cloneNode(true);
+    e.querySelector('select').replaceWith( document.getElementById('tpl-form-select').content.cloneNode(true) ); // insert pre-built form <select>
+    e.querySelector('.entry-sentence-L1').value = activeEntry.sentences[i].L1;
+    e.querySelector('.entry-sentence-L1').onblur = () => console.log(`Saving sentence ${i} L1...`);
+    e.querySelector('.entry-sentence-L2').value = activeEntry.sentences[i].L2;
+    e.querySelector('.entry-sentence-L2').onblur = () => console.log(`Saving sentence ${i} L2...`);
+    tabContents[TAB_LEXICON].querySelector('#entry-sentences-wrapper').appendChild(e);
+};
+const renderNote = i => {
+    let e = document.createElement('div');
+        e.classList.add('flex-col');
+        e.classList.add('entry-note-wrapper');
+    let eNoteTitle = document.createElement('p');
+        eNoteTitle.textContent = `Note #${i+1}`;
+    e.appendChild(eNoteTitle);
+    let eNoteContent = document.createElement('textarea');
+        eNoteContent.rows = 3;
+        eNoteContent.textContent = activeEntry.notes[i];
+    e.appendChild(eNoteContent);
+    tabContents[TAB_LEXICON].querySelector('#entry-notes-wrapper').appendChild(e);
+};
 
 
 
@@ -180,6 +348,7 @@ function loadTab (tabId) {
 }
 
 buildProjectTab();
+// tryLoadEntry(0);
 
 // attach event handlers
 for (let i = 0; i < eNavTabs.length; i++) {

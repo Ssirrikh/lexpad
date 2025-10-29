@@ -135,8 +135,10 @@ const getOrderedWords = () => {
 		L2 : lexicon.orderedL2
 	};
 };
-const getEntry = entryId => {
-	return lexicon.data[entryId] ?? { error: `index_out_of_bounds` };
+const getEntry = (event,entryId) => {
+	console.log(`=== Loading entry ${entryId}... ===`);
+	console.log(lexicon.data[entryId]);
+	return lexicon.data[entryId] ?? { error: true, message: `ERR No entry with id ${entryId}. Bounds are [0,${lexicon.data.length}).` };
 }
 
 

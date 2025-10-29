@@ -7,17 +7,80 @@
     <meta name='description' content="Work on your language's lexicon in a clean, modern interface with support for automated checks and formatting.">
 	<meta name='viewport' content='width=device-width, initial-scale=1'>
     <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"
+        http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; img-src 'self' data:;"
     />
     <meta
-      http-equiv="X-Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"
+        http-equiv="X-Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; img-src 'self' data:;"
     />
     <link rel='stylesheet' href='style/common.css'>
     <link rel='stylesheet' href='style/lexpad.css'>
 </head>
 <body>
+
+    <!-- TEMPLATES -->
+
+    <template id='tpl-form-select'>
+        <select>
+            <option value='-1'>-- Select Form --</option>
+            <option value='0'>Subject</option>
+            <option value='1'>Object</option>
+            <option value='+'>++ ADD NEW FORM ++</option>
+        </select>
+    </template>
+    <!-- entry wordforms -->
+    <template id='tpl-entry-wordform'>
+        <div class='flex-row entry-form-wrapper'>
+            <select>
+                <option value='-1'>-- Select Form --</option>
+            </select>
+            <input type='text' spellcheck='false'>
+            <div class='flex-row flex-fill entry-audio-gallery'>
+                <button class='icon-audio'></button>
+                <button class='icon-audio'></button>
+                <button class='icon-plus'></button>
+            </div>
+            <button class='icon-tridot'></button>
+            <div class='flex-col options-menu'>
+                <button class='menu-option-standard'>Manage Audio</button>
+                <div class='menu-separator'></div>
+                <button class='menu-option-caution'>Delete Wordform</button>
+            </div>
+        </div>
+    </template>
+    <!-- entry sentences -->
+    <template id='tpl-entry-sentence'>
+        <div class='flex-col entry-sentence-wrapper'>
+            <div class='flex-row'>
+                <select>
+                    <option value='-1'>-- Select Form --</option>
+                </select>
+                <div class='flex-row flex-fill entry-audio-gallery'>
+                    <p class='entry-no-audio'>No Audio</p>
+                    <button class='icon-plus'></button>
+                </div>
+                <button class='icon-tridot'></button>
+            </div>
+            <div class='flex-row'>
+                <label>Wik</label>
+                <input class='entry-sentence-L2' type='text' spellcheck='false'>
+            </div>
+            <div class='flex-row'>
+                <label>Eng</label>
+                <input class='entry-sentence-L1' type='text'>
+            </div>
+            <div class='flex-col options-menu'>
+                <button class='menu-option-standard'>Manage Audio</button>
+                <div class='menu-separator'></div>
+                <button class='menu-option-caution'>Delete Sentence</button>
+            </div>
+        </div>
+    </template>
+
+
+
+    <!-- CONTENT -->
     
     <!-- main covers entire viewport; it should allow zooming but not scrolling -->
     <div id='main' class='flex-col'>

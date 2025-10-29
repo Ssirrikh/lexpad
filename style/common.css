@@ -18,6 +18,7 @@
     --bg-dark: #1a282f;
     --border-light: #e2e4e5;
     --border-medium: #cfcfcf;
+    --border-dark: #a2a4a6;
     --text-error: #dc0019;
 
     --text-white: #ffffff;
@@ -29,6 +30,7 @@
     /* --bg-light: #e7eef7; */
     --bg-offwhite: #d7dee7;
     --bg-grey: #c1c1d1;
+    --bg-tint: #f5f6ff;
     --bg-highlight: #65b9ff;
     --bg-highlight: #2f91ff;
     --bg-medium: #3b454a;
@@ -43,6 +45,7 @@
     --warning-white: #fee;
     --warning-light: #fcc;
     --warning-dark: #600;
+    --warning-highlight-dark: #b00;
     --warning-highlight: #f00;
     --warning-highlight-light: #f44;
 

@@ -2,23 +2,78 @@
 /**** DOM ****/
 
 :root {
-    --border-tabs: white;
+    --entry-editor-margins: 3em;
+    --entry-form-select-width: 10em;
+    --entry-form-input-width: 14em;
+    --entry-form-audio-min-width: 6em;
+
+    --edge-sharpness-shadow: drop-shadow(0 0 4px #00000038);
 }
 
 body {
     background-color: magenta;
 }
 
-input {
+input, textarea {
     background-color: white;
     border: thin solid var(--border-medium);
     border-radius: 4px;
     padding: 0.2em 0.5em;
     outline: none;
 }
-input:focus-visible {
-    border: thin solid var(--primary-highlight);
-    outline: thin solid var(--primary-highlight);
+input:focus-visible, textarea:focus-visible {
+    border: thin solid var(--primary-highlight) !important;
+    outline: thin solid var(--primary-highlight) !important;
+}
+select {
+    background-color: var(--bg-light);
+    border: thin solid var(--border-dark);
+    border-radius: 4px;
+    padding: 0.2em 0.5em;
+    outline: none;
+    width: calc(1.25 * var(--entry-form-select-width));
+    font-size: 0.8em;
+}
+select:focus-visible {
+    border: thin solid var(--primary-highlight) !important;
+    outline: thin solid var(--primary-highlight) !important;
+}
+
+
+
+/**** ICONOGRAPHY ****/
+
+/* svg icons can't use fill="currentColor" since data:image/svg is technically outside DOM */
+/* either manually set fill color, or use mask instead of background-image */
+
+.icon-plus {
+    background-color: var(--primary);
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M 12 18 m -1 0 a 1 1 0 1 0 2 0 v -5 h 5 a 1 1 0 1 0 0 -2 h -5 v -5 a 1 1 0 1 0 -2 0 v 5 h -5 a 1 1 0 1 0 0 2 h 5 z" /></svg>');
+
+    border-radius: 0.25em;
+    width: calc(1em + 0.3em + 0.3em);
+    height: calc(1em + 0.3em + 0.3em);
+}
+.icon-plus:hover {
+    background-color: var(--primary-selection);
+}
+.icon-tridot {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="var(--text-dark)" stroke="none"><path d="M 12 12 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12 19 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12 5 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0" /></svg>');
+    /* <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d='M 12 12 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12 19 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12 5 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0' />
+    </svg> */
+    
+    border-radius: 0.25em;
+    width: calc(1em + 0.3em + 0.3em);
+    height: calc(1em + 0.3em + 0.3em);
+}
+.icon-tridot:hover {
+    background-color: var(--bg-light);
+    background-color: var(--bg-offwhite);
+}
+
+.icon-plus:focus-visible, .icon-tridot:focus-visible {
+    outline: medium solid var(--primary-dark);
 }
 
 
@@ -50,6 +105,9 @@ input:focus-visible {
     color: white;
     background-color: var(--primary-selection);
 }
+.navtab:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
 /* active navtab must override hover styling */
 .active-navtab {
     color: black !important;
@@ -61,6 +119,7 @@ input:focus-visible {
     background-color: var(--bg-light);
     border-bottom: thin solid var(--border-medium);
     border-bottom: thin solid var(--text-subtitle);
+    border-bottom: thin solid var(--border-dark);
     padding: 0.25em 0.5em;
     font-size: 0.6em;
     justify-content: space-between;
@@ -92,12 +151,28 @@ input:focus-visible {
 .button-highlight {
     color: white;
     background-color: var(--primary);
-    border-radius: 0.25em;
-    padding: 0.5em 1em;
+    border-radius: 0.3em;
+    padding: 0.25em 1em;
     font-size: 1em;
 }
 .button-highlight:hover {
     background-color: var(--primary-selection);
+}
+.button-highlight:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
+.button-caution {
+    color: white;
+    background-color: var(--warning-highlight);
+    border-radius: 0.3em;
+    padding: 0.25em 1em;
+    font-size: 1em;
+}
+.button-caution:hover {
+    background-color: var(--warning-highlight-dark);
+}
+.button-caution:focus-visible {
+    outline: medium solid var(--warning-dark);
 }
 
 .subtitle {
@@ -131,7 +206,7 @@ input:focus-visible {
     height: 100%;
     align-content: center;
     justify-content: center;
-    gap: 20%;
+    gap: min(2em, 20%);
 }
 #welcome > h1 {
     font-size: 2.5em;
@@ -190,6 +265,7 @@ input:focus-visible {
 
 #lexicon-header {
     border-bottom: thin solid var(--text-subtitle);
+    border-bottom: thin solid var(--border-dark);
     padding: 0.5em;
     flex-shrink: 0;
 }
@@ -210,7 +286,6 @@ input:focus-visible {
 }
 .lexicon-entry:hover {
     background-color: white;
-    /* border-left: thick solid var(--primary-highlight); */
     box-shadow: inset 5px 0 0 0 var(--primary-highlight);
 }
 .lexicon-entry + .lexicon-entry {
@@ -219,16 +294,16 @@ input:focus-visible {
 }
 .active-entry {
     background-color: white !important;
-    /* border-left: thick solid var(--primary-highlight) !important; */
-    box-shadow: inset 5px 0 0 0 var(--primary-highlight) !important;
+    box-shadow: inset -5px 0 0 0 var(--primary-highlight) !important;
 }
 
 /* right panel: entry editor */
 
 #entry-editor {
     border-left: thin solid var(--text-subtitle);
+    border-left: thin solid var(--border-dark);
     padding: 1em;
-    gap: 1em;
+    gap: 0.5em;
     flex-grow: 1;
     overflow-y: scroll;
 }
@@ -237,14 +312,14 @@ input:focus-visible {
 
 #entry-header {
     color: white;
-    background-color: var(--primary-selection);
+    background-color: var(--primary);
     border-radius: 1em;
-    filter: drop-shadow(0 0 4px #00000038);
     
     font-size: 1em;
-    /* margin: 1em; */
     padding: 1em;
     gap: 1em;
+
+    min-width: max-content;
 
     /* uncomment to enable sticky mode */
     /* reqs explicit z-index to prevent sibling elements' shadows from rendering on top */
@@ -257,13 +332,7 @@ input:focus-visible {
     margin: 0; */
 }
 #entry-L1 {
-    color: black;
-    background-color: var(--bg-light);
     font-size: 1.5em;
-}
-#entry-L1-desc {
-    color: var(--primary-grey);
-    font-size: 0.5em;
 }
 #entry-catg {
     color: var(--primary-selection);
@@ -274,9 +343,205 @@ input:focus-visible {
 }
 #entry-image {
     color: white;
-    background-color: var(--primary);
+    background-color: var(--primary-selection);
     border: thin solid white;
     border-radius: 0.5em;
     width: 5em;
     height: 5em;
 }
+#entry-image:focus-visible {
+    outline: thin solid white !important;
+}
+
+/* entry editor: content */
+
+#entry-content {
+    padding: 1em var(--entry-editor-margins);
+    gap: 0.5em;
+    min-width: fit-content;
+}
+#entry-content > button {
+    /* font-size: 0.8em; */
+    align-self: end;
+}
+
+#entry-forms-count, #entry-sentences-count, #entry-notes-count {
+    color: var(--text-subtitle);
+    font-size: 0.8em;
+}
+
+#entry-forms-wrapper, #entry-sentences-wrapper, #entry-notes-wrapper {
+    gap: 0.3em;
+}
+.entry-form-wrapper, .entry-sentence-wrapper {
+    background-color: white;
+    border-radius: 0.3em;
+    position: relative;
+    padding: 0.3em;
+    gap: 0.25em;
+    min-width: fit-content;
+}
+
+.entry-no-audio {
+    color: var(--text-subtitle);
+    font-size: 0.8em;
+}
+
+.options-menu {
+    background-color: white;
+    border: thin solid var(--border-medium);
+    border-radius: 0.5em;
+    filter: var(--edge-sharpness-shadow);
+    z-index: var(--layer-front);
+    position: absolute;
+    top: 100%;
+    right: 0;
+    padding: 0.5em;
+    /* gap: 0.5em; */
+
+    visibility: hidden;
+}
+.menu-option-standard {
+    border-radius: 0.3em;
+    padding: 0.5em 1em;
+    font-size: 1em;
+    text-align: left;
+}
+.menu-option-standard:hover {
+    background-color: var(--bg-light);
+    background-color: var(--bg-offwhite);
+}
+.menu-option-caution {
+    color: var(--warning-highlight);
+    border-radius: 0.3em;
+    padding: 0.5em 1em;
+    font-size: 1em;
+    text-align: left;
+}
+.menu-option-caution:hover {
+    background-color: var(--warning-light);
+}
+.menu-separator {
+    border-bottom: thin solid var(--border-medium);
+    margin: 4px 0;
+}
+
+/* entry editor: sections and legends */
+
+.section-title {
+    font-size: 1.5em;
+}
+.entry-legend {
+    color: white;
+    background-color: var(--primary);
+    border-radius: 0.3em;
+    padding: 0.3em;
+    font-size: 1em;
+    gap: 0.25em;
+    min-width: fit-content;
+}
+.entry-legend > * {
+    flex-shrink: 0;
+}
+#entry-forms-legend-case {
+    width: var(--entry-form-select-width);
+}
+#entry-forms-legend-form {
+    width: var(--entry-form-input-width);
+}
+.entry-legend > .flex-fill {
+    text-align: center;
+}
+#entry-forms-legend-options {
+    width: calc(1em + 0.3em + 0.3em);
+}
+#entry-sents-legend-case {
+    width: var(--entry-form-select-width);
+}
+#entry-sents-legend-options {
+    width: calc(1em + 0.3em + 0.3em);
+}
+
+/* entry editor: wordforms */
+
+.entry-form-wrapper > * {
+    flex-shrink: 0;
+}
+.entry-form-wrapper > select {
+    width: calc(1.25 * var(--entry-form-select-width));
+}
+.entry-form-wrapper > input {
+    background-color: var(--bg-tint);
+    /* border-bottom: thin solid var(--primary-highlight); */
+    width: var(--entry-form-input-width);
+}
+.entry-form-wrapper > .entry-audio-gallery {
+    gap: 0.3em;
+    min-width: var(--entry-form-audio-min-width);
+}
+
+/* entry editor: sentences */
+
+.entry-sentence-wrapper > :first-child {
+    /* get first child, which should be first flex-row */
+    gap: 0.3em;
+}
+.entry-sentence-wrapper select {
+    width: calc(1.25 * var(--entry-form-select-width));
+    font-size: 0.8em;
+}
+.entry-sentence-wrapper .entry-audio-gallery {
+    gap: 0.3em;
+}
+
+.entry-sentence-wrapper label {
+    color: var(--text-subtitle);
+    font-size: 0.8em;
+    width: 3em;
+    text-align: center;
+    flex-shrink: 0;
+}
+.entry-sentence-L1, .entry-sentence-L2 {
+    background-color: var(--bg-tint);
+    flex-grow: 1;
+}
+
+.entry-sentence-wrapper .options-menu {
+    top: 33.33%;
+}
+
+/* entry editor: notes */
+
+.entry-note-wrapper > textarea {
+    border: thin solid var(--text-subtitle);
+    padding: 0.25em;
+    font-size: 1em;
+    resize: none;
+}
+
+/* entry editor: danger zone */
+
+#entry-danger-zone-header {
+    color: var(--warning-highlight-light);
+    background-color: var(--warning-dark);
+    border-radius: 0.5em 0.5em 0 0;
+
+    font-size: 1em;
+    padding: 0.5em 1em;
+}
+#entry-danger-zone {
+    color: var(--warning-dark);
+    background-color: var(--warning-light);
+    border-radius: 0 0 0.5em 0.5em;
+
+    padding: 0.5em;
+    gap: 0.5em;
+}
+#entry-danger-zone > .flex-row {
+    gap: 0.5em;
+}
+#entry-delete + p {
+    color: var(--warning-highlight);
+    font-size: 0.8em;
+}
+
