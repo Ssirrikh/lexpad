@@ -46,6 +46,18 @@ select:focus-visible {
 /* svg icons can't use fill="currentColor" since data:image/svg is technically outside DOM */
 /* either manually set fill color, or use mask instead of background-image */
 
+.icon-audio {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="var(--text-dark)" stroke="none"><path d="M 6 15 h -2 a 1 1 0 0 1 -1 -1 v -4 a 1 1 0 0 1 1 -1 h 2 l 3.5 -4.5 a 0.8 0.8 0 0 1 1.5 0.5 v 14 a 0.8 0.8 0 0 1 -1.5 0.5 l -3.5 -4.5 Z M 15 8 a 5 5 0 0 1 0 8 L 14.1 14.8 a 3.5 3.5 0 0 0 0 -5.6 Z M 17.7 5 a 9 9 0 0 1 0 14 L 16.75 17.83 a 8 8 0 0 0 0 -11.67 Z" /></svg>');
+    /* <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d='M 6 15 h -2 a 1 1 0 0 1 -1 -1 v -4 a 1 1 0 0 1 1 -1 h 2 l 3.5 -4.5 a 0.8 0.8 0 0 1 1.5 0.5 v 14 a 0.8 0.8 0 0 1 -1.5 0.5 l -3.5 -4.5 Z M 15 8 a 5 5 0 0 1 0 8 L 14.1 14.8 a 3.5 3.5 0 0 0 0 -5.6 Z M 17.7 5 a 9 9 0 0 1 0 14 L 16.75 17.83 a 8 8 0 0 0 0 -11.67 Z' />
+    </svg> */
+    border-radius: 0.25em;
+    width: calc(1em + 0.3em + 0.3em);
+    height: calc(1em + 0.3em + 0.3em);
+}
+.icon-audio:hover {
+    background-color: var(--bg-offwhite);
+}
 .icon-plus {
     background-color: var(--primary);
     background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M 12 18 m -1 0 a 1 1 0 1 0 2 0 v -5 h 5 a 1 1 0 1 0 0 -2 h -5 v -5 a 1 1 0 1 0 -2 0 v 5 h -5 a 1 1 0 1 0 0 2 h 5 z" /></svg>');
@@ -72,7 +84,7 @@ select:focus-visible {
     background-color: var(--bg-offwhite);
 }
 
-.icon-plus:focus-visible, .icon-tridot:focus-visible {
+.icon-audio:focus-visible, .icon-plus:focus-visible, .icon-tridot:focus-visible {
     outline: medium solid var(--primary-dark);
 }
 
@@ -154,6 +166,7 @@ select:focus-visible {
     border-radius: 0.3em;
     padding: 0.25em 1em;
     font-size: 1em;
+    white-space: nowrap;
 }
 .button-highlight:hover {
     background-color: var(--primary-selection);
@@ -167,6 +180,7 @@ select:focus-visible {
     border-radius: 0.3em;
     padding: 0.25em 1em;
     font-size: 1em;
+    white-space: nowrap;
 }
 .button-caution:hover {
     background-color: var(--warning-highlight-dark);
@@ -361,6 +375,7 @@ select:focus-visible {
     min-width: fit-content;
 }
 #entry-content > button {
+    white-space: nowrap;
     /* font-size: 0.8em; */
     align-self: end;
 }
@@ -408,8 +423,10 @@ select:focus-visible {
     text-align: left;
 }
 .menu-option-standard:hover {
-    background-color: var(--bg-light);
     background-color: var(--bg-offwhite);
+}
+.menu-option-standard:focus-visible {
+    outline: medium solid var(--primary-dark);
 }
 .menu-option-caution {
     color: var(--warning-highlight);
@@ -420,6 +437,9 @@ select:focus-visible {
 }
 .menu-option-caution:hover {
     background-color: var(--warning-light);
+}
+.menu-option-caution:focus-visible {
+    outline: medium solid var(--warning-dark);
 }
 .menu-separator {
     border-bottom: thin solid var(--border-medium);

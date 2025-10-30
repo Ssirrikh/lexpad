@@ -62,6 +62,11 @@
                 </div>
                 <button class='icon-tridot'></button>
             </div>
+            <div class='flex-col options-menu'>
+                <button class='menu-option-standard'>Manage Audio</button>
+                <div class='menu-separator'></div>
+                <button class='menu-option-caution'>Delete Sentence</button>
+            </div>
             <div class='flex-row'>
                 <label>Wik</label>
                 <input class='entry-sentence-L2' type='text' spellcheck='false'>
@@ -70,13 +75,15 @@
                 <label>Eng</label>
                 <input class='entry-sentence-L1' type='text'>
             </div>
-            <div class='flex-col options-menu'>
-                <button class='menu-option-standard'>Manage Audio</button>
-                <div class='menu-separator'></div>
-                <button class='menu-option-caution'>Delete Sentence</button>
-            </div>
         </div>
     </template>
+    <!-- entry notes -->
+     <template id='tpl-entry-note'>
+        <div class='flex-col entry-note-wrapper'>
+            <p></p>
+            <textarea rows='3'></textarea>
+        </div>
+     </template>
 
 
 

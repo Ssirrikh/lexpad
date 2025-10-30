@@ -53,7 +53,7 @@ class LexiconEntry {
 	// data interaction
 	addFormL1 (word, form = -1) { this.L1.push(word.split(SYNONYM_SPLITTER)); }
 	addFormL2 (word, form = -1) { this.L2.push(L2.usesForms ? {synonyms:word.split(SYNONYM_SPLITTER),formId:form} : {synonyms:word.split(SYNONYM_SPLITTER)}); }
-	addSentence (L1, L2, form = -1) { this.sentences.push(L2.usesForms ? {L1:L1,L2:L2,form:form} : {L1:L1,L2:L2}); }
+	addSentence (sentL1, sentL2, form = -1) { this.sentences.push(L2.usesForms ? {L1:sentL1,L2:sentL2,formId:form} : {L1:sentL1,L2:sentL2}); }
 	addNote (note) { this.notes.push(note); }
 	// lookup
 	hasFormL1 (word) {}
@@ -119,8 +119,8 @@ const populateLexicon = jsonParse => {
 	}
 	console.log(`Loaded ${jsonParse.lexicon.length} entries into lexicon.`);
 	console.log(`${lexicon.orderedL1.length} L1 synonyms searchable, ${lexicon.orderedL2.length} L2 synonyms searchable`);
-	console.log(lexicon.orderedL1);
-	console.log(lexicon.orderedL2);
+	// console.log(lexicon.orderedL1);
+	// console.log(lexicon.orderedL2);
 }
 
 const getLanguageInfo = () => {

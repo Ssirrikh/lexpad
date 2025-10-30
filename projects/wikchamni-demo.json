@@ -9,14 +9,14 @@
 		"alph" : "a c č e f h i k l m n ŋ o p s š t ṭ u w x y ʔ",
 		"usesForms" : true,
 		"forms" : {
-			"noun" : [ "Subject","Object","Locative" ],
-			"verb" : [ "Past","Medio Passive","Durative Aorist","Future","Passive Gerundial","Durative Present","Neutral Verbal Noun","Causative","Neutral Agentive","UNDERLYING" ],
-			"adjective" : []
+			"n" : [ "Subject","Object","Locative" ],
+			"v" : [ "Past","Medio Passive","Durative Aorist","Future","Passive Gerundial","Durative Present","Neutral Verbal Noun","Causative","Neutral Agentive","UNDERLYING" ],
+			"adj" : []
 		},
 		"catgs" : {
-			"noun" : "n",
-			"verb" : "v",
-			"adjective" : "adj"
+			"n" : "Noun",
+			"v" : "Verb",
+			"adj" : "Adjective"
 		}
 	},
 	"lexicon" : [

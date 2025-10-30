@@ -1,6 +1,8 @@
 
 console.log(`Inline JS running successfully.`);
 
+const RE_SYNONYM_SPLITTER = /;\s*/;
+
 // DOM anchors
 const eNavTabs = [
     document.getElementById('navtab-0'),
@@ -153,14 +155,28 @@ const nWelcomePage = (() => {
     // document.getElementById('btn-open-project').onclick = tryOpenProject;
     return e;
 })();
+let tplFormSelect = (() => {
+    let e = document.createElement('template');
+    e.innerHTML = `<select><option value='-1'>-- Select Option --</option><option value='+'>++ ADD NEW ++</option></select>`;
+    return e;
+})();
 
-// const tplFormSelect = (() => {
-//     let tpl = document.createElement('template');
-//     let eStr = ``;
-//     eStr += ``;
-//     tpl.innerHTML = eStr;
-//     return tpl;
-// })();
+const buildFormSelect = (catg) => {
+    console.log(`Building form selector for catg "${catg}"...`);
+    // if target catg not encountered before, create it
+    if (!L2.forms[catg]) L2.forms[catg] = [];
+    // rebuild form select template for target catg
+    let eStr = ``;
+    eStr += `<select>`;
+        eStr += `<option value='-1'>-- Select Option --</option>`;
+        for (let i = 0; i < L2.forms[catg].length; i++) eStr += `<option value='${i}'>${L2.forms[catg][i]}</option>`;
+        eStr += `<option value='+'>++ ADD NEW ++</option>`;
+    eStr += `</select>`;
+    // TODO: UNSAFE innerHTML with arbitrary input
+    // setting innerHTML seems to be the only way to mod a template; it's all or nothing
+    // need to clean this
+    tplFormSelect.innerHTML = eStr;
+};
 
 
 
@@ -179,6 +195,7 @@ let L2 = {};
 let orderedWordsL1 = [];
 let orderedWordsL2 = [];
 let activeEntry = {};
+let activeMenu = '';
 
 const tryOpenProject = async () => {
     const res = await window.electronAPI.openProject();
@@ -205,29 +222,56 @@ const tryLoadEntry = async (i) => {
     const res = await window.electronAPI.getEntry(i);
     console.log(res);
     if (res.error) { console.error(res.message); return; }
-    // set as active entry, then refresh UI
+    // set as active entry, and update sub-components
     activeEntry = res;
-    // debug mod form select template
-    let tpl = document.getElementById('tpl-form-select');
-    let opt = document.createElement('option');
-        opt.value = '9';
-        opt.textContent = 'New Option';
-    // setting innerHTML seems to be the only way to mod a template; it's all or nothing
-    tpl.innerHTML = `<select><option value='-1'>New Option</option></select>`;
-    // TODO: rebuild entry editor window
+    buildFormSelect(activeEntry.catg);
+    // rebuild header
+    updateEditorHeader();
+    // rebuild wordforms
     tabContents[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
     tabContents[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
     for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
     // for (let i = 0; i < activeEntry.L2.length; i++) {
     //     //
     // }
+    // rebuild sentences
     tabContents[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
     tabContents[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sentences.length})`;
     for (let i = 0; i < activeEntry.sentences.length; i++) renderSentence(i);
+    // rebuild notes
     tabContents[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = '';
     tabContents[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
     for (let i = 0; i < activeEntry.notes.length; i++) renderNote(i);
 };
+
+// close open menu if user interacts with something else
+// window.addEventListener('click', e => {
+
+//     console.log(activeMenu);
+//     let menuElem = document.querySelector(activeMenu);
+//     if (!menuElem) {
+//         console.log('Hanging pointer to active menu. Resetting.');
+//         activeEntry = ''; // if menu is hanging pointer, clear it
+//         return;
+//     }
+//     if (!menuElem.contains(e.target)) {
+//         console.log('User interacted outside open menu. Closing menu...');
+//         toggleMenu(e,activeMenu); // else toggle it (off)
+//     }
+    
+
+//     // if (activeMenu !== undefined) {
+//     //     const elem = document.getElementById(activeMenu);
+//     //     if (!elem) {
+//     //         // if previously-active element deleted, stop tracking it (ie wordform recently deleted)
+//     //         activeMenu = undefined;
+//     //         return;
+//     //     }
+//     //     if (!elem.contains(e.target)) {
+//     //         elem.style.visibility = 'hidden';
+//     //     }
+//     // }
+// });
 
 
 
@@ -251,73 +295,149 @@ const buildProjectTab = () => {
 
 // Lexicon Tab
 
-const renderWordform = i => {
-    // TODO: use refreshable off-DOM <template> elems instead of innerHTML constructor strings
-        // support nesting of <template> elems
-        // entry-wordform <template> has blank <option id='replace-me'>
-        // create second <template> containing actual constructed <option>
-        // then use wordformTemplate.clone().querySelector('replace-me').replaceWith(optionsTemplate.clone())
-
-    console.log(`Render form ${i}`);
-
-    let e = document.createElement('div');
-        e.classList.add('flex-row');
-        e.classList.add('entry-form-wrapper');
-    // form <select>
-    e.appendChild( document.getElementById('tpl-form-select').content.cloneNode(true) );
-    // word <input>
-    let eFormContent = document.createElement('input');
-    Object.assign(eFormContent, {
-        id : `entry-form-${i}-content`,
-        type : 'text',
-        spellcheck : 'false',
-        value : activeEntry.L2[i].synonyms.join('; '),
-        // value : 'hello world'
+const updateEditorHeader = () => {
+    // interact with entry.L1[0], since eng guaranteed to only have 1 form
+    Object.assign(tabContents[TAB_LEXICON].querySelector('#entry-L1'), {
+        value : activeEntry.L1[0].join('; '),
+        onblur : () => {
+            activeEntry.L1[0] = tabContents[TAB_LEXICON].querySelector('#entry-L1').value.split(RE_SYNONYM_SPLITTER);
+            console.log(activeEntry.L1[0]);
+        }
     });
-    e.appendChild(eFormContent);
-    // audio
-    let eFormAudio = document.createElement('div');
-        eFormAudio.classList.add('flex-row');
-        eFormAudio.classList.add('flex-fill');
-        eFormAudio.classList.add('entry-audio-gallery');
-        eFormAudio.innerHTML = `<p class='entry-no-audio'>No Audio</p><button class='icon-plus'></button>`;
-    e.appendChild(eFormAudio);
+    tabContents[TAB_LEXICON].querySelector('#entry-catg').textContent = L2.catgs[activeEntry.catg];
+};
+
+const renderWordform = i => {
+    let e = document.getElementById('tpl-entry-wordform').content.cloneNode(true);
+    // form select
+    e.querySelector('select').replaceWith( tplFormSelect.content.cloneNode(true) );
+    Object.assign(e.querySelector('select'), {
+        id : `entry-form-${i}-selector`,
+        value : activeEntry.L2[i].formId ?? -1,
+        onchange : () => {
+            if (document.getElementById(`entry-form-${i}-selector`).value === '+') {
+                console.log(`Add New Form, triggered by wordform ${i}`);
+            } else {
+                activeEntry.L2[i].formId = document.getElementById(`entry-form-${i}-selector`).value;
+            }
+        }
+    });
+    // word input
+    Object.assign(e.querySelector('input'), {
+        id : `entry-form-${i}-content`,
+        value : activeEntry.L2[i].synonyms.join('; '),
+        onblur : () => {
+            activeEntry.L2[i].synonyms = document.getElementById(`entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER);
+            console.log(activeEntry.L2[i]);
+        }
+    });
     // menu
-    let eMenuButton = document.createElement('button');
-        eMenuButton.classList.add('icon-tridot');
-    e.appendChild(eMenuButton);
-    let eMenu = document.createElement('div');
-        eMenu.id = `entry-form-${i}-menu`;
-        eMenu.classList.add('flex-col');
-        eMenu.classList.add('options-menu');
-        // eMenu.style.visibility = 'hidden';
-        eMenu.innerHTML = `<button id='entry-form-${i}-manage-audio' class='menu-option-standard'>Manage Audio</button><div class='menu-separator'></div><button id='entry-form-${i}-delete' class='menu-option-caution'>Delete Wordform</button>`;
-    e.appendChild(eMenu);
+    e.querySelector('.options-menu').id = `entry-form-${i}-menu`;
+    e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt,`#entry-form-${i}-menu`);
+    e.querySelector('.options-menu > .menu-option-standard').onclick = () => console.log(`Trigger modal: manage audio for wordform ${i}`);
+    e.querySelector('.options-menu > .menu-option-caution').onclick = () => console.log(`Trigger modal: delete wordform ${i}`);
+
     // events
     tabContents[TAB_LEXICON].querySelector('#entry-forms-wrapper').appendChild(e);
 };
 const renderSentence = i => {
     let e = document.getElementById('tpl-entry-sentence').content.cloneNode(true);
-    e.querySelector('select').replaceWith( document.getElementById('tpl-form-select').content.cloneNode(true) ); // insert pre-built form <select>
-    e.querySelector('.entry-sentence-L1').value = activeEntry.sentences[i].L1;
-    e.querySelector('.entry-sentence-L1').onblur = () => console.log(`Saving sentence ${i} L1...`);
-    e.querySelector('.entry-sentence-L2').value = activeEntry.sentences[i].L2;
-    e.querySelector('.entry-sentence-L2').onblur = () => console.log(`Saving sentence ${i} L2...`);
+    // form select
+    e.querySelector('select').replaceWith( tplFormSelect.content.cloneNode(true) );
+    Object.assign(e.querySelector('select'), {
+        id : `entry-sentence-${i}-selector`,
+        value : activeEntry.sentences[i].formId ?? -1,
+        onchange : () => {
+            if (document.getElementById(`entry-sentence-${i}-selector`).value === '+') {
+                console.log(`Add New Form, triggered by sentence ${i}`);
+            } else {
+                activeEntry.sentences[i].formId = document.getElementById(`entry-sentence-${i}-selector`).value;
+            }
+        }
+    });
+    // sentences
+    Object.assign(e.querySelector('.entry-sentence-L1'), {
+        id : `entry-sentence-${i}-L1`,
+        value : activeEntry.sentences[i].L1,
+        onblur : () => {
+            activeEntry.sentences[i].L1 = document.getElementById(`entry-sentence-${i}-L1`).value;
+            console.log(activeEntry.sentences[i]);
+        }
+    });
+    Object.assign(e.querySelector('.entry-sentence-L2'), {
+        id : `entry-sentence-${i}-L2`,
+        value : activeEntry.sentences[i].L2,
+        onblur : () => {
+            activeEntry.sentences[i].L2 = document.getElementById(`entry-sentence-${i}-L2`).value;
+            console.log(activeEntry.sentences[i]);
+        }
+    });
+    // menu
+    e.querySelector('.options-menu').id = `entry-sentence-${i}-menu`;
+    e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt,`#entry-sentence-${i}-menu`);
+    e.querySelector('.options-menu > .menu-option-standard').onclick = () => console.log(`Trigger modal: manage audio for sentence ${i}`);
+    e.querySelector('.options-menu > .menu-option-caution').onclick = () => console.log(`Trigger modal: delete sentence ${i}`);
+
     tabContents[TAB_LEXICON].querySelector('#entry-sentences-wrapper').appendChild(e);
 };
 const renderNote = i => {
-    let e = document.createElement('div');
-        e.classList.add('flex-col');
-        e.classList.add('entry-note-wrapper');
-    let eNoteTitle = document.createElement('p');
-        eNoteTitle.textContent = `Note #${i+1}`;
-    e.appendChild(eNoteTitle);
-    let eNoteContent = document.createElement('textarea');
-        eNoteContent.rows = 3;
-        eNoteContent.textContent = activeEntry.notes[i];
-    e.appendChild(eNoteContent);
+    let e = document.getElementById('tpl-entry-note').content.cloneNode(true);
+    e.querySelector('p').textContent = `Note #${i+1}`;
+    Object.assign(e.querySelector('textarea'), {
+        id : `entry-note-${i}`,
+        value : activeEntry.notes[i],
+        onblur : () => {
+            activeEntry.notes[i] = document.getElementById(`entry-note-${i}`).value;
+            console.log(activeEntry.notes[i]);
+        }
+    });
     tabContents[TAB_LEXICON].querySelector('#entry-notes-wrapper').appendChild(e);
 };
+
+const toggleMenu = (evt,menuId) => {
+    evt.stopPropagation(); // menu closes when user clicks outside it, so block that if user clicked explicit menu trigger
+    
+    // console.log(`Current menu is "${activeMenu}". Toggling menu "${menuId}"...`);
+    
+    if (!menuId) {
+        // no menu targetted -> close active menu, if any
+        if (activeMenu) {
+            // console.log(`No menu targetted. Closing prev menu...`);
+            tabContents[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
+            activeMenu = undefined;
+        } else {
+            console.log(`No menu targetted. No open menues need closing.`);
+        }
+    } else if (menuId === activeMenu) {
+        // this menu already open -> close it
+        // console.log(`Menu already open. Toggling closed...`);
+        tabContents[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
+        activeMenu = undefined;
+    } else {
+        // diff menu already open -> close it
+        if (activeMenu) {
+            // console.log(`Closing menu "${activeMenu}"...`);
+            tabContents[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
+        }
+        // open target menu
+        // console.log(`Opening menu "${menuId}"...`);
+        tabContents[TAB_LEXICON].querySelector(menuId).style.visibility = 'visible';
+        activeMenu = menuId;
+    }
+
+    // clicked inside menu -> do nothing
+    // clicked menu trigger
+        // if this menu already open -> close it
+        // if a diff menu open -> close that menu, then open this one
+        // if no menu is open -> open this menu
+    // clicked somewhere else -> close open menu, if any
+
+};
+window.addEventListener('click', e => {
+    if (activeMenu && !tabContents[TAB_LEXICON].querySelector(activeMenu).contains(e.target)) {
+        toggleMenu(e, undefined); // if a menu was open and we clicked something unrelated to menus, close it
+    }
+});
 
 
 
