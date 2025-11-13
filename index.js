@@ -39,6 +39,12 @@ let lexicon = {
 	orderedL2 : []
 };
 
+const alphabetize = (oa,ob) => {
+	const a = oa.word.toLowerCase();
+	const b = ob.word.toLowerCase();
+	return a.localeCompare(b);
+};
+
 // formNum is index of form within entry's array of forms
 // formId is linguist label corresponding to case/conjugation/etc
 class LexiconEntry {
@@ -54,7 +60,7 @@ class LexiconEntry {
 	addFormL1 (word, form = -1) { this.L1.push(word.split(SYNONYM_SPLITTER)); }
 	addFormL2 (word, form = -1) { this.L2.push(L2.usesForms ? {synonyms:word.split(SYNONYM_SPLITTER),formId:form} : {synonyms:word.split(SYNONYM_SPLITTER)}); }
 	addSentence (sentL1, sentL2, form = -1) { this.sentences.push(L2.usesForms ? {L1:sentL1,L2:sentL2,formId:form} : {L1:sentL1,L2:sentL2}); }
-	addNote (note) { this.notes.push(note); }
+	addNote (note, form = -1) { this.notes.push(L2.usesForms ? {note:note,formId:form} : {note:note}); }
 	// lookup
 	hasFormL1 (word) {}
 	hasFormL2 (word) {}
@@ -111,16 +117,18 @@ const populateLexicon = jsonParse => {
 		e.catg = entry.catg;
 		for (let form of entry.L2) e.addFormL2(form.L2, form.form);
 		for (let sent of entry.sents) e.addSentence(sent.L1, sent.L2, sent.form);
-		for (let note of entry.notes) e.addNote(note);
+		for (let note of entry.notes) e.addNote(note.note, note.form);
 		lexicon.data.push(e);
 		// index data
-		lexicon.orderedL1.push(...entry.L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,entryId:i}}));
-		for (let form of entry.L2) lexicon.orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,entryId:i}}));
+		lexicon.orderedL1.push(...entry.L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:e.catg,entryId:i}}));
+		for (let form of entry.L2) lexicon.orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:e.catg,entryId:i}}));
 	}
+	lexicon.orderedL1.sort(alphabetize);
+	lexicon.orderedL2.sort(alphabetize);
 	console.log(`Loaded ${jsonParse.lexicon.length} entries into lexicon.`);
 	console.log(`${lexicon.orderedL1.length} L1 synonyms searchable, ${lexicon.orderedL2.length} L2 synonyms searchable`);
-	// console.log(lexicon.orderedL1);
-	// console.log(lexicon.orderedL2);
+	console.log(lexicon.orderedL1);
+	console.log(lexicon.orderedL2);
 }
 
 const getLanguageInfo = () => {
@@ -171,8 +179,8 @@ const dbg_checkObject = e => {
 
 const openProject = async e => {
 	console.log('main attempting to use "open file" dialogue')
-	const webContents = e.sender;
-	const win = BrowserWindow.fromWebContents(webContents);
+	// const webContents = e.sender;
+	// const win = BrowserWindow.fromWebContents(webContents);
 	// "open file" dialogue
 	const { canceled, filePaths } = await dialog.showOpenDialog({
 		properties : ['openFile'],
@@ -182,17 +190,32 @@ const openProject = async e => {
 		]
 	});
 	if (canceled || !filePaths?.length) return { canceled: true };
-	// load selected file
-	activeFile.path = filePaths[0];
-	win.setTitle(activeFile.path);
+	return { path: filePaths[0] };
+	// // load selected file
+	// activeFile.path = filePaths[0];
+	// win.setTitle(activeFile.path);
+	// try {
+	// 	const raw = await fs.readFile(activeFile.path, 'utf8');
+	// 	activeFile.contents = tryParseJSON(raw);
+	// 	console.log(activeFile.contents);
+	// 	if (activeFile.contents) {
+	// 		populateLexicon(activeFile.contents);
+	// 		activeFile.activeEntry = activeFile.contents.project.activeEntry;
+	// 	}
+	// 	return { path: activeFile.path, activeEntry: activeFile.activeEntry };
+	// } catch (err) {
+	// 	return { error: 'read_or_parse_failed', message: String(err) };
+	// }
+};
+const loadProject = async (e,path) => {
+	console.log(path);
 	try {
-		const raw = await fs.readFile(activeFile.path, 'utf8');
-		activeFile.contents = tryParseJSON(raw);
-		console.log(activeFile.contents);
-		if (activeFile.contents) {
-			populateLexicon(activeFile.contents);
-		}
-		return { path: activeFile.path };
+		const raw = await fs.readFile(path, 'utf8');
+		return { path: path, json: raw };
+		// const jsonParse = tryParseJSON(raw);
+		// console.log(jsonParse);
+		// if (!jsonParse) return { error: 'parse_empty', message: 'JSON parse was empty and contained no readable data.' };
+		// return { path: path, json: jsonParse };
 	} catch (err) {
 		return { error: 'read_or_parse_failed', message: String(err) };
 	}
@@ -234,6 +257,7 @@ app.whenReady().then(() => {
 	ipcMain.on('dbg-check-object', dbg_checkObject);
 	// IPC bridges: I/O
 	ipcMain.handle('open-project', openProject);
+	ipcMain.handle('load-project', loadProject);
 	// IPC bridges: database access
 	ipcMain.handle('get-lang-info', getLanguageInfo);
 	ipcMain.handle('get-ordered-words', getOrderedWords);

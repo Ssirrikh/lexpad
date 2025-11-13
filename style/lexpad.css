@@ -90,6 +90,73 @@ select:focus-visible {
 
 
 
+/**** LOADING SCREENS ****/
+
+.loading-screen {
+    align-items: center;
+    gap: 2em;
+}
+.loading-text {
+    color: var(--text-subtitle);
+    font-size: 1.5em;
+}
+.loading-animation-track {
+    /* serves as reference anchor for loading anim components */
+    position: relative;
+    width: 2em;
+}
+.loading-icon-full, .loading-icon-empty {
+    transform: translate(-50%,-50%) rotate(45deg);
+    position: absolute;
+    width: 1em;
+    height: 1em;
+}
+.loading-icon-full {
+    background-color: var(--primary);
+    /* border: medium solid white; */
+    left: 0%;
+
+    animation: loading-left 1.5s ease infinite;
+}
+.loading-icon-empty {
+    background-color: var(--bg-grey);
+    background-color: var(--primary-selection);
+    /* border: medium solid var(--primary); */
+    left: 100%;
+
+    animation: loading-right 1.5s ease infinite;
+}
+/* loading animation: 2 diamonds slide past each other, changing which one is on top */
+/* cannot optimize fully due to z-index change, but this is only anim, and it's very lightweight */
+@keyframes loading-left {
+    /* z-index changes at midpoint between keyframes, use fractional keyframes to set midpoint where diamonds don't overlap */
+    0%   { left:0%;   z-index:1; }
+    49%  { left:100%; z-index:1; }
+    50%  { left:100%; z-index:2; }
+    99%  { left:0%;   z-index:2; }
+    100% { left:0%;   z-index:1; }
+}
+@keyframes loading-right {
+    /* z-index changes at midpoint between keyframes, use fractional keyframes to set midpoint where diamonds don't overlap */
+    0%   { left:100%; z-index:2; }
+    49%  { left:0%;   z-index:2; }
+    50%  { left:0%;   z-index:1; }
+    99%  { left:100%; z-index:1; }
+    100% { left:100%; z-index:2; }
+}
+
+.window-status {
+    width: 100%;
+    height: 100%;
+    gap: 2em;
+}
+.window-status > p {
+    color: var(--text-subtitle);
+    font-size: 2em;
+}
+
+
+
 /**** HEADER BARS ****/
 
 #navbar {
@@ -135,6 +202,54 @@ select:focus-visible {
     padding: 0.25em 0.5em;
     font-size: 0.6em;
     justify-content: space-between;
+}
+#statbar-left > p {
+    margin-right: 0.25em;
+}
+
+.quick-copy-letter {
+    /* box-sizing: border-box; */
+    border: thin solid transparent;
+    border-radius: 0.25em;
+    padding: 0.2em;
+    padding: 0 0.2em;
+    min-width: 1em;
+    font-size: 1.2em;
+}
+.quick-copy-letter:hover {
+    background-color: white;
+}
+.quick-copy-letter:focus-within {
+    border: thin solid var(--primary-dark);
+}
+
+
+
+/**** MODALS ****/
+
+#modal-wrapper {
+    background-color: #00000066;
+    z-index: var(--layer-overlay);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    font-size: 0.8em;
+}
+#modal {
+    background-color: white;
+    border-radius: 0.5em;
+    padding: 1em;
+    gap: 1em;
+    min-width: 20em;
+}
+#modal-content {
+    gap: 0.25em;
+}
+#modal-actions {
+    justify-content: end;
+    gap: 1em;
 }
 
 
@@ -284,19 +399,27 @@ select:focus-visible {
     flex-shrink: 0;
 }
 
-#lexicon-content-header {
+#lexicon-legend {
     color: var(--text-subtitle);
     background-color: var(--bg-offwhite);
     padding: 0.5em 1em;
+    gap: 0.5em;
 }
 #lexicon-content {
     padding: 0.25em;
     overflow-y: scroll;
     flex-grow: 1;
 }
+#lexicon-no-entries {
+    color: var(--text-subtitle);
+    padding: 0.5em 0;
+    font-size: 1.2em;
+    text-align: center;
+}
 .lexicon-entry {
     /* border-left: thick solid transparent; */
-    padding: 0.2em 1em;
+    padding: 0.2em 0.5em;
+    gap: 0.5em;
 }
 .lexicon-entry:hover {
     background-color: white;
@@ -309,6 +432,13 @@ select:focus-visible {
 .active-entry {
     background-color: white !important;
     box-shadow: inset -5px 0 0 0 var(--primary-highlight) !important;
+}
+
+.lexicon-entry-catg {
+    color: var(--text-subtitle);
+    width: 3em;
+    font-size: 0.8em;
+    text-align: center;
 }
 
 /* right panel: entry editor */
@@ -397,6 +527,12 @@ select:focus-visible {
     min-width: fit-content;
 }
 
+.entry-section-no-content {
+    color: var(--text-subtitle);
+    background-color: var(--bg-light);
+    border-radius: 0.5em;
+    padding: 0.5em 1em;
+}
 .entry-no-audio {
     color: var(--text-subtitle);
     font-size: 0.8em;

@@ -3,118 +3,274 @@
 <head>
 	<meta charset = 'utf-8'>
 	<title>LexPad</title>
-    <meta name='robots' content='index, follow'>
-    <meta name='description' content="Work on your language's lexicon in a clean, modern interface with support for automated checks and formatting.">
+	<meta name='robots' content='index, follow'>
+	<meta name='description' content="Work on your language's lexicon in a clean, modern interface with support for automated checks and formatting.">
 	<meta name='viewport' content='width=device-width, initial-scale=1'>
-    <meta
-        http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; img-src 'self' data:;"
-    />
-    <meta
-        http-equiv="X-Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; img-src 'self' data:;"
-    />
-    <link rel='stylesheet' href='style/common.css'>
-    <link rel='stylesheet' href='style/lexpad.css'>
+	<meta
+		http-equiv="Content-Security-Policy"
+		content="default-src 'self'; script-src 'self'; img-src 'self' data:;"
+	/>
+	<meta
+		http-equiv="X-Content-Security-Policy"
+		content="default-src 'self'; script-src 'self'; img-src 'self' data:;"
+	/>
+	<link rel='stylesheet' href='style/common.css'>
+	<link rel='stylesheet' href='style/lexpad.css'>
 </head>
 <body>
-
-    <!-- TEMPLATES -->
-
-    <template id='tpl-form-select'>
-        <select>
-            <option value='-1'>-- Select Form --</option>
-            <option value='0'>Subject</option>
-            <option value='1'>Object</option>
-            <option value='+'>++ ADD NEW FORM ++</option>
-        </select>
-    </template>
-    <!-- entry wordforms -->
-    <template id='tpl-entry-wordform'>
-        <div class='flex-row entry-form-wrapper'>
-            <select>
-                <option value='-1'>-- Select Form --</option>
-            </select>
-            <input type='text' spellcheck='false'>
-            <div class='flex-row flex-fill entry-audio-gallery'>
-                <button class='icon-audio'></button>
-                <button class='icon-audio'></button>
-                <button class='icon-plus'></button>
-            </div>
-            <button class='icon-tridot'></button>
-            <div class='flex-col options-menu'>
-                <button class='menu-option-standard'>Manage Audio</button>
-                <div class='menu-separator'></div>
-                <button class='menu-option-caution'>Delete Wordform</button>
-            </div>
-        </div>
-    </template>
-    <!-- entry sentences -->
-    <template id='tpl-entry-sentence'>
-        <div class='flex-col entry-sentence-wrapper'>
-            <div class='flex-row'>
-                <select>
-                    <option value='-1'>-- Select Form --</option>
-                </select>
-                <div class='flex-row flex-fill entry-audio-gallery'>
-                    <p class='entry-no-audio'>No Audio</p>
-                    <button class='icon-plus'></button>
-                </div>
-                <button class='icon-tridot'></button>
-            </div>
-            <div class='flex-col options-menu'>
-                <button class='menu-option-standard'>Manage Audio</button>
-                <div class='menu-separator'></div>
-                <button class='menu-option-caution'>Delete Sentence</button>
-            </div>
-            <div class='flex-row'>
-                <label>Wik</label>
-                <input class='entry-sentence-L2' type='text' spellcheck='false'>
-            </div>
-            <div class='flex-row'>
-                <label>Eng</label>
-                <input class='entry-sentence-L1' type='text'>
-            </div>
-        </div>
-    </template>
-    <!-- entry notes -->
-     <template id='tpl-entry-note'>
-        <div class='flex-col entry-note-wrapper'>
-            <p></p>
-            <textarea rows='3'></textarea>
-        </div>
-     </template>
+	
+	<!-- main covers entire viewport; it should allow zooming but not scrolling -->
+	<div id='main' class='flex-col'>
+		<!-- HEADER BARS -->
+		<div id='navbar' class='flex-row'>
+			<div class='flex-sep'></div>
+			<button id='navtab-0' class='navtab active-navtab'>Project</button>
+			<button id='navtab-1' class='navtab'>Lexicon</button>
+			<button id='navtab-2' class='navtab'>Search</button>
+			<div class='flex-sep'></div>
+		</div>
+		<div id='statbar' class='flex-row'>
+			<p id='statbar-left' class='flex-row'>No project loaded...</p>
+			<p id='statbar-right'></p>
+		</div>
+		<!-- CONTENT -->
+		<div id='r-content' class='flex-col no-scrollbar'>
+			<div class='flex-col loading-screen'>
+				<p class='loading-text'>Loading</p>
+				<div class='loading-animation-track'>
+					<div class='loading-icon-full'></div>
+					<div class='loading-icon-empty'></div>
+				</div>
+			</div>
+		</div>
+	</div>
 
 
+	
+	<!-- ///////////////////////////////////////// -->
 
-    <!-- CONTENT -->
-    
-    <!-- main covers entire viewport; it should allow zooming but not scrolling -->
-    <div id='main' class='flex-col'>
-        <!-- HEADER BARS -->
-        <div id='navbar' class='flex-row'>
-            <div class='flex-sep'></div>
-            <button id='navtab-0' class='navtab active-navtab'>Project</button>
-            <button id='navtab-1' class='navtab'>Lexicon</button>
-            <button id='navtab-2' class='navtab'>Search</button>
-            <div class='flex-sep'></div>
-        </div>
-        <div id='statbar' class='flex-row'>
-            <p id='statbar-left'>No project loaded...</p>
-            <p id='statbar-right'>0 entries</p>
-        </div>
-        <!-- CONTENT -->
-        <div id='r-content' class='flex-col'>
-            <div class='flex-col r-list-item'>
-                <h2>Item Title</h2>
-                <p>Subtitle Goes Here</p>
-            </div>
-            <!-- this r-list-item will be duplicated 50 times once dynamic page builder is done -->
-        </div>
-    </div>
+	<!-- SHARED TEMPLATES -->
 
-    <script type='module' src='script/dictionary.js'></script>
-    <script type='module' src='script/lexpad.js'></script>
+	<template id='tpl-bg-status'>
+		<div class='flex-col flex-centered window-status'>
+			<p>No Content</p>
+		</div>
+	</template>
+
+	<!-- PROJECT TAB TEMPLATES -->
+
+	<template id='tpl-welcome-page'>
+		<div id='r-content' class='no-scrollbar'>
+			<div id='welcome' class='flex-col no-scrollbar'>
+				<h1>Welcome to LexPad</h1>
+				<div class='flex-row'>
+					<button id='btn-open-project' class='button-highlight'>Open Project</button>
+					<button id='btn-new-project' class='button-highlight'>New Project</button>
+				</div>
+			</div>
+		</div>
+	</template>
+
+	<template id='tpl-project-page'>
+		<div id='r-content' class='flex-col'>
+			<div id='project-lang-info' class='flex-col'>
+				<label id='label-lang-name' for='lang-name'>Language Full Name</label>
+				<input id='lang-name' type='text' spellcheck='false'>
+				<label id='label-lang-abbr' for='lang-abbr'>Abbreviation</label>
+				<input id='lang-abbr' type='text' spellcheck='false'>
+				<p class='subtitle'>2-3 letter abbreviation of language name, for example "eng" for English.</p>
+				<label id='label-lang-alph' for='lang-alph'>Alphabet</label>
+				<input id='lang-alph' type='text' spellcheck='false'>
+				<p class='subtitle'>Lowercase letters separated by spaces, ie "a á b c ch". Determines alphabetization order and contents of quick-copy bar. Supports multi-character letters.</p>
+			</div>
+			<p id='project-coming-soon'>Project statistics coming soon...</p>
+		</div>
+	</template>
+
+	<!-- LEXICON TAB TEMPLATES -->
+
+	<template id='tpl-lexicon-page'>
+		<div id='r-content' class='no-scrollbar'>
+			<div id='lexicon-wrapper' class='flex-row'>
+				<div id='lexicon' class='flex-col'>
+					<div id='lexicon-header' class='flex-col'>
+						<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search...'>
+					</div>
+					<div id='lexicon-legend' class='flex-row'>
+						<p>Catg</p>
+						<p>Entry</p>
+						<div class='flex-sep'></div>
+						<p>Media</p>
+					</div>
+					<div id='lexicon-content' class='flex-col no-scrollbar'>
+						<div id='lexicon-no-entries'>No entries...</div>
+					</div>
+				</div>
+				<div id='entry-editor' class='flex-col'>
+					<!-- <div class='flex-col flex-centered window-status'>
+						<p>Load an entry to get started.</p>
+					</div> -->
+					<p>No Content</p>
+				</div>
+			</div>
+		</div>
+	</template>
+
+	<template id='tpl-lexicon-entry'>
+		<div class='flex-row lexicon-entry'>
+			<p class='lexicon-entry-catg'>---</p>
+			<p class='lexicon-entry-word'>Lexicon Entry</p>
+		</div>
+	</template>
+
+	<!-- SEARCH TAB TEMPLATES -->
+
+	<template id='tpl-search-page'>
+		<div id='r-content'>
+			<h2>Search tab under construction...</h2>
+		</div>
+	</template>
+
+	<!-- ENTRY EDITOR TEMPLATES -->
+
+	<template id='tpl-entry-editor'>
+		<div id='entry-editor' class='flex-col'>
+			<div id='entry-header' class='flex-row'>
+				<label for='entry-L1'>English Word(s)</label>
+				<input id='entry-L1' type='text'>
+				<div class='flex-row flex-fill'>
+					<p id='entry-catg'>---</p>
+				</div>
+				<button id='entry-image'>No Image</button>
+			</div>
+			<div id='entry-content' class='flex-col'>
+				<!-- wordforms -->
+				<h3 class='section-title'>Wordforms <span id='entry-forms-count'>(0)</span></h3>
+				<div class='flex-row entry-legend'>
+					<p id='entry-forms-legend-case'>Form/Case</p>
+					<p id='entry-forms-legend-form'>Wikchamni Word</p>
+					<p class='flex-fill'>Audio</p>
+					<p id='entry-forms-legend-options'></p>
+				</div>
+				<div id='entry-forms-wrapper' class='flex-col'>
+					<div class='entry-section-no-content'>No Wordforms</div>
+				</div>
+				<button id='entry-add-wordform' class='button-highlight'>Add New Wordform</button>
+				<!-- sentences -->
+				<h3 class='section-title'>Sentences <span id='entry-sentences-count'>(0)</span></h3>
+				<div class='flex-row entry-legend'>
+					<p id='entry-sents-legend-case'>Form/Case</p>
+					<p class='flex-fill'>Audio</p>
+					<p id='entry-sents-legend-options'></p>
+				</div>
+				<div id='entry-sentences-wrapper' class='flex-col'>
+					<div class='entry-section-no-content'>No Sentences</div>
+				</div>
+				<button id='entry-add-sentence' class='button-highlight'>Add New Sentence</button>
+				<!-- notes -->
+				<h3 class='section-title'>Notes <span id='entry-notes-count'>(0)</span></h3>
+				<div id='entry-notes-wrapper' class='flex-col'>
+					<div class='entry-section-no-content'>No Notes</div>
+				</div>
+				<button id='entry-add-note' class='button-highlight'>Add New Note</button>
+				<!-- danger zone -->
+				<div class='separator-line'></div>
+				<div class='flex-col'>
+					<h3 id='entry-danger-zone-header' class='flex-col'>The Danger Zone</h3>
+					<div id='entry-danger-zone' class='flex-col'>
+						<div class='flex-row'>
+							<button id='entry-delete' class='button-caution'>Delete Entry</button>
+							<p>This will delete the current entry PERMANENTLY. This action cannot be undone.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</template>
+
+	<!-- form select subcomponent -->
+	<template id='tpl-form-select'>
+		<select>
+			<option value='-1'>-- Select Form --</option>
+			<option value='+'>++ ADD NEW FORM ++</option>
+		</select>
+	</template>
+	<!-- entry wordforms -->
+	<template id='tpl-entry-wordform'>
+		<div class='flex-row entry-form-wrapper'>
+			<select>
+				<option value='-1'>-- Select Form --</option>
+			</select>
+			<input type='text' spellcheck='false'>
+			<div class='flex-row flex-fill entry-audio-gallery'>
+				<button class='icon-audio'></button>
+				<button class='icon-audio'></button>
+				<button class='icon-plus'></button>
+			</div>
+			<button class='icon-tridot'></button>
+			<div class='flex-col options-menu'>
+				<button class='menu-option-standard'>Manage Audio</button>
+				<div class='menu-separator'></div>
+				<button class='menu-option-caution'>Delete Wordform</button>
+			</div>
+		</div>
+	</template>
+	<!-- entry sentences -->
+	<template id='tpl-entry-sentence'>
+		<div class='flex-col entry-sentence-wrapper'>
+			<div class='flex-row'>
+				<select>
+					<option value='-1'>-- Select Form --</option>
+				</select>
+				<div class='flex-row flex-fill entry-audio-gallery'>
+					<p class='entry-no-audio'>No Audio</p>
+					<button class='icon-plus'></button>
+				</div>
+				<button class='icon-tridot'></button>
+			</div>
+			<div class='flex-col options-menu'>
+				<button class='menu-option-standard'>Manage Audio</button>
+				<div class='menu-separator'></div>
+				<button class='menu-option-caution'>Delete Sentence</button>
+			</div>
+			<div class='flex-row'>
+				<label>Wik</label>
+				<input class='entry-sentence-L2' type='text' spellcheck='false'>
+			</div>
+			<div class='flex-row'>
+				<label>Eng</label>
+				<input class='entry-sentence-L1' type='text'>
+			</div>
+		</div>
+	</template>
+	<!-- entry notes -->
+	<template id='tpl-entry-note'>
+		<div class='flex-col entry-note-wrapper'>
+			<p></p>
+			<textarea rows='3'></textarea>
+		</div>
+	</template>
+
+	<!-- modals -->
+	<template id='tpl-modal'>
+		<div id='modal-wrapper' class='flex-col flex-centered'>
+			<div id='modal' class='flex-col'>
+				<div id='modal-content' class='flex-col'>
+					<p>Modal popup displayed.</p>
+				</div>
+				<div id='modal-actions' class='flex-row'>
+					<button class='button-highlight'>Ok</button>
+				</div>
+			</div>
+		</div>
+	</template>
+
+
+
+	<!-- //////////////////////// -->
+
+	<script type='module' src='script/dictionary.js'></script>
+	<script type='module' src='script/lexpad.js'></script>
 
 </body>
 </html>
