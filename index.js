@@ -25,144 +25,9 @@ let activeFile = {
 
 const SYNONYM_SPLITTER = '; ';
 
-let L1 = {
-	"name" : "English",
-	"abbr" : "eng",
-	"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
-	"usesForms" : false
-};
-let L2 = {};
-
-let lexicon = {
-	data : [],
-	orderedL1 : [],
-	orderedL2 : []
-};
-
-const alphabetize = (oa,ob) => {
-	const a = oa.word.toLowerCase();
-	const b = ob.word.toLowerCase();
-	return a.localeCompare(b);
-};
-
-// formNum is index of form within entry's array of forms
-// formId is linguist label corresponding to case/conjugation/etc
-class LexiconEntry {
-	constructor () {
-		this.catg = undefined;
-		this.L1 = [];
-		this.L2 = [];
-		this.sentences = [];
-		this.sentenceAnnotation = [];
-		this.notes = [];
-	}
-	// data interaction
-	addFormL1 (word, form = -1) { this.L1.push(word.split(SYNONYM_SPLITTER)); }
-	addFormL2 (word, form = -1) { this.L2.push(L2.usesForms ? {synonyms:word.split(SYNONYM_SPLITTER),formId:form} : {synonyms:word.split(SYNONYM_SPLITTER)}); }
-	addSentence (sentL1, sentL2, form = -1) { this.sentences.push(L2.usesForms ? {L1:sentL1,L2:sentL2,formId:form} : {L1:sentL1,L2:sentL2}); }
-	addNote (note, form = -1) { this.notes.push(L2.usesForms ? {note:note,formId:form} : {note:note}); }
-	// lookup
-	hasFormL1 (word) {}
-	hasFormL2 (word) {}
-	// TODO: account for 
-	// hasFormL1 (word) { word=word.toLowerCase(); return this.L1.flat().some(x => (x.synonyms ?? x) o.word.toLowerCase()===word); }
-	// hasFormL2 (word) { word=word.toLowerCase(); return this.L2.flat().some(o => o.word.toLowerCase()===word); }
-	getFormL1 (formNum = 0) {}
-	getFormL2 (formNum = 0) {}
-	getSentence (sentNum = 0) {}
-	getSynonymIdL1 (word) {}
-	getSynonymIdL2 (word) {}
-	// annotation
-	annotateSentences () {}
-	// loops
-	forEachFormL1 (callback = (synonyms,formId,formNum)=>{}) {
-		for (let formNum = 0; formNum < this.L1.length; formNum++) {
-			callback(this.L1[formNum].synonyms,this.L1[formNum].formId,formNum);
-		}
-	}
-}
-
-const populateLexicon = jsonParse => {
-	if (!jsonParse.lexicon) {
-		console.error(`JSON parse did not contain a valid lexicon.`);
-		return;
-	}
-	// language data
-	L2 = {
-		name : jsonParse.language.name ?? `Unnamed Language`,
-		abbr : jsonParse.language.abbr ?? `lang`,
-		alph : jsonParse.language.alph ?? L1.alph,
-		usesForms : jsonParse.language.usesForms ?? false,
-		forms : {},
-		catgs : {}
-	}
-	for (let form in jsonParse.language.forms) {
-		L2.forms[form] = jsonParse.language.forms[form].map(x => x);
-	}
-	for (let catg in jsonParse.language.catgs) {
-		L2.catgs[catg] = jsonParse.language.catgs[catg];
-	}
-	// lexicon
-	lexicon = {
-		data : [],
-		orderedL1 : [],
-		orderedL2 : []
-	};
-	let entry;
-	for (let i = 0; i < jsonParse.lexicon.length; i++) {
-		entry = jsonParse.lexicon[i];
-		// construct lexicon
-		let e = new LexiconEntry();
-		e.addFormL1(entry.L1);
-		e.catg = entry.catg;
-		for (let form of entry.L2) e.addFormL2(form.L2, form.form);
-		for (let sent of entry.sents) e.addSentence(sent.L1, sent.L2, sent.form);
-		for (let note of entry.notes) e.addNote(note.note, note.form);
-		lexicon.data.push(e);
-		// index data
-		lexicon.orderedL1.push(...entry.L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:e.catg,entryId:i}}));
-		for (let form of entry.L2) lexicon.orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:e.catg,entryId:i}}));
-	}
-	lexicon.orderedL1.sort(alphabetize);
-	lexicon.orderedL2.sort(alphabetize);
-	console.log(`Loaded ${jsonParse.lexicon.length} entries into lexicon.`);
-	console.log(`${lexicon.orderedL1.length} L1 synonyms searchable, ${lexicon.orderedL2.length} L2 synonyms searchable`);
-	console.log(lexicon.orderedL1);
-	console.log(lexicon.orderedL2);
-}
-
-const getLanguageInfo = () => {
-	return {
-		L1 : L1,
-		L2 : L2
-	};
-};
-const getOrderedWords = () => {
-	return {
-		L1 : lexicon.orderedL1,
-		L2 : lexicon.orderedL2
-	};
-};
-const getEntry = (event,entryId) => {
-	console.log(`=== Loading entry ${entryId}... ===`);
-	console.log(lexicon.data[entryId]);
-	return lexicon.data[entryId] ?? { error: true, message: `ERR No entry with id ${entryId}. Bounds are [0,${lexicon.data.length}).` };
-}
-
 
 
 //// I/O ////
-
-const tryParseJSON = (jsonStr) => {
-	// https://stackoverflow.com/a/20392392
-	try {
-		const o = JSON.parse(jsonStr);
-		if (o && typeof o === "object") return o;
-	} catch (err) {
-		console.error(`ERR File did not contain valid JSON. Unable to parse.`);
-	}
-	return null;
-}
 
 const dbg_flipToggle = e => {
 	demoToggle = !demoToggle;
@@ -191,33 +56,34 @@ const openProject = async e => {
 	});
 	if (canceled || !filePaths?.length) return { canceled: true };
 	return { path: filePaths[0] };
-	// // load selected file
-	// activeFile.path = filePaths[0];
-	// win.setTitle(activeFile.path);
-	// try {
-	// 	const raw = await fs.readFile(activeFile.path, 'utf8');
-	// 	activeFile.contents = tryParseJSON(raw);
-	// 	console.log(activeFile.contents);
-	// 	if (activeFile.contents) {
-	// 		populateLexicon(activeFile.contents);
-	// 		activeFile.activeEntry = activeFile.contents.project.activeEntry;
-	// 	}
-	// 	return { path: activeFile.path, activeEntry: activeFile.activeEntry };
-	// } catch (err) {
-	// 	return { error: 'read_or_parse_failed', message: String(err) };
-	// }
 };
-const loadProject = async (e,path) => {
-	console.log(path);
+const loadProject = async (e,filepath) => {
+	console.log(filepath);
 	try {
-		const raw = await fs.readFile(path, 'utf8');
-		return { path: path, json: raw };
-		// const jsonParse = tryParseJSON(raw);
-		// console.log(jsonParse);
-		// if (!jsonParse) return { error: 'parse_empty', message: 'JSON parse was empty and contained no readable data.' };
-		// return { path: path, json: jsonParse };
+		const raw = await fs.readFile(filepath, 'utf8');
+
+		// const dirPath = path.dirname(filepath);
+		// console.log(`Detecting media in ${dirPath}/assets`);
+		// const files = await fs.readdir(path.join(dirPath,'assets'), {recursive:true});
+		// console.log(files);
+		// console.log(files.map(f => `assets/${f}`));
+		// // TODO: handle directory does not exist
+
+		return { path: filepath, json: raw };
 	} catch (err) {
 		return { error: 'read_or_parse_failed', message: String(err) };
+	}
+};
+const listMedia = async (e,filepath) => {
+	const dirPath = path.dirname(filepath);
+	console.log(`Detecting media in ${dirPath}/assets`);
+	try {
+		const files = await fs.readdir(path.join(dirPath,'assets'), {recursive:true});
+		console.log(files);
+		console.log(files.map(f => `assets/${f}`));
+		return { path: filepath, media: files.map(f => `assets/${f}`) };
+	} catch (err) {
+		return { error: 'cannot_read_directory', message: String(err) };
 	}
 };
 const saveProject = () => {
@@ -258,10 +124,11 @@ app.whenReady().then(() => {
 	// IPC bridges: I/O
 	ipcMain.handle('open-project', openProject);
 	ipcMain.handle('load-project', loadProject);
+	ipcMain.handle('list-media', listMedia);
 	// IPC bridges: database access
-	ipcMain.handle('get-lang-info', getLanguageInfo);
-	ipcMain.handle('get-ordered-words', getOrderedWords);
-	ipcMain.handle('get-entry', getEntry);
+	// ipcMain.handle('get-lang-info', getLanguageInfo);
+	// ipcMain.handle('get-ordered-words', getOrderedWords);
+	// ipcMain.handle('get-entry', getEntry);
 
 	// open main app window
 	createWindow();

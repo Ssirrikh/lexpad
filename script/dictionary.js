@@ -37,6 +37,7 @@ const tryParseJSON = (jsonStr) => {
 // program state
 let file = {
 	path : ``,
+	filename : ``,
 	modified : false
 };
 let project = {
@@ -57,6 +58,7 @@ let data = [];
 // lexicon indexing
 let orderedL1 = [];
 let orderedL2 = [];
+let media = {}; // hash table of referenced media, containing set of entryIds that reference each file
 
 
 const DEFAULT_FILE = Object.freeze({
@@ -86,7 +88,8 @@ const fromJSON = (path,jsonRaw) => {
 	//// TODO: clean unsafe arbitrary text fields
 
 	// reset project
-	file.path = path;
+	file.path = path.replace(/\\[^\\]+?$/,'');
+	file.filename = path.replace(/^.+\\/,'');
 	file.modified = false;
 	// link parsed data
 	project = jsonParse.project ?? structuredClone(DEFAULT_PROJECT);
@@ -108,6 +111,37 @@ const fromJSON = (path,jsonRaw) => {
 	}
 	orderedL1.sort(alphabetizeIndex);
 	orderedL2.sort(alphabetizeIndex);
+
+	// index media
+	media = {};
+	for (let i = 0; i < data.length; i++) {
+		if (data[i].L2) {
+			for (let form of data[i].L2) {
+				if (!form.audio) continue;
+				for (let audio of form.audio) {
+					if (!media[audio]) media[audio] = new Set();
+					media[audio].add(i);
+				}
+			}
+		}
+		if (data[i].sents) {
+			for (let sentence of data[i].sents) {
+				if (!sentence.audio) continue;
+				for (let audio of sentence.audio) {
+					if (!media[audio]) media[audio] = new Set();
+					media[audio].add(i);
+				}
+			}
+		}
+		if (data[i].images) {
+			for (let image of data[i].images) {
+				if (!media[image]) media[image] = new Set();
+				media[image].add(i);
+			}
+		}
+	}
+	console.log(`Indexed ${Object.keys(media).length} media files.`);
+	console.log(media);
 };
 
 
@@ -179,4 +213,4 @@ const replaceObj = () => myObj = {x:111};
 // export { file, project, lexicon };
 
 // directly exporting object allows both modification and replacement w/o breaking link
-export { myObj, checkObj, replaceObj, file, project, fromJSON, catgs, L1, L2, data, orderedL1, orderedL2 };
+export { myObj, checkObj, replaceObj, file, project, fromJSON, catgs, L1, L2, data, orderedL1, orderedL2, media };

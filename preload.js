@@ -12,8 +12,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// I/O
 	openProject: () => ipcRenderer.invoke('open-project'),
 	loadProject : (path) => ipcRenderer.invoke('load-project', path),
+	listMedia : (path) => ipcRenderer.invoke('list-media', path),
 	// database access
-	getLangInfo : () => ipcRenderer.invoke('get-lang-info'),
-	getOrderedWords : () => ipcRenderer.invoke('get-ordered-words'),
-	getEntry : (entryId) => ipcRenderer.invoke('get-entry', entryId),
+	// getLangInfo : () => ipcRenderer.invoke('get-lang-info'),
+	// getOrderedWords : () => ipcRenderer.invoke('get-ordered-words'),
+	// getEntry : (entryId) => ipcRenderer.invoke('get-entry', entryId),
 });

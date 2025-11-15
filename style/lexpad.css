@@ -533,7 +533,10 @@ select:focus-visible {
     border-radius: 0.5em;
     padding: 0.5em 1em;
 }
-.entry-no-audio {
+.audio-gallery-wrapper, .audio-gallery {
+    gap: 0.3em;
+}
+.audio-gallery-no-audio {
     color: var(--text-subtitle);
     font-size: 0.8em;
 }
@@ -631,8 +634,8 @@ select:focus-visible {
     /* border-bottom: thin solid var(--primary-highlight); */
     width: var(--entry-form-input-width);
 }
-.entry-form-wrapper > .entry-audio-gallery {
-    gap: 0.3em;
+.entry-form-wrapper > .audio-gallery-wrapper {
+    /* gap: 0.3em; */
     min-width: var(--entry-form-audio-min-width);
 }
 
@@ -646,9 +649,9 @@ select:focus-visible {
     width: calc(1.25 * var(--entry-form-select-width));
     font-size: 0.8em;
 }
-.entry-sentence-wrapper .entry-audio-gallery {
+/* .entry-sentence-wrapper .audio-gallery-wrapper {
     gap: 0.3em;
-}
+} */
 
 .entry-sentence-wrapper label {
     color: var(--text-subtitle);
