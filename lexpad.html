@@ -94,7 +94,18 @@
 			<div id='lexicon-wrapper' class='flex-row'>
 				<div id='lexicon' class='flex-col'>
 					<div id='lexicon-header' class='flex-col'>
-						<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search...'>
+						<div id='lexicon-search-patterns' class='flex-row flex-centered'>
+							<button id='lexicon-search-pattern-begins' class='lexicon-search-pattern active-search-pattern'>Begins</button>
+							<button id='lexicon-search-pattern-contains' class='lexicon-search-pattern'>Contains</button>
+							<button id='lexicon-search-pattern-ends' class='lexicon-search-pattern'>Ends</button>
+						</div>
+						<div id='lexicon-search-bar' class='flex-col'>
+							<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search...'>
+							<div id='lexicon-search-actions' class='flex-row'>
+								<button class='lexicon-search-action'>X</button>
+								<button class='lexicon-search-action'>X</button>
+							</div>
+						</div>
 					</div>
 					<div id='lexicon-legend' class='flex-row'>
 						<p>Catg</p>

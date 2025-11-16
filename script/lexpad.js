@@ -23,6 +23,10 @@ const TAB_PROJECT = 0;
 const TAB_LEXICON = 1;
 const TAB_SEARCH = 2;
 
+const SEARCH_PATTERN_BEGINS = 0;
+const SEARCH_PATTERN_CONTAINS = 1;
+const SEARCH_PATTERN_ENDS = 2;
+
 const capitalize = s => (s[0]??'').toUpperCase() + s.slice(1);
 
 
@@ -61,6 +65,15 @@ let audioPlayer = {
 // active entry
 let activeEntry = {};
 let activeMenu = ''; // id of DOM element
+// lexicon search
+let search = {
+	activePattern : SEARCH_PATTERN_BEGINS,
+	ePatterns : [
+		// lexicon search pattern "begins"
+		// lexicon search pattern "contains"
+		// lexicon search pattern "ends"
+	]
+};
 
 
 //// DOM ////
@@ -128,6 +141,12 @@ const init = () => {
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_LEXICON].style.padding = '0';
+		search.ePatterns[SEARCH_PATTERN_BEGINS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-begins');
+		search.ePatterns[SEARCH_PATTERN_BEGINS].onclick = () => setLexiconSearchPattern(SEARCH_PATTERN_BEGINS);
+		search.ePatterns[SEARCH_PATTERN_CONTAINS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-contains');
+		search.ePatterns[SEARCH_PATTERN_CONTAINS].onclick = () => setLexiconSearchPattern(SEARCH_PATTERN_CONTAINS);
+		search.ePatterns[SEARCH_PATTERN_ENDS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-ends');
+		search.ePatterns[SEARCH_PATTERN_ENDS].onclick = () => setLexiconSearchPattern(SEARCH_PATTERN_ENDS);
 		tabContent[TAB_LEXICON].querySelector('#entry-editor').innerHTML = '';
 		tabContent[TAB_LEXICON].querySelector('#entry-editor').appendChild( document.getElementById('tpl-bg-status').content.firstElementChild.cloneNode(true) );
 		tabContent[TAB_LEXICON].querySelector('#entry-editor .window-status p').textContent = 'Load an entry to get started';
@@ -233,6 +252,21 @@ const populateProjectTab = () => {
 };
 
 // lexicon tab
+const setLexiconSearchPattern = (pattern) => {
+	if (search.activePattern === pattern) return false;
+	const patternNames = ['begins','contains','ends'];
+	console.log(`Set lexicon search pattern from "${patternNames[search.activePattern]}" to "${patternNames[pattern]}".`);
+	search.activePattern = pattern;
+	for (let i = 0; i < search.ePatterns.length; i++) {
+		if (i === pattern) {
+			search.ePatterns[i].classList.add('active-search-pattern');
+		} else {
+			search.ePatterns[i].classList.remove('active-search-pattern');
+		}
+	}
+	filterLexicon();
+	return true;
+};
 const populateLexicon = () => {
 	const t0_buildLexicon = performance.now();
 	const eLexicon = tabContent[TAB_LEXICON].querySelector('#lexicon-content');
@@ -275,7 +309,11 @@ const updateLexiconActiveEntry = (newActiveEntry) => {
 };
 const filterLexicon = () => {
 	const t0_search = performance.now();
-	const frag = new RegExp(`^${RegExp.escape(tabContent[TAB_LEXICON].querySelector('#lexicon-search').value)}`, 'i'); // RegExp(string,flags)
+	const searchText = RegExp.escape(tabContent[TAB_LEXICON].querySelector('#lexicon-search').value);
+	const frag = new RegExp(
+		[`^${searchText}`,`${searchText}`,`${searchText}$`][search.activePattern ?? 0], // [begins,contains,ends]
+		'i'
+	); // RegExp(string,flags)
 	console.log(frag);
 	let numResults = 0;
 	for (let i = 0; i < lexicon.orderedL1.length; i++) {

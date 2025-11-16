@@ -396,7 +396,48 @@ select:focus-visible {
     border-bottom: thin solid var(--text-subtitle);
     border-bottom: thin solid var(--border-dark);
     padding: 0.5em;
+    gap: 0.3em;
     flex-shrink: 0;
+}
+
+
+#lexicon-search-bar {
+    position: relative;
+}
+#lexicon-search-actions {
+    border: thin solid magenta;
+    position: absolute;
+    right: 0;
+}
+.lexicon-search-action {
+    color: white;
+    background-color: var(--primary);
+    border-radius: 0.25em;
+    /* size = search lineheight 1.2em + padding 0.2em */
+    width: calc(1.2em + 0.2em + 0.2em);
+    height: calc(1.2em + 0.2em + 0.2em);
+    font-size: 1em;
+}
+#lexicon-search-patterns {
+    gap: 0.5em;
+}
+.lexicon-search-pattern {
+    color: var(--text-subtitle);
+    width: 4em;
+    font-size: 0.8em;
+}
+.lexicon-search-pattern:hover {
+    color: black;
+    text-decoration: underline;
+}
+.lexicon-search-pattern:focus-visible {
+    color: black !important;
+    outline: thin solid var(--primary-dark) !important;
+}
+.active-search-pattern {
+    color: black;
+    border-bottom: medium solid var(--primary-highlight);
+    text-decoration: none !important;
 }
 
 #lexicon-legend {
