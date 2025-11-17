@@ -88,6 +88,15 @@ select:focus-visible {
     outline: medium solid var(--primary-dark);
 }
 
+.icon-close {
+    /* background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="var(--text-dark)" stroke-width="1" stroke-linecap="round"><path d="M 18 6 l -12 12 M 6 6 l 12 12" /></svg>'); */
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"><path d="M18 6l-12 12 M6 6l12 12" /></svg>');
+
+    border-radius: 0.25em;
+    width: calc(1em + 0.3em + 0.3em);
+    height: calc(1em + 0.3em + 0.3em);
+}
+
 
 
 /**** LOADING SCREENS ****/
@@ -405,18 +414,33 @@ select:focus-visible {
     position: relative;
 }
 #lexicon-search-actions {
-    border: thin solid magenta;
+    /* border: thin solid magenta; */
+    transform: translate(0,-50%);
     position: absolute;
+    top: 50%;
     right: 0;
 }
 .lexicon-search-action {
-    color: white;
-    background-color: var(--primary);
+    color: var(--text-subtitle);
+    /* background-color: var(--primary); */
     border-radius: 0.25em;
     /* size = search lineheight 1.2em + padding 0.2em */
     width: calc(1.2em + 0.2em + 0.2em);
     height: calc(1.2em + 0.2em + 0.2em);
     font-size: 1em;
+}
+#lexicon-search-clear {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="darkgrey" stroke-width="2" stroke-linecap="round"><path d="M18 6l-12 12 M6 6l12 12" /></svg>');
+    /* svg fill property allows named colors, hex colors, and CSS vars */
+    /* svg stroke property only allows named colors, nothing else */
+    /* no idea why */
+}
+.lexicon-search-action:hover {
+    color: black;
+}
+.lexicon-search-action:focus-visible {
+    color: black;
+    outline: thin solid var(--primary-dark);
 }
 #lexicon-search-patterns {
     gap: 0.5em;
@@ -528,14 +552,19 @@ select:focus-visible {
 }
 #entry-image {
     color: white;
-    background-color: var(--primary-selection);
+    background: var(--primary-selection) var(--thumbnail-position);
     border: thin solid white;
     border-radius: 0.5em;
     width: 5em;
     height: 5em;
 }
+#entry-image:hover {
+    border: thin solid var(--primary-selection);
+    outline: medium solid white;
+}
 #entry-image:focus-visible {
-    outline: thin solid white !important;
+    border: thin solid var(--primary-selection) !important;
+    outline: medium solid white !important;
 }
 
 /* entry editor: content */
