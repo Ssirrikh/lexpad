@@ -360,11 +360,21 @@ select:focus-visible {
 
 /* project settings screen */
 
-#project-lang-info {
+.project-tab-section {
     background-color: var(--bg-light);
     border-radius: 0.5em;
+    position: relative;
     padding: 1em;
-    max-width: 32em;
+    width: 32em;
+}
+.stats-separator {
+    border-bottom: thin solid var(--border-medium);
+    width: 100%;
+    margin: 0.5em 0;
+}
+
+#project-lang-info {
+    /*  */
 }
 #project-lang-info > label {
     margin-bottom: 0.2em;
@@ -382,6 +392,103 @@ select:focus-visible {
     font-size: 0.8em;
     text-align: center;
 }
+
+#project-stats {
+    /* align-items: center; */
+    /* width: 100%; */
+
+    /* this section adjusts spacing for bottom-docked tooltip */
+    /* padding-bottom: calc(1em + 0.8em);
+    margin-bottom: 0.8em; */
+}
+#project-stats > .subtitle {
+    margin-bottom: 1em;
+    font-size: 1em;
+    text-align: center;
+}
+#project-stats-tooltip {
+    color: var(--text-subtitle);
+    background-color: var(--bg-offwhite);
+    border: thin solid var(--border-dark);
+    border-radius: 0.25em;
+    position: absolute;
+    width: max-content;
+    max-width: 90%;
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%,50%);
+    padding: 0.5em 1em;
+    font-size: 0.8em;
+    text-align: center;
+}
+#project-stats-totals {
+    /* border-bottom: thin solid var(--border-medium); */
+    /* padding-bottom: 0.25em; */
+    justify-content: space-between;
+    gap: 0.5em;
+}
+#project-stats-totals > h2 {
+    font-size: 1.2em;
+}
+#project-stats-totals > .flex-col {
+    align-items: center;
+}
+.statcount-bubble {
+    color: var(--text-subtitle);
+    border-radius: 0.25em;
+    padding: 0.25em 0.5em;
+    min-width: 5em;
+    font-size: 0.8em;
+}
+.statcount-bubble:hover {
+    background-color: white;
+}
+.statcount-bubble:focus-visible {
+    outline: thin solid var(--primary-dark);
+}
+.statcount-bubble.flex-row {
+    gap: 0.3em;
+}
+.statcount-bubble.flex-row > span {
+    color: black;
+    font-size: 1.25em;
+}
+.statcount-bubble > span {
+    color: black;
+    /* font-size: 1.25em; */
+}
+
+#project-stats-catgs {
+    justify-content: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+.catg-bubble {
+    color: var(--text-subtitle);
+    color: white;
+    background-color: var(--primary);
+    border-radius: 1em;
+    padding: 0.25em 1em;
+    font-size: 0.8em;
+}
+.catg-bubble:hover {
+    background-color: var(--primary-selection);
+}
+.catg-bubble:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
+
+.catg-bubble.flex-row {
+    gap: 0.5em;
+}
+.catg-bubble-label {
+    /* color: var(--bg-light); */
+    /* font-size: 0.8em; */
+}
+.catg-bubble-count {
+    font-size: 1.25em;
+}
+
 
 
 
@@ -482,13 +589,17 @@ select:focus-visible {
     text-align: center;
 }
 .lexicon-entry {
-    /* border-left: thick solid transparent; */
     padding: 0.2em 0.5em;
     gap: 0.5em;
+    font-size: 1em;
 }
 .lexicon-entry:hover {
     background-color: white;
     box-shadow: inset 5px 0 0 0 var(--primary-highlight);
+}
+.lexicon-entry:focus-visible {
+    outline: medium solid var(--primary-dark);
+    z-index: var(--layer-front);
 }
 .lexicon-entry + .lexicon-entry {
     border-top: thin solid var(--border-light);

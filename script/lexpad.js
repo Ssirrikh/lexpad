@@ -241,15 +241,71 @@ const populateQuickCopyBar = () => {
 	}
 };
 const populateProjectTab = () => {
-	tabContent[TAB_PROJECT].querySelector('#lang-name').value = lexicon.L2.name ?? '';
-	tabContent[TAB_PROJECT].querySelector('#lang-abbr').value = lexicon.L2.abbr ?? '';
-	// TODO: add onblur updaters for other fields
-	tabContent[TAB_PROJECT].querySelector('#lang-alph').value = lexicon.L2.alph ?? '';
-	tabContent[TAB_PROJECT].querySelector('#lang-alph').onblur = () => {
-		lexicon.L2.alph = tabContent[TAB_PROJECT].querySelector('#lang-alph').value.split(/\s+/).join(' ');
-		console.log(lexicon.L2.alph);
-		populateQuickCopyBar();
-	};
+	// language data
+	// TODO: onblur events mark project modified
+	Object.assign(tabContent[TAB_PROJECT].querySelector('#lang-name'), {
+		value : lexicon.L2.name ?? '',
+		onblur : () => {
+			const e = tabContent[TAB_PROJECT].querySelector('#lang-name');
+			if (lexicon.L2.name === e.value) return;
+			console.log(`Lang name changed from "${lexicon.L2.name}" to "${e.value}".`);
+			lexicon.L2.name = e.value;
+			console.log(lexicon.L2);
+		}
+	});
+	Object.assign(tabContent[TAB_PROJECT].querySelector('#lang-abbr'), {
+		value : lexicon.L2.abbr ?? '',
+		onblur : () => {
+			const e = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
+			if (lexicon.L2.abbr === e.value) return;
+			console.log(`Lang abbr changed from "${lexicon.L2.abbr}" to "${e.value}".`);
+			lexicon.L2.abbr = e.value;
+			console.log(lexicon.L2);
+		}
+	});
+	Object.assign(tabContent[TAB_PROJECT].querySelector('#lang-alph'), {
+		value : lexicon.L2.alph ?? '',
+		onblur : () => {
+			const e = tabContent[TAB_PROJECT].querySelector('#lang-alph');
+			if (lexicon.L2.alph === e.value) return;
+			console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${e.value}".`);
+			lexicon.L2.alph = e.value;
+			console.log(lexicon.L2);
+			populateQuickCopyBar();
+		}
+	});
+	// project statistics
+	const stats = lexicon.calculateStatistics(); // guaranteed complete, doesn't req checks for props
+	console.log(stats);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-num-entries > span').textContent = stats.numEntries ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1 > span').textContent = stats.wordCounts?.L1 ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1').onclick = () => console.log(`Search tab "in:L1"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2 > span').textContent = stats.wordCounts?.L2 ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2').onclick = () => console.log(`Search tab "in:L2"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count > span').textContent = stats.numSentences ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count').onclick = () => console.log(`Search tab "has:sentence"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count > span').textContent = stats.numNotes ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count').onclick = () => console.log(`Search tab "has:note"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count > span').textContent = stats.mediaCounts.audioEntries ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count').onclick = () => console.log(`Search tab "has:audio"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count > span').textContent = stats.mediaCounts.imageEntries ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count').onclick = () => console.log(`Search tab "has:image"`);
+	const eStatsCatgs = tabContent[TAB_PROJECT].querySelector('#project-stats-catgs');
+	eStatsCatgs.innerHTML = '';
+	for (let catg in stats.catgCounts) {
+		let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
+			e.title = `catg:${catg}`;
+			e.onclick = () => console.log(`Search tab "catg:${catg}"`);
+			e.querySelector('.catg-bubble-label').textContent = project.catgs[catg] ?? catg;
+			e.querySelector('.catg-bubble-count').textContent = stats.catgCounts[catg];
+		eStatsCatgs.appendChild(e);
+	}
+	let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
+		e.title = `catg:misc`;	
+		e.onclick = () => console.log(`Search tab "catg:misc"`);
+		e.querySelector('.catg-bubble-label').textContent = 'MISC';
+		e.querySelector('.catg-bubble-count').textContent = stats.catgMiscCount
+	eStatsCatgs.appendChild(e);
 };
 
 // lexicon tab

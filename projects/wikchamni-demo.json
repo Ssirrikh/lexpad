@@ -11,7 +11,7 @@
 	"language" : {
 		"name" : "Wikchamni",
 		"abbr" : "wik",
-		"alph" : "a c č e f h i k l m n ŋ o p s š t ṭ u w x y ʔ",
+		"alph" : "a a· c č čʰ č' e e· ə ə· f h i i· ɨ ɨ· k kʰ k' l l' m m' n n' ŋ ŋ' o o· p pʰ p' s š t tʰ t' ṭ ṭʰ ṭ' u u· w w' x y y' ʔ",
 		"usesForms" : true,
 		"forms" : {
 			"n" : [ "UNDERLYING","Subject","Object","Locative","passive verbal noun nominative case" ],
@@ -69,7 +69,8 @@
 				{ "note" : "Picture not cited" }
 			],
 			"images" : [
-				"assets\\meadowlark.jpg"
+				"assets\\meadowlark.jpg",
+				"assets\\file0.jpg"
 			],
 			"meta" : {
 				"entryId" : 37
@@ -118,10 +119,13 @@
 				{ "form" : -1, "L2" : "" }
 			],
 			"sents" : [
+				{ "form" : -1, "L1" : "0", "L2" : "" },
 				{ "form" : -1, "L1" : "", "L2" : "" }
 			],
 			"notes" : [],
-			"images" : [],
+			"images" : [
+				""
+			],
 			"meta" : {
 				"entryId" : -1
 			}

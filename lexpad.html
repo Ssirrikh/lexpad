@@ -73,7 +73,7 @@
 
 	<template id='tpl-project-page'>
 		<div id='r-content' class='flex-col'>
-			<div id='project-lang-info' class='flex-col'>
+			<div id='project-lang-info' class='flex-col project-tab-section'>
 				<label id='label-lang-name' for='lang-name'>Language Full Name</label>
 				<input id='lang-name' type='text' spellcheck='false'>
 				<label id='label-lang-abbr' for='lang-abbr'>Abbreviation</label>
@@ -83,8 +83,61 @@
 				<input id='lang-alph' type='text' spellcheck='false'>
 				<p class='subtitle'>Lowercase letters separated by spaces, ie "a á b c ch". Determines alphabetization order and contents of quick-copy bar. Supports multi-character letters.</p>
 			</div>
-			<p id='project-coming-soon'>Project statistics coming soon...</p>
+			<div id='project-stats' class='flex-col project-tab-section'>
+				<div id='project-stats-totals' class='flex-row'>
+					<h2 id='project-stats-num-entries'><span>0</span> Entries</h2>
+					<div class='flex-col'>
+						<button id='project-stats-wordcount-L1' class='flex-row statcount-bubble' title='in:L1'><span>0</span><p>words in L1</p></button>
+						<button id='project-stats-wordcount-L2' class='flex-row statcount-bubble' title='in:L2'><span>0</span><p>words in L2</p></button>
+					</div>
+					<div class='flex-col'>
+						<button id='project-stats-sentence-count' class='flex-row statcount-bubble' title='has:sentence'><span>0</span> Sentences</button>
+						<button id='project-stats-notes-count' class='flex-row statcount-bubble' title='has:note'><span>0</span> Notes</button>
+					</div>
+					<div class='flex-col'>
+						<button id='project-stats-audio-count' class='flex-row statcount-bubble' title='has:audio'><span>0</span> Entries w/ Audio</button>
+						<button id='project-stats-image-count' class='flex-row statcount-bubble' title='has:image'><span>0</span> Entries w/ Images</button>
+					</div>
+				</div>
+				<div class='stats-separator'></div>
+				<p class='subtitle'>Click any statistic to view it in the search tab.</p>
+				<div id='project-stats-catgs' class='flex-row'>
+					<button class='flex-row catg-bubble'>
+						<p class='catg-bubble-label'>Noun</p>
+						<p class='catg-bubble-count'>231</p>
+					</button>
+					<button class='flex-row catg-bubble'>
+						<p class='catg-bubble-label'>Verb</p>
+						<p class='catg-bubble-count'>34</p>
+					</button>
+					<button class='flex-row catg-bubble'>
+						<p class='catg-bubble-label'>Adjective</p>
+						<p class='catg-bubble-count'>22</p>
+					</button>
+					<button class='flex-row catg-bubble'>
+						<p class='catg-bubble-label'>Particle</p>
+						<p class='catg-bubble-count'>0</p>
+					</button>
+					<button class='flex-row catg-bubble'>
+						<p class='catg-bubble-label'>Adjectival Archive of Longness</p>
+						<p class='catg-bubble-count'>1</p>
+					</button>
+					<button class='flex-row catg-bubble'>
+						<p class='catg-bubble-label'>MISC</p>
+						<p class='catg-bubble-count'>9</p>
+					</button>
+				</div>
+				<!-- <p id='project-stats-tooltip'>Click any statistic to view it in the search tab.</p> -->
+			</div>
+			<p id='project-coming-soon'>More project statistics coming soon...</p>
 		</div>
+	</template>
+
+	<template id='tpl-catg-bubble'>
+		<button class='flex-row catg-bubble'>
+			<p class='catg-bubble-label'>Catg</p>
+			<p class='catg-bubble-count'>0</p>
+		</button>
 	</template>
 
 	<!-- LEXICON TAB TEMPLATES -->
@@ -130,10 +183,10 @@
 	</template>
 
 	<template id='tpl-lexicon-entry'>
-		<div class='flex-row lexicon-entry'>
+		<button class='flex-row lexicon-entry'>
 			<p class='lexicon-entry-catg'>---</p>
 			<p class='lexicon-entry-word'>Lexicon Entry</p>
-		</div>
+		</button>
 	</template>
 
 	<!-- SEARCH TAB TEMPLATES -->
@@ -161,7 +214,7 @@
 				<h3 class='section-title'>Wordforms <span id='entry-forms-count'>(0)</span></h3>
 				<div class='flex-row entry-legend'>
 					<p id='entry-forms-legend-case'>Form/Case</p>
-					<p id='entry-forms-legend-form'>Wikchamni Word</p>
+					<p id='entry-forms-legend-form'>Word</p>
 					<p class='flex-fill'>Audio</p>
 					<p id='entry-forms-legend-options'></p>
 				</div>

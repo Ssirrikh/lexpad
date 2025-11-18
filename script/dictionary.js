@@ -1,4 +1,6 @@
 
+const RE_SYNONYM_SPLITTER = /;\s*/;
+
 const SYNONYM_SPLITTER = '; ';
 const ALPHABET_SPLITTER = ' ';
 
@@ -45,7 +47,6 @@ let project = {
 	catgs : {}
 };
 // language data
-let catgs = {};
 const L1 = Object.freeze({
 	"name" : "English",
 	"abbr" : "eng",
@@ -144,6 +145,97 @@ const fromJSON = (path,jsonRaw) => {
 	console.log(media);
 };
 
+const calculateStatistics = () => {
+	const t0_stats = performance.now();
+	let stats = {
+		numEntries : 0,
+		catgCounts : {}, // prepped below
+		catgMiscCount : 0,
+		wordCounts : { L1 : 0, L2 : 0 },
+		mediaCounts : { audioEntries : 0, audioTotal : 0, imageEntries : 0, imageTotal : 0 },
+		numSentences : 0,
+		numNotes : 0
+	};
+	// prep catg counts based on registered catgs
+	// blanks and unregistered catgs will be treated as misc
+		// unregistered catgs shouldn't be possible unless JSON directly edited outside LexPad
+	for (let catg in project.catgs) {
+		stats.catgCounts[catg] = 0;
+	}
+	// number of entries
+	stats.numEntries = data.length ?? 0;
+	for (let entry of data) {
+		// catgs
+		if (stats.catgCounts[entry.catg] !== undefined) {
+			stats.catgCounts[entry.catg]++;
+		} else {
+			stats.catgMiscCount++;
+		}
+		// wordcount
+		if (entry.L1) {
+			stats.wordCounts.L1 += entry.L1.split(RE_SYNONYM_SPLITTER).length;
+		}
+		if (entry.L2) {
+			for (let form of entry.L2) {
+				if (form.L2) stats.wordCounts.L2++;
+			}
+		}
+		// sentences and notes
+		if (entry.sents) {
+			for (let sentence of entry.sents) {
+				if (sentence.L1 || sentence.L2) stats.numSentences++;
+			}
+		}
+		if (entry.notes) {
+			for (let note of entry.notes) {
+				if (note.note) stats.numNotes++;
+			}
+		}
+		// media
+		if (entry.images?.length > 0) {
+			let hasImages = false;
+			for (let image of entry.images) {
+				if (image) {
+					hasImages = true;
+					stats.mediaCounts.imageTotal++;
+				}
+			}
+			if (hasImages) stats.mediaCounts.imageEntries++;
+		}
+		let hasAudio = false;
+		if (entry.L2?.length > 0) {
+			for (let form of entry.L2) {
+				if (form.audio?.length > 0) {
+					for (let audio of form.audio) {
+						if (audio) {
+							// if entry.L2 && entry.L2[i] && entry.L2[i].audio && entry.L2[i].audio[j], then increment stats
+							hasAudio = true;
+							stats.mediaCounts.audioTotal++;
+						}
+					}
+				}
+			}
+		}
+		if (entry.sents?.length > 0) {
+			for (let sentence of entry.sents) {
+				if (sentence.audio?.length > 0) {
+					for (let audio of sentence.audio) {
+						if (audio) {
+							// if entry.sents && entry.sents[i] && entry.sents[i].audio && entry.sents[i].audio[j], then increment stats
+							hasAudio = true;
+							stats.mediaCounts.audioTotal++;
+						}
+					}
+				}
+			}
+		}
+		if (hasAudio) stats.mediaCounts.audioEntries++;
+	}
+	// efficient + safe == ugly :P
+	console.log(`Project statistics compiled in ${Math.round(performance.now()-t0_stats)} ms.`);
+	return stats;
+};
+
 
 // formNum is index of form within entry's array of forms
 // formId is linguist label corresponding to case/conjugation/etc
@@ -213,4 +305,4 @@ const replaceObj = () => myObj = {x:111};
 // export { file, project, lexicon };
 
 // directly exporting object allows both modification and replacement w/o breaking link
-export { myObj, checkObj, replaceObj, file, project, fromJSON, catgs, L1, L2, data, orderedL1, orderedL2, media };
+export { myObj, checkObj, replaceObj, file, project, fromJSON, calculateStatistics, L1, L2, data, orderedL1, orderedL2, media };
