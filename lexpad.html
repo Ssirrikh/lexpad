@@ -30,8 +30,8 @@
 			<div class='flex-sep'></div>
 		</div>
 		<div id='statbar' class='flex-row'>
-			<p id='statbar-left' class='flex-row'>No project loaded...</p>
-			<p id='statbar-right'></p>
+			<div id='statbar-left' class='flex-row no-scrollbar'>No project loaded...</div>
+			<div id='statbar-right' class='flex-row no-scrollbar'></div>
 		</div>
 		<!-- CONTENT -->
 		<div id='r-content' class='flex-col no-scrollbar'>
@@ -155,10 +155,7 @@
 						<div id='lexicon-search-bar' class='flex-col'>
 							<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search...'>
 							<div id='lexicon-search-actions' class='flex-row'>
-								<!-- <button class='lexicon-search-action'>X</button> -->
 								<button id='lexicon-search-clear' class='lexicon-search-action'></button>
-								 
-								<!-- <button id='lexicon-search-clear' class='icon-close'></button> -->
 							</div>
 						</div>
 					</div>
@@ -192,8 +189,94 @@
 	<!-- SEARCH TAB TEMPLATES -->
 
 	<template id='tpl-search-page'>
-		<div id='r-content'>
-			<h2>Search tab under construction...</h2>
+		<div id='r-content' class='no-scrollbar'>
+			<div id='search-wrapper' class='flex-row'>
+				<div id='search-settings-wrapper' class='flex-col'>
+					<form id='search-bar' class='flex-col'>
+						<input id='search-query' type='text' spellcheck='false' placeholder='Search...'>
+						<div class='flex-row'>
+							<div class='flex-row'>
+								<p>In:</p>
+								<button id='search-setting-L1' class='search-setting-lang active'>L1</button>
+								<button id='search-setting-L2' class='search-setting-lang inactive'>L2</button>
+							</div>
+							<button id='search-submit' class='button-highlight'>Submit</button>
+						</div>
+					</form>
+					<!-- <p id='search-tooltip'>Click a bubble to select it. Shift+click to select multiple.</p> -->
+					<div id='search-settings' class='flex-col no-scrollbar'>
+						<div class='flex-row search-setting-header'>
+							<p>Catg / Part of Speech</p>
+							<button class='search-setting-select-all'>ALL</button>
+						</div>
+						<div id='search-setting-catgs' class='flex-row search-setting-bubble-wrapper'>
+							<button class='search-bubble inactive'>Noun</button>
+							<button class='search-bubble inactive'>Verb</button>
+							<button class='search-bubble active'>Adjective</button>
+							<button class='search-bubble inactive'>Particle</button>
+							<button class='search-bubble inactive'>Adjectival Archive of Longness</button>
+							<button class='search-bubble inactive'>MISC</button>
+						</div>
+						<div class='flex-row search-setting-header'>
+							<p>Content</p>
+							<button class='search-setting-select-all active'>ALL</button>
+						</div>
+						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
+							<button class='search-bubble'>L1</button>
+							<button class='search-bubble'>L2</button>
+							<button class='search-bubble'>Sentences</button>
+							<button class='search-bubble'>Notes</button>
+						</div>
+						<div class='flex-row search-setting-header'>
+							<p>Media</p>
+							<button class='search-setting-select-all active'>ALL</button>
+						</div>
+						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
+							<button class='search-bubble'>Audio</button>
+							<button class='search-bubble'>Images</button>
+						</div>
+						<div class='flex-row search-setting-header'>
+							<p> Exclude Catg / Part of Speech</p>
+							<button class='search-setting-exclude-all'>NONE</button>
+						</div>
+						<div id='search-setting-catgs' class='flex-row search-setting-bubble-wrapper'>
+							<button class='search-bubble-exclude inactive'>Noun</button>
+							<button class='search-bubble-exclude inactive'>Verb</button>
+							<button class='search-bubble-exclude active'>Adjective</button>
+							<button class='search-bubble-exclude inactive'>Particle</button>
+							<button class='search-bubble-exclude inactive'>Adjectival Archive of Longness</button>
+							<button class='search-bubble-exclude inactive'>MISC</button>
+						</div>
+						<div class='flex-row search-setting-header'>
+							<p>Exclude Content</p>
+							<button class='search-setting-exclude-all active'>NONE</button>
+						</div>
+						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
+							<button class='search-bubble-exclude'>L1</button>
+							<button class='search-bubble-exclude'>L2</button>
+							<button class='search-bubble-exclude'>Sentences</button>
+							<button class='search-bubble-exclude'>Notes</button>
+						</div>
+						<div class='flex-row search-setting-header'>
+							<p>Exclude Media</p>
+							<button class='search-setting-exclude-all inactive'>NONE</button>
+						</div>
+						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
+							<button class='search-bubble-exclude'>Audio</button>
+							<button class='search-bubble-exclude'>Images</button>
+						</div>
+					</div>
+				</div>
+				<div id='search-results-wrapper' class='flex-col'>
+					<div id='search-results-header' class='flex-row no-scrollbar'>
+						<p>"čʰap" in:L2 catg:v</p>
+						<p>17/291 entries</p>
+					</div>
+					<div class='flex-col flex-centered window-status'>
+						<p>Submit a search to get started</p>
+					</div>
+				</div>
+			</div>
 		</div>
 	</template>
 

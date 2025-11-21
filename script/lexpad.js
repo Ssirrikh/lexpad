@@ -17,6 +17,9 @@ import { file, project } from "./dictionary.js";
 		// defend against accidental user bungles, but assume API is safe
 		// add scrubbing to dictionary.js later down the pipeline
 
+// https://www.electronjs.org/docs/latest/tutorial/keyboard-shortcuts
+// https://www.electronjs.org/docs/latest/tutorial/application-menu
+
 const RE_SYNONYM_SPLITTER = /;\s*/;
 
 const TAB_PROJECT = 0;
@@ -73,6 +76,56 @@ let search = {
 		// lexicon search pattern "contains"
 		// lexicon search pattern "ends"
 	]
+};
+// search tab search
+let searchSettings = {
+	// tags in same category OR together, tags in diff categories AND together
+		// "catg:n catg:v has:audio has:image" === (catg:n OR catg:v) AND (has:audio OR has:image)
+	// can use "&" to AND tags in same category
+		// "has:audio has:image" === has:audio OR has:image
+		// "has:audio&has:image" === has:audio AND has:image
+	// using "&" between tags of diff categories changes nothing
+		// "catg:n&has:image" === catg:n AND has:image === "catg:n has:image"
+	// in:_ tags are true-by-default
+		// search everywhere unless user specifies otherwise
+		// adding one or more in:_ tags sets those tags true and all others false
+	// has:_ tags are false-by-default
+		// no req imposed unless user adds one
+	DEFAULT_INCLUDE : Object.freeze({
+		in : { L1 : true, L2 : false, sentL1 : true, sentL2 : false, note : false },
+		catg : { 'n' : true, 'v' : true, 'adj' : true, misc : true },
+		has : {
+			L1 : false, L2 : false, sentence : false, note : false, // content
+			audio : false, image : false // media
+		}
+	}),
+	include : {
+		in : { L1 : true, L2 : false, sentL1 : true, sentL2 : false, note : false },
+		catg : { 'n' : true, 'v' : true, 'adj' : true, misc : true },
+		has : {
+			L1 : false, L2 : false, sentence : false, note : false, // content
+			audio : false, image : false // media
+		}
+	},
+	exclude : {
+		in : { L1 : true, L2 : false, sentL1 : true, sentL2 : false, note : false },
+		catg : { 'n' : true, 'v' : true, 'adj' : true, misc : true },
+		has : {
+			L1 : false, L2 : false, sentence : false, note : false, // content
+			audio : false, image : false // media
+		}
+	},
+	toggle : (s) => {
+		let [exclude,k,v] = s.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
+		if (k === undefined && v === undefined) { console.warn(`"${s}" does not contain a recognized tag.`); return; }
+		const includeExclude = (exclude) ? 'exclude' : 'include';
+		console.log(`${includeExclude} ${[k,v]}: ${searchSettings[includeExclude][k][v]} -> ${!searchSettings[includeExclude][k][v]}`);
+		if (typeof searchSettings[includeExclude][k][v] !== 'boolean') { console.warn(`"${v}" not a recognized ${k}:_ tag. (${s})`); return; }
+		searchSettings[includeExclude][k][v] = !searchSettings[includeExclude][k][v];
+	},
+	fromString : (s) => {
+		//
+	}
 };
 
 
@@ -153,9 +206,10 @@ const init = () => {
 		tabContent[TAB_LEXICON].querySelector('#entry-editor .window-status p').textContent = 'Load an entry to get started';
 		// search tab
 		tabContent[TAB_SEARCH] = document.getElementById('tpl-search-page').content.firstElementChild.cloneNode(true);
-		tabContent[TAB_SEARCH].innerHTML = '';
-		tabContent[TAB_SEARCH].appendChild( document.getElementById('tpl-bg-status').content.firstElementChild.cloneNode(true) );
-		tabContent[TAB_SEARCH].querySelector('.window-status p').textContent = 'Search tab under construction';
+		tabContent[TAB_SEARCH].style.padding = '0';
+		tabContent[TAB_SEARCH].querySelector('#search-query').addEventListener('keyup', evt => {
+			searchSettings.toggle(tabContent[TAB_SEARCH].querySelector('#search-query').value);
+		});
 		// enable tab switching
 		eNavTabs[TAB_PROJECT].onclick = () => renderTab(TAB_PROJECT);
 		eNavTabs[TAB_LEXICON].onclick = () => renderTab(TAB_LEXICON);
@@ -752,6 +806,18 @@ const saveLangInfo = () => {
 ////////////////////////////////
 
 init();
+
+// // search single-tag parse/toggle unit tests
+// searchSettings.toggle('ctg:v');
+// searchSettings.toggle('catg:v');
+// searchSettings.toggle('catg:v');
+// searchSettings.toggle('has:note');
+// searchSettings.toggle('bop');
+// searchSettings.toggle('catg:x');
+// searchSettings.toggle('has:nope');
+// searchSettings.toggle('-bop');
+// searchSettings.toggle('-catg:n');
+// searchSettings.toggle('-catg:n');
 
 tryOpenProject();
 
