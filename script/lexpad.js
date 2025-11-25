@@ -92,16 +92,16 @@ let searchSettings = {
 	// has:_ tags are false-by-default
 		// no req imposed unless user adds one
 	DEFAULT_INCLUDE : Object.freeze({
-		in : { L1 : true, L2 : false, sentL1 : true, sentL2 : false, note : false },
-		catg : { 'n' : true, 'v' : true, 'adj' : true, misc : true },
+		in : { L1 : false, L2 : false, sentL1 : false, sentL2 : false, note : false },
+		catg : { 'n' : false, 'v' : false, 'adj' : false, misc : false },
 		has : {
 			L1 : false, L2 : false, sentence : false, note : false, // content
 			audio : false, image : false // media
 		}
 	}),
 	include : {
-		in : { L1 : true, L2 : false, sentL1 : true, sentL2 : false, note : false },
-		catg : { 'n' : true, 'v' : true, 'adj' : true, misc : true },
+		in : { L1 : false, L2 : false, sentL1 : false, sentL2 : false, note : false },
+		catg : { 'n' : false, 'v' : false, 'adj' : false, misc : false },
 		has : {
 			L1 : false, L2 : false, sentence : false, note : false, // content
 			audio : false, image : false // media
@@ -115,6 +115,14 @@ let searchSettings = {
 			audio : false, image : false // media
 		}
 	},
+	reset : () => {
+		for (let filter of ['in','catg','has']) {
+			for (let prop in searchSettings.DEFAULT_INCLUDE[filter]) {
+				// console.log(`reset include ${filter} ${prop} ${searchSettings.include[filter][prop]===searchSettings.DEFAULT_INCLUDE[filter][prop] ? 'SET' : 'RESET'}`);
+				searchSettings.include[filter][prop] = searchSettings.DEFAULT_INCLUDE[filter][prop];
+			}
+		}
+	},
 	toggle : (s) => {
 		let [exclude,k,v] = s.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
 		if (k === undefined && v === undefined) { console.warn(`"${s}" does not contain a recognized tag.`); return; }
@@ -125,6 +133,66 @@ let searchSettings = {
 	},
 	fromString : (s) => {
 		//
+	},
+	submitSearch : (frag) => {
+		const t0_advancedSearch = performance.now();
+
+		const reFrag = new RegExp( RegExp.escape(frag) );
+		console.log(reFrag);
+		// all tags of same type false => none specified => search in all
+		// const inAll = !searchSettings.include.in.L1 && !searchSettings.include.in.L2 && !searchSettings.include.in.sentL1 && !searchSettings.include.in.sentL2 && !searchSettings.include.in.note;
+		const inAll = Object.values(searchSettings.include.in).every(x => !x);
+		const catgAll = Object.values(searchSettings.include.catg).every(x => !x);
+		const hasNone = Object.values(searchSettings.include.has).every(x => !x);
+		// use ||= short circuiting for efficient checking
+		for (let entry of lexicon.data) {
+			// IN [L1,L2,sentL1,sentL2,note]
+			let matchIn = false;
+			// matchIn ||= (inAll || searchSettings.include.in.L1) && reFrag.test(entry.L1); // exposes "x; y" if desired; future gubbins toggle
+			matchIn ||= (inAll || searchSettings.include.in.L1) && entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w));
+			matchIn ||= (inAll || searchSettings.include.in.L2) && entry.L2.some(form => reFrag.test(form.L2)); // need to integrate "x; y" gubbins toggle here too
+			matchIn ||= (inAll || searchSettings.include.in.sentL1) && entry.sents.some(sent => reFrag.test(sent.L1));
+			matchIn ||= (inAll || searchSettings.include.in.sentL2) && entry.sents.some(sent => reFrag.test(sent.L2));
+			matchIn ||= (inAll || searchSettings.include.in.note) && entry.notes.some(note => reFrag.test(note.note));
+			// console.log(`"${reFrag}" in L1 "${entry.L1}" : ${reFrag.test(entry.L1)},${entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
+			// for (let form of entry.L2) console.log(`"${reFrag}" in L2 "${form.L2}" : ${reFrag.test(form.L2)},${form.L2.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
+			// for (let sent of entry.sents) console.log(`"${reFrag}" in sentence L1,L2: ${reFrag.test(sent.L1)},${reFrag.test(sent.L2)}`);
+			// for (let note of entry.notes) console.log(`"${reFrag}" in note: ${reFrag.test(note.note)}`);
+
+			// CATG [...,misc]
+			let matchCatg = false;
+			matchCatg ||= (catgAll || searchSettings.include.catg[entry.catg]);
+			// console.log(`all? ${catgAll}, match? ${catgAll || searchSettings.include.catg[entry.catg]}`);
+
+			// HAS [L1,L2,sentence,note,audio,image]
+			let notHas = false; // can't use ||= short circuit w/ true->false accumulator, so use false->true accumulator and invert later
+			notHas ||= searchSettings.include.has.L1 && !entry.L1;
+			notHas ||= searchSettings.include.has.L2 && !(entry.L2?.length > 0);
+			notHas ||= searchSettings.include.has.sentence && !(entry.sents?.length > 0);
+			notHas ||= searchSettings.include.has.note && !(entry.notes?.length > 0);
+			notHas ||= searchSettings.include.has.audio && !(
+				entry.L2?.some(form => form.audio?.length > 0) || entry.sents?.some(sentence => sentence.audio?.length > 0) // (should have audio) AND NOT(either has audio)
+			);
+			notHas ||= searchSettings.include.has.image && !(entry.images?.length > 0);
+			let matchHas = !notHas;
+			// console.log(`has:L1 ${!!entry.L1}`);
+			// console.log(`has:L2 ${entry.L2?.length>0}`);
+			// console.log(`has:sentence ${entry.sents?.length>0}`);
+			// console.log(`has:note ${entry.notes?.length>0}`);
+			// console.log(`has:audio(form) ${entry.L2?.some(form => form.audio?.length>0)}`);
+			// console.log(`has:audio(sentence) ${entry.sents?.some(sentence => sentence.audio?.length>0)}`);
+			// console.log(`has:image ${entry.images?.length>0}`);
+			// console.log(`match has? ${matchHas}`);
+
+			console.log((matchIn && matchCatg && matchHas) ? 'MATCH' : 'NO MATCH');
+		}
+
+		console.log(`Advanced search done in ${Math.round(performance.now()-t0_advancedSearch)} ms.`);
+		// if all of search.in are false, set inAll = true (not searching specific fields)
+		// for entry in lexicon, include if:
+			// (inAll) || (search.in[L1] && entry.L1.contains(searchFrag)) || ...
+			// AND entry.catg != 'misc' && search.catg[entry.catg] == true
+			// AND (search.has[audio] && entry.containsAudio()) && ...
 	}
 };
 
@@ -208,7 +276,15 @@ const init = () => {
 		tabContent[TAB_SEARCH] = document.getElementById('tpl-search-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_SEARCH].style.padding = '0';
 		tabContent[TAB_SEARCH].querySelector('#search-query').addEventListener('keyup', evt => {
-			searchSettings.toggle(tabContent[TAB_SEARCH].querySelector('#search-query').value);
+			// searchSettings.toggle(tabContent[TAB_SEARCH].querySelector('#search-query').value);
+			// searchSettings.include.in.L2 = true;
+			// searchSettings.include.in.sentL1 = true;
+			// searchSettings.include.in.sentL2 = true;
+			// searchSettings.include.in.note = true;
+			// searchSettings.include.catg['n'] = true;
+			searchSettings.include.has.audio = true;
+			searchSettings.submitSearch(tabContent[TAB_SEARCH].querySelector('#search-query').value);
+			// searchSettings.reset();
 		});
 		// enable tab switching
 		eNavTabs[TAB_PROJECT].onclick = () => renderTab(TAB_PROJECT);
@@ -818,6 +894,9 @@ init();
 // searchSettings.toggle('-bop');
 // searchSettings.toggle('-catg:n');
 // searchSettings.toggle('-catg:n');
+
+
+
 
 tryOpenProject();
 
