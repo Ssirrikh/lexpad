@@ -60,14 +60,53 @@ let audioPlayer = {
 
 //// PROGRAM STATE ////
 
+// gubbins toggles (aka settings / behavior config)
+let gubbins = {
+	// window behavior
+	quickCopy : {
+		title : `Quick Copy`,
+		desc : `Behavior of quick-copy bar. If OFF: Click to insert, Ctrl+Click to copy. If ON: Click to copy, Ctrl+Click to insert.`,
+		state : false
+	},
+};
+
 // let tabNeedsUpdate = [
 //     false, // project tab
 //     false, // lexicon tab
 //     false, // search tab
 // ];
+// key state tracking
+let ctrlDown = false;
+let shiftDown = false;
+window.addEventListener('keydown', evt => {
+	if (evt.key === 'Control') ctrlDown = true;
+	if (evt.key === 'Shift') shiftDown = true;
+	let modStr = [];
+	if (ctrlDown) modStr.push('CTRL');
+	if (shiftDown) modStr.push('SHIFT');
+	eStatbarRight.textContent = modStr.join('+');
+	updateQuickCopyBar();
+	// TODO: only update if project currently loaded
+	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+});
+window.addEventListener('keyup', evt => {
+	if (evt.key === 'Control') ctrlDown = false;
+	if (evt.key === 'Shift') shiftDown = false;
+	let modStr = [];
+	if (ctrlDown) modStr.push('CTRL');
+	if (shiftDown) modStr.push('SHIFT');
+	eStatbarRight.textContent = modStr.join('+');
+	updateQuickCopyBar();
+	// TODO: only update if project currently loaded
+	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+});
+// focus anchors
+let activeInput;
+
 // active entry
 let activeEntry = {};
 let activeMenu = ''; // id of DOM element
+
 // lexicon search
 let search = {
 	activePattern : SEARCH_PATTERN_BEGINS,
@@ -117,18 +156,33 @@ let searchSettings = {
 	},
 	reset : () => {
 		for (let filter of ['in','catg','has']) {
+			searchSettings.include[filter] = {}; // need to clear in case a catg was deleted
 			for (let prop in searchSettings.DEFAULT_INCLUDE[filter]) {
 				// console.log(`reset include ${filter} ${prop} ${searchSettings.include[filter][prop]===searchSettings.DEFAULT_INCLUDE[filter][prop] ? 'SET' : 'RESET'}`);
 				searchSettings.include[filter][prop] = searchSettings.DEFAULT_INCLUDE[filter][prop];
 			}
 		}
 	},
-	toggle : (s) => {
-		let [exclude,k,v] = s.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
-		if (k === undefined && v === undefined) { console.warn(`"${s}" does not contain a recognized tag.`); return; }
-		const includeExclude = (exclude) ? 'exclude' : 'include';
+	setOnly : (tag) => {
+		// parse input string
+		const [negate,k,v] = tag.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
+		const includeExclude = (negate) ? 'exclude' : 'include';
+		if (k === undefined && v === undefined) { console.warn(`"${tag}" does not contain a recognized tag.`); return; }
 		console.log(`${includeExclude} ${[k,v]}: ${searchSettings[includeExclude][k][v]} -> ${!searchSettings[includeExclude][k][v]}`);
-		if (typeof searchSettings[includeExclude][k][v] !== 'boolean') { console.warn(`"${v}" not a recognized ${k}:_ tag. (${s})`); return; }
+		if (typeof searchSettings[includeExclude][k][v] !== 'boolean') { console.warn(`"${v}" not a recognized ${k}:_ tag. (${tag})`); return; }
+		// set target tag and unset all others
+		for (let prop in searchSettings[includeExclude][k]) {
+			searchSettings[includeExclude][k][prop] = (prop === v);
+		}
+	},
+	toggle : (tag) => {
+		// parse input string
+		const [negate,k,v] = tag.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
+		const includeExclude = (negate) ? 'exclude' : 'include';
+		if (k === undefined && v === undefined) { console.warn(`"${tag}" does not contain a recognized tag.`); return; }
+		console.log(`${includeExclude} ${[k,v]}: ${searchSettings[includeExclude][k][v]} -> ${!searchSettings[includeExclude][k][v]}`);
+		if (typeof searchSettings[includeExclude][k][v] !== 'boolean') { console.warn(`"${v}" not a recognized ${k}:_ tag. (${tag})`); return; }
+		// toggle appropriate search tag
 		searchSettings[includeExclude][k][v] = !searchSettings[includeExclude][k][v];
 	},
 	fromString : (s) => {
@@ -259,9 +313,13 @@ const init = () => {
 		const t0_init_deferred = performance.now();
 		// project tab
 		tabContent[TAB_PROJECT] = document.getElementById('tpl-project-page').content.firstElementChild.cloneNode(true);
+		tabContent[TAB_PROJECT].querySelector('#lang-name').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-name');
+		tabContent[TAB_PROJECT].querySelector('#lang-abbr').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
+		tabContent[TAB_PROJECT].querySelector('#lang-alph').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-alph');
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_LEXICON].style.padding = '0';
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search').onfocus = () => activeInput = tabContent[TAB_LEXICON].querySelector('#lexicon-search');
 		search.ePatterns[SEARCH_PATTERN_BEGINS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-begins');
 		search.ePatterns[SEARCH_PATTERN_BEGINS].onclick = () => setLexiconSearchPattern(SEARCH_PATTERN_BEGINS);
 		search.ePatterns[SEARCH_PATTERN_CONTAINS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-contains');
@@ -275,17 +333,19 @@ const init = () => {
 		// search tab
 		tabContent[TAB_SEARCH] = document.getElementById('tpl-search-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_SEARCH].style.padding = '0';
+		tabContent[TAB_SEARCH].querySelector('#search-query').onfocus = () => activeInput = tabContent[TAB_SEARCH].querySelector('#search-query');
 		tabContent[TAB_SEARCH].querySelector('#search-query').addEventListener('keyup', evt => {
-			// searchSettings.toggle(tabContent[TAB_SEARCH].querySelector('#search-query').value);
-			// searchSettings.include.in.L2 = true;
-			// searchSettings.include.in.sentL1 = true;
-			// searchSettings.include.in.sentL2 = true;
-			// searchSettings.include.in.note = true;
-			// searchSettings.include.catg['n'] = true;
+			renderSearchFilters();
+		});
+		tabContent[TAB_SEARCH].querySelector('#search-bar').onsubmit = (evt) => {
+			evt.preventDefault();
+			console.log(`SUBMITTING SEARCH`);
 			searchSettings.include.has.audio = true;
 			searchSettings.submitSearch(tabContent[TAB_SEARCH].querySelector('#search-query').value);
-			// searchSettings.reset();
-		});
+		};
+		tabContent[TAB_SEARCH].querySelector(`#search-include-all-catg`).onclick = () => console.log(`toggle all catg:_`);
+		tabContent[TAB_SEARCH].querySelector(`#search-include-all-has`).onclick = () => console.log(`toggle all has:_`);
+		
 		// enable tab switching
 		eNavTabs[TAB_PROJECT].onclick = () => renderTab(TAB_PROJECT);
 		eNavTabs[TAB_LEXICON].onclick = () => renderTab(TAB_LEXICON);
@@ -324,6 +384,13 @@ const renderTab = (tabId) => {
 	// update content
 	activeElement.replaceWith(tabContent[tabId]);
 	activeElement = document.getElementById('r-content'); // rebind var to active container
+	// focus management
+	switch (tabId) {
+		case TAB_PROJECT: tabContent[TAB_PROJECT].querySelector('#lang-name').focus(); break;
+		case TAB_LEXICON: tabContent[TAB_LEXICON].querySelector('#lexicon-search').focus(); break;
+		case TAB_SEARCH: tabContent[TAB_SEARCH].querySelector('#search-query').focus(); break;
+		default: activeInput = null; console.warn(`Tab id ${tabId} does not have a designated focus target. Clearing focus anchor.`);
+	}
 	
 	// if (tabNeedsUpdate[tabId]) {
 	//     // TODO: run appropriate update function(s)
@@ -349,30 +416,50 @@ const buildFormSelect = (catg) => {
 };
 
 // project tab
+const copyOrInsert = (letter='') => {
+	if (shiftDown) letter = capitalize(letter);
+	if (ctrlDown === gubbins.quickCopy.state) {
+		// insert (click OR ctrl+click w/ quick copy on)
+		if (activeInput) {
+			activeInput.value += letter;
+			activeInput.dispatchEvent(new Event('keyup', { bubbles: true })); // manually trigger keyup so live searchbars update
+			activeInput.focus();
+		}
+		console.log(`Inserted "${letter}" in textbox.`);
+	} else {
+		// copy (ctrl+click OR click w/ quick copy on)
+		navigator.clipboard.writeText(letter);
+		console.log(`Copied "${letter}" to clipboard.`);
+	}
+};
 const populateQuickCopyBar = () => {
-	// console.log(lexicon.L2);
-	eStatbarLeft.innerHTML = '<p>Click to copy:</p>';
+	eStatbarLeft.innerHTML = `<p id="quick-copy-tooltip" class="no-wrap">Click to copy:</p>`;
 	let englishAlphabet = lexicon.L1.alph.split(' ');
 	let alphabet = lexicon.L2.alph.split(' ');
-	// console.log(alphabet);
-	for (let letter of alphabet) {
+	for (let i = 0; i < alphabet.length; i++) {
+		const letter = alphabet[i];
 		// console.log(letter, englishAlphabet.indexOf(letter));
 		if (englishAlphabet.indexOf(letter) !== -1) continue;
 		let e = document.createElement('button');
 		Object.assign(e, {
+			id : `quick-copy-${i}`,
 			className : 'quick-copy-letter',
 			textContent : letter,
-			onclick : () => {
-				navigator.clipboard.writeText(letter);
-				console.log(`Copied "${letter}" to clipboard.`);
-			}
+			onclick : () => copyOrInsert(letter)
 		});
 		eStatbarLeft.appendChild(e);
 	}
 };
+const updateQuickCopyBar = () => {
+	let alphabet = lexicon.L2.alph.split(' ');
+	for (let i = 0; i < alphabet.length; i++) {
+		const e = document.querySelector(`#quick-copy-${i}`);
+		if (e) e.textContent = (shiftDown) ? capitalize(alphabet[i]) : alphabet[i];
+	}
+};
 const populateProjectTab = () => {
 	// language data
-	// TODO: onblur events mark project modified
+	// TODO: onblur events mark project modified if change detected
 	Object.assign(tabContent[TAB_PROJECT].querySelector('#lang-name'), {
 		value : lexicon.L2.name ?? '',
 		onblur : () => {
@@ -524,6 +611,7 @@ const renderEditorHeader = () => {
 	console.log(activeEntry.L1);
 	Object.assign(tabContent[TAB_LEXICON].querySelector('#entry-L1'), {
 		value : activeEntry.L1,
+		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector('#entry-L1'),
 		onblur : () => {
 			activeEntry.L1 = tabContent[TAB_LEXICON].querySelector('#entry-L1').value.split(RE_SYNONYM_SPLITTER).join('; ');
 			console.log(activeEntry.L1);
@@ -563,6 +651,7 @@ const renderWordform = i => {
 	Object.assign(e.querySelector('input'), {
 		id : `entry-form-${i}-content`,
 		value : activeEntry.L2[i].L2 ?? '',
+		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-form-${i}-content`),
 		onblur : () => {
 			activeEntry.L2[i].L2 = document.getElementById(`entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER).join('; ');
 			console.log(activeEntry.L2[i]);
@@ -627,6 +716,7 @@ const renderSentence = i => {
 	Object.assign(e.querySelector('.entry-sentence-L1'), {
 		id : `entry-sentence-${i}-L1`,
 		value : activeEntry.sents[i].L1,
+		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-sentence-${i}-L1`),
 		onblur : () => {
 			activeEntry.sents[i].L1 = document.getElementById(`entry-sentence-${i}-L1`).value;
 			console.log(activeEntry.sents[i]);
@@ -635,6 +725,7 @@ const renderSentence = i => {
 	Object.assign(e.querySelector('.entry-sentence-L2'), {
 		id : `entry-sentence-${i}-L2`,
 		value : activeEntry.sents[i].L2,
+		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-sentence-${i}-L2`),
 		onblur : () => {
 			activeEntry.sents[i].L2 = document.getElementById(`entry-sentence-${i}-L2`).value;
 			console.log(activeEntry.sents[i]);
@@ -654,6 +745,7 @@ const renderNote = i => {
 	Object.assign(e.querySelector('textarea'), {
 		id : `entry-note-${i}`,
 		value : activeEntry.notes[i].note,
+		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-note-${i}`),
 		onblur : () => {
 			activeEntry.notes[i].note = document.getElementById(`entry-note-${i}`).value;
 			console.log(activeEntry.notes[i]);
@@ -668,6 +760,7 @@ const addWordform = () => {
 		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
 	}
 	renderWordform(activeEntry.L2.length - 1);
+	tabContent[TAB_LEXICON].querySelector(`#entry-form-${activeEntry.L2.length - 1}-content`).focus();
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
 };
 const addSentence = () => {
@@ -676,6 +769,7 @@ const addSentence = () => {
 		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
 	}
 	renderSentence(activeEntry.sents.length - 1);
+	tabContent[TAB_LEXICON].querySelector(`#entry-sentence-${activeEntry.sents.length - 1}-L2`).focus();
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sents.length})`;
 };
 const addNote = () => {
@@ -684,6 +778,7 @@ const addNote = () => {
 		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = '';
 	}
 	renderNote(activeEntry.notes.length - 1);
+	tabContent[TAB_LEXICON].querySelector(`#entry-note-${activeEntry.notes.length - 1}`).focus();
 	tabContent[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
 };
 
@@ -732,6 +827,73 @@ window.addEventListener('click', e => {
 	}
 });
 
+// search tab
+const populateSearchFilters = () => {
+	// rebuild search tags
+	let tplSearchInclude = {
+		in : { L1 : false, L2 : false, sentL1 : false, sentL2 : false, note : false },
+		catg : {},
+		has : { L1 : false, L2 : false, sentence : false, note : false, audio : false, image : false }
+	};
+	for (let catg in project.catgs) tplSearchInclude.catg[catg] = false;
+	tplSearchInclude.catg['misc'] = false;
+	searchSettings.DEFAULT_INCLUDE = Object.freeze(tplSearchInclude);
+	searchSettings.reset();
+	// update UI
+	const eSearchCatgs = tabContent[TAB_SEARCH].querySelector('#search-setting-catgs');
+	eSearchCatgs.innerHTML = '';
+	for (let catg in searchSettings.DEFAULT_INCLUDE.catg) {
+		let e = document.createElement('button');
+			e.classList.add('search-bubble');
+			e.id = `search-include-catg-${catg}`;
+			e.textContent = (catg==='misc') ? 'MISC' : (project.catgs[catg] ?? catg);
+			e.title = `catg:${catg}`;
+			// onclick set by tryLoadProject()
+		eSearchCatgs.appendChild(e);
+	}
+	// TODO: clear search tab results
+};
+const renderSearchFilters = () => {
+	for (let filter in searchSettings.include) {
+		let numSelected = 0;
+		let numTotal = 0;
+		for (let prop in searchSettings.include[filter]) {
+			if (searchSettings.include[filter][prop] === true) numSelected++;
+			numTotal++;
+		}
+		console.log(`render filter ${filter} ${numSelected}/${numTotal}`);
+		// render ALL/NONE toggle
+		if (filter !== 'in') {
+			tabContent[TAB_SEARCH].querySelector(`#search-include-all-${filter}`).textContent = (numSelected===numTotal) ? 'NONE' : 'ALL';
+			// if (numSelected)
+		}
+		// render bubbles
+		for (let prop in searchSettings.include[filter]) {
+			if (searchSettings.include[filter][prop]) {
+				if (numSelected === 1) {
+					// only selected filter in catg (active appearance)
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.add('active');
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('inactive');
+				} else {
+					// one of several selected (neutral appearance)
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('active');
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('inactive');
+				}
+			} else {
+				if (numSelected === 0) {
+					// none selected (all neutral)
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('active');
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('inactive');
+				} else {
+					// not selected (inactive)
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('active');
+					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.add('inactive');
+				}
+			}
+		}
+	}
+};
+
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -770,6 +932,8 @@ const tryLoadProject = async (path) => {
 	// TODO: deactivate loading screen
 	// refresh UI
 	populateQuickCopyBar();
+	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+	eStatbarLeft.title = `Click to insert in current textbox. Ctrl+Click to copy to clipboard. Hold Shift for uppercase.`; // hover text
 	// refresh project tab
 	populateProjectTab();
 	renderTab(TAB_PROJECT);
@@ -796,6 +960,23 @@ const tryLoadProject = async (path) => {
 		console.log('Project did not specify an entry to load.');
 	}
 	console.log(`Lexicon tab built in ${Math.round(performance.now()-t2_loadProject)} ms.`);
+	// refresh search tab
+	populateSearchFilters();
+	renderSearchFilters();
+	console.log(searchSettings.include);
+	for (let filter in searchSettings.include) {
+		for (let prop in searchSettings.include[filter]) {
+			tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).onclick = () => {
+				console.log(`${filter}:${prop} ${(shiftDown)?'SET':'TOGGLE'}`);
+				if (shiftDown) {
+					searchSettings.toggle(`${filter}:${prop}`);
+				} else {
+					searchSettings.setOnly(`${filter}:${prop}`);
+				}
+				renderSearchFilters();
+			};
+		}
+	}
 	console.log(`All loading finished in ${Math.round(performance.now()-t0_loadProject)} ms.`);
 }
 const tryListMedia = async (path) => {

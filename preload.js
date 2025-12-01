@@ -4,10 +4,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// ipcRenderer.send() for ipcMain.on() one-way comms
 	// ipcRenderer.invoke() for ipcMain.handle() two-way comms
 	
-	// debug
-	flipToggle: () => ipcRenderer.send('dbg-flip-toggle'),
-	requestObject: () => ipcRenderer.invoke('dbg-request-object'),
-	checkObject: () => ipcRenderer.send('dbg-check-object'),
+	// // debug
+	// flipToggle: () => ipcRenderer.send('dbg-flip-toggle'),
+	// requestObject: () => ipcRenderer.invoke('dbg-request-object'),
+	// checkObject: () => ipcRenderer.send('dbg-check-object'),
 	
 	// I/O
 	openProject: () => ipcRenderer.invoke('open-project'),

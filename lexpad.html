@@ -79,9 +79,10 @@
 				<label id='label-lang-abbr' for='lang-abbr'>Abbreviation</label>
 				<input id='lang-abbr' type='text' spellcheck='false'>
 				<p class='subtitle'>2-3 letter abbreviation of language name, for example "eng" for English.</p>
-				<label id='label-lang-alph' for='lang-alph'>Alphabet</label>
+				<label id='label-lang-alph' for='lang-alph'>Letters</label>
 				<input id='lang-alph' type='text' spellcheck='false'>
 				<p class='subtitle'>Lowercase letters separated by spaces, ie "a á b c ch". Determines alphabetization order and contents of quick-copy bar. Supports multi-character letters.</p>
+				<p class='subtitle'>Note: It is recommended that the linguist decide whether this represents spelling conventions or IPA and maintain consistency throughout their project.</p>
 			</div>
 			<div id='project-stats' class='flex-col project-tab-section'>
 				<div id='project-stats-totals' class='flex-row'>
@@ -194,55 +195,53 @@
 				<div id='search-settings-wrapper' class='flex-col'>
 					<form id='search-bar' class='flex-col'>
 						<input id='search-query' type='text' spellcheck='false' placeholder='Search...'>
-						<div class='flex-row'>
-							<div class='flex-row'>
-								<p>Search in:</p>
-								<!-- <button id='search-setting-L1' class='search-setting-lang active'>L1</button>
-								<button id='search-setting-L2' class='search-setting-lang inactive'>L2</button> -->
-							</div>
+						<!-- <div class='flex-row'>
+							<div class='flex-row'></div>
 							<button id='search-submit' class='button-highlight'>Submit</button>
-						</div>
+						</div> -->
 						<div class='flex-row'>
-							<button id='search-setting-L1' class='search-setting-lang active'>L1</button>
-							<button id='search-setting-L2' class='search-setting-lang inactive'>L2</button>
-							<button id='search-setting-L2' class='search-setting-lang inactive'>Sentence L1</button>
-							<button id='search-setting-L2' class='search-setting-lang inactive'>Sentence L2</button>
-							<button id='search-setting-L2' class='search-setting-lang inactive'>Notes</button>
+							<p>In:</p>
+							<button type='button' id='search-include-in-L1' class='search-setting-lang active' title='in:L1'>L1</button>
+							<button type='button' id='search-include-in-L2' class='search-setting-lang inactive' title='in:L2'>L2</button>
+							<button type='button' id='search-include-in-sentL1' class='search-setting-lang inactive' title='in:sentL1'>Sentence L1</button>
+							<button type='button' id='search-include-in-sentL2' class='search-setting-lang inactive' title='in:sentL2'>Sentence L2</button>
+							<button type='button' id='search-include-in-note' class='search-setting-lang inactive' title='in:note'>Notes</button>
 						</div>
 					</form>
-					<!-- <p id='search-tooltip'>Click a bubble to select it. Shift+click to select multiple.</p> -->
 					<div id='search-settings' class='flex-col no-scrollbar'>
 						<div class='flex-row search-setting-header'>
 							<p>Catg / Part of Speech</p>
-							<button class='search-setting-select-all'>ALL</button>
+							<button id='search-include-all-catg' class='search-setting-select-all active'>ALL</button>
 						</div>
 						<div id='search-setting-catgs' class='flex-row search-setting-bubble-wrapper'>
-							<button class='search-bubble inactive'>Noun</button>
+							<!-- <button class='search-bubble inactive'>Noun</button>
 							<button class='search-bubble inactive'>Verb</button>
 							<button class='search-bubble active'>Adjective</button>
 							<button class='search-bubble inactive'>Particle</button>
-							<button class='search-bubble inactive'>Adjectival Archive of Longness</button>
-							<button class='search-bubble inactive'>MISC</button>
+							<button class='search-bubble inactive'>Adjectival Archive of Longness</button> -->
+							<button id='search-include-catg-misc' class='search-bubble inactive' title='catg:misc'>MISC</button>
 						</div>
 						<div class='flex-row search-setting-header'>
 							<p>Content</p>
-							<button class='search-setting-select-all active'>ALL</button>
+							<button id='search-include-all-has' class='search-setting-select-all active'>ALL</button>
 						</div>
 						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
-							<button class='search-bubble'>L1</button>
-							<button class='search-bubble'>L2</button>
-							<button class='search-bubble'>Sentences</button>
-							<button class='search-bubble'>Notes</button>
+							<button id='search-include-has-L1' class='search-bubble' title='has:L1'>L1</button>
+							<button id='search-include-has-L2' class='search-bubble' title='has:L2'>L2</button>
+							<button id='search-include-has-sentence' class='search-bubble' title='has:sentence'>Sentences</button>
+							<button id='search-include-has-note' class='search-bubble' title='has:note'>Notes</button>
+							<button id='search-include-has-audio' class='search-bubble' title='has:audio'>Audio</button>
+							<button id='search-include-has-image' class='search-bubble' title='has:image'>Images</button>
 						</div>
-						<div class='flex-row search-setting-header'>
+						<!-- <div class='flex-row search-setting-header'>
 							<p>Media</p>
 							<button class='search-setting-select-all active'>ALL</button>
 						</div>
 						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
-							<button class='search-bubble'>Audio</button>
-							<button class='search-bubble'>Images</button>
-						</div>
-						<div class='flex-row search-setting-header'>
+							<button id='search-include-has-audio' class='search-bubble'>Audio</button>
+							<button id='search-include-has-image' class='search-bubble'>Images</button>
+						</div> -->
+						<!-- <div class='flex-row search-setting-header'>
 							<p> Exclude Catg / Part of Speech</p>
 							<button class='search-setting-exclude-all'>NONE</button>
 						</div>
@@ -271,8 +270,12 @@
 						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
 							<button class='search-bubble-exclude'>Audio</button>
 							<button class='search-bubble-exclude'>Images</button>
-						</div>
+						</div> -->
 					</div>
+					<p id='search-tooltip'>Click to select. Shift+Click to select multiple.</p>
+					<!-- <div id='search-tooltip'>
+						<p>Click to select. Shift+Click to select multiple.</p>
+					</div> -->
 				</div>
 				<div id='search-results-wrapper' class='flex-col'>
 					<div id='search-results-header' class='flex-row no-scrollbar'>
