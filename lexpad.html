@@ -85,11 +85,13 @@
 				<p class='subtitle'>Note: It is recommended that the linguist decide whether this represents spelling conventions or IPA and maintain consistency throughout their project.</p>
 			</div>
 			<div id='project-stats' class='flex-col project-tab-section'>
+				<p class='subtitle'>Click any statistic to view it in the search tab.</p>
+				<div class='stats-separator'></div>
 				<div id='project-stats-totals' class='flex-row'>
 					<h2 id='project-stats-num-entries'><span>0</span> Entries</h2>
 					<div class='flex-col'>
-						<button id='project-stats-wordcount-L1' class='flex-row statcount-bubble' title='in:L1'><span>0</span><p>words in L1</p></button>
-						<button id='project-stats-wordcount-L2' class='flex-row statcount-bubble' title='in:L2'><span>0</span><p>words in L2</p></button>
+						<button id='project-stats-wordcount-L1' class='flex-row statcount-bubble' title='has:L1'><span>0</span><p>words in L1</p></button>
+						<button id='project-stats-wordcount-L2' class='flex-row statcount-bubble' title='has:L2'><span>0</span><p>words in L2</p></button>
 					</div>
 					<div class='flex-col'>
 						<button id='project-stats-sentence-count' class='flex-row statcount-bubble' title='has:sentence'><span>0</span> Sentences</button>
@@ -101,31 +103,11 @@
 					</div>
 				</div>
 				<div class='stats-separator'></div>
-				<p class='subtitle'>Click any statistic to view it in the search tab.</p>
+				<!-- <p class='subtitle'>Click any statistic to view it in the search tab.</p> -->
 				<div id='project-stats-catgs' class='flex-row'>
 					<button class='flex-row catg-bubble'>
-						<p class='catg-bubble-label'>Noun</p>
-						<p class='catg-bubble-count'>231</p>
-					</button>
-					<button class='flex-row catg-bubble'>
-						<p class='catg-bubble-label'>Verb</p>
-						<p class='catg-bubble-count'>34</p>
-					</button>
-					<button class='flex-row catg-bubble'>
-						<p class='catg-bubble-label'>Adjective</p>
-						<p class='catg-bubble-count'>22</p>
-					</button>
-					<button class='flex-row catg-bubble'>
-						<p class='catg-bubble-label'>Particle</p>
-						<p class='catg-bubble-count'>0</p>
-					</button>
-					<button class='flex-row catg-bubble'>
-						<p class='catg-bubble-label'>Adjectival Archive of Longness</p>
-						<p class='catg-bubble-count'>1</p>
-					</button>
-					<button class='flex-row catg-bubble'>
 						<p class='catg-bubble-label'>MISC</p>
-						<p class='catg-bubble-count'>9</p>
+						<p class='catg-bubble-count'>0</p>
 					</button>
 				</div>
 				<!-- <p id='project-stats-tooltip'>Click any statistic to view it in the search tab.</p> -->
@@ -193,101 +175,153 @@
 		<div id='r-content' class='no-scrollbar'>
 			<div id='search-wrapper' class='flex-row'>
 				<div id='search-settings-wrapper' class='flex-col'>
-					<form id='search-bar' class='flex-col'>
-						<input id='search-query' type='text' spellcheck='false' placeholder='Search...'>
-						<!-- <div class='flex-row'>
-							<div class='flex-row'></div>
-							<button id='search-submit' class='button-highlight'>Submit</button>
-						</div> -->
-						<div class='flex-row'>
-							<p>In:</p>
-							<button type='button' id='search-include-in-L1' class='search-setting-lang active' title='in:L1'>L1</button>
-							<button type='button' id='search-include-in-L2' class='search-setting-lang inactive' title='in:L2'>L2</button>
-							<button type='button' id='search-include-in-sentL1' class='search-setting-lang inactive' title='in:sentL1'>Sentence L1</button>
-							<button type='button' id='search-include-in-sentL2' class='search-setting-lang inactive' title='in:sentL2'>Sentence L2</button>
-							<button type='button' id='search-include-in-note' class='search-setting-lang inactive' title='in:note'>Notes</button>
-						</div>
+					<form id='search-bar' class='flex-row'>
+						<input id='search-query' type='text' spellcheck='false' placeholder='Search...' title='Submit empty search to view all entries.'>
+						<button id='search-submit' type='submit' class='button-highlight'>Submit</button>
 					</form>
-					<div id='search-settings' class='flex-col no-scrollbar'>
-						<div class='flex-row search-setting-header'>
-							<p>Catg / Part of Speech</p>
-							<button id='search-include-all-catg' class='search-setting-select-all active'>ALL</button>
+					<div id='search-settings' class='flex-col'>
+						<!-- IN -->
+						<div class='flex-row search-tag-header'>
+							<div class='flex-row'>
+								<button id='search-reset-in' class='icon-x' title='Reset all in:_ tags.'></button>
+								<p title='Search within specific data field(s). Will search in all fields by default.'>Search In:</p>
+							</div>
+							<div class='flex-row'>
+								<button id='search-and-in' title='Match entries that contain query in datafield x AND in datafield y.'>AND</button>
+								<button id='search-or-in' class='active' title='Match entries that contain query in datafield x OR in datafield y OR in both.'>OR</button>
+							</div>
 						</div>
-						<div id='search-setting-catgs' class='flex-row search-setting-bubble-wrapper'>
-							<!-- <button class='search-bubble inactive'>Noun</button>
-							<button class='search-bubble inactive'>Verb</button>
-							<button class='search-bubble active'>Adjective</button>
-							<button class='search-bubble inactive'>Particle</button>
-							<button class='search-bubble inactive'>Adjectival Archive of Longness</button> -->
-							<button id='search-include-catg-misc' class='search-bubble inactive' title='catg:misc'>MISC</button>
+						<div class='flex-col search-tag-section'>
+							<button id='tag-in-L1' class='flex-row search-tag include'>
+								<p>in:L1</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-in-L2' class='flex-row search-tag'>
+								<p>in:L2</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-in-sentL1' class='flex-row search-tag exclude'>
+								<p>in:sentL1</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-in-sentL2' class='flex-row search-tag include'>
+								<p>in:sentL2</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-in-note' class='flex-row search-tag'>
+								<p>in:note</p>
+								<div class='search-tag-status'></div>
+							</button>
 						</div>
-						<div class='flex-row search-setting-header'>
-							<p>Content</p>
-							<button id='search-include-all-has' class='search-setting-select-all active'>ALL</button>
+						<!-- CATG -->
+						<div class='flex-row search-tag-header'>
+							<div class='flex-row'>
+								<button id='search-reset-catg' class='icon-x' title='Reset all catg:_ tags.'></button>
+								<p title='Search entries of specific catg(s). Will search entries of any catg by default.'>Catg / Part of Speech:</p>
+							</div>
+							<div class='flex-row'>
+								<button id='search-and-catg' title='Match entries of catg x AND catg y. Most useful for exclusion (NOT x AND NOT y).'>AND</button>
+								<button id='search-or-catg' class='active' title='Match entries of catg x OR catg y. Most useful for inclusion (x OR y).'>OR</button>
+							</div>
 						</div>
-						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
-							<button id='search-include-has-L1' class='search-bubble' title='has:L1'>L1</button>
-							<button id='search-include-has-L2' class='search-bubble' title='has:L2'>L2</button>
-							<button id='search-include-has-sentence' class='search-bubble' title='has:sentence'>Sentences</button>
-							<button id='search-include-has-note' class='search-bubble' title='has:note'>Notes</button>
-							<button id='search-include-has-audio' class='search-bubble' title='has:audio'>Audio</button>
-							<button id='search-include-has-image' class='search-bubble' title='has:image'>Images</button>
+						<div id='search-section-catgs' class='flex-col search-tag-section'>
+							<button id='tag-catg-misc' class='flex-row search-tag'>
+								<p>catg:misc</p>
+								<div class='search-tag-status'></div>
+							</button>
 						</div>
-						<!-- <div class='flex-row search-setting-header'>
-							<p>Media</p>
-							<button class='search-setting-select-all active'>ALL</button>
+						<!-- HAS -->
+						<div class='flex-row search-tag-header'>
+							<div class='flex-row'>
+								<button id='search-reset-has' class='icon-x' title='Reset all has:_ tags.'></button>
+								<p title='Search entries containing at least 1 instance of specific data/media. Will search with no regard for contents by default.'>Has Content:</p>
+							</div>
+							<div class='flex-row'>
+								<button id='search-and-has' title='Match entries that contain data/media x AND data/media y.'>AND</button>
+								<button id='search-or-has' class='active' title='Match entries that contain data/media x OR data/media y OR both.'>OR</button>
+							</div>
 						</div>
-						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
-							<button id='search-include-has-audio' class='search-bubble'>Audio</button>
-							<button id='search-include-has-image' class='search-bubble'>Images</button>
-						</div> -->
-						<!-- <div class='flex-row search-setting-header'>
-							<p> Exclude Catg / Part of Speech</p>
-							<button class='search-setting-exclude-all'>NONE</button>
+						<div class='flex-col search-tag-section'>
+							<button id='tag-has-L1' class='flex-row search-tag'>
+								<p>has:L1</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-has-L2' class='flex-row search-tag'>
+								<p>has:L2</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-has-sentence' class='flex-row search-tag'>
+								<p>has:sentence</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-has-note' class='flex-row search-tag'>
+								<p>has:note</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-has-audio' class='flex-row search-tag'>
+								<p>has:audio</p>
+								<div class='search-tag-status'></div>
+							</button>
+							<button id='tag-has-image' class='flex-row search-tag'>
+								<p>has:image</p>
+								<div class='search-tag-status'></div>
+							</button>
 						</div>
-						<div id='search-setting-catgs' class='flex-row search-setting-bubble-wrapper'>
-							<button class='search-bubble-exclude inactive'>Noun</button>
-							<button class='search-bubble-exclude inactive'>Verb</button>
-							<button class='search-bubble-exclude active'>Adjective</button>
-							<button class='search-bubble-exclude inactive'>Particle</button>
-							<button class='search-bubble-exclude inactive'>Adjectival Archive of Longness</button>
-							<button class='search-bubble-exclude inactive'>MISC</button>
-						</div>
-						<div class='flex-row search-setting-header'>
-							<p>Exclude Content</p>
-							<button class='search-setting-exclude-all active'>NONE</button>
-						</div>
-						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
-							<button class='search-bubble-exclude'>L1</button>
-							<button class='search-bubble-exclude'>L2</button>
-							<button class='search-bubble-exclude'>Sentences</button>
-							<button class='search-bubble-exclude'>Notes</button>
-						</div>
-						<div class='flex-row search-setting-header'>
-							<p>Exclude Media</p>
-							<button class='search-setting-exclude-all inactive'>NONE</button>
-						</div>
-						<div id='search-setting-media' class='flex-row search-setting-bubble-wrapper'>
-							<button class='search-bubble-exclude'>Audio</button>
-							<button class='search-bubble-exclude'>Images</button>
-						</div> -->
 					</div>
-					<p id='search-tooltip'>Click to select. Shift+Click to select multiple.</p>
+					<p id='search-tooltip'>Click to cycle: [include, exclude, either]</p>
 					<!-- <div id='search-tooltip'>
-						<p>Click to select. Shift+Click to select multiple.</p>
+						<p>Click to cycle: [include, exclude, either]</p>
 					</div> -->
 				</div>
-				<div id='search-results-wrapper' class='flex-col'>
+				<div id='search-results-wrapper' class='flex-col no-scrollbar'>
 					<div id='search-results-header' class='flex-row no-scrollbar'>
-						<p>"čʰap" in:L2 catg:v</p>
-						<p>17/291 entries</p>
+						<div id='search-results-header-left' class='flex-row'></div>
+						<div id='search-results-header-right' class='flex-row'>No active search</div>
 					</div>
-					<div class='flex-col flex-centered window-status'>
-						<p>Submit a search to get started</p>
+					<div id='search-results' class='flex-col'>
+						<div class='flex-col flex-centered window-status'>
+							<p>Submit a search to get started</p>
+						</div>
+						<!-- <div class='flex-col search-result'>
+							<p>Title</p>
+							<p class='subtitle'>Subtitle</p>
+						</div>
+						<div class='flex-col search-result'>
+							<p>Title</p>
+							<p class='subtitle'>Subtitle</p>
+						</div>
+						<div class='flex-col search-result'>
+							<p>Title</p>
+							<p class='subtitle'>Subtitle</p>
+						</div>
+						<div class='flex-col search-result'>
+							<p>Title</p>
+							<p class='subtitle'>Subtitle</p>
+						</div>
+						<div class='flex-col search-result'>
+							<p>Title</p>
+							<p class='subtitle'>Subtitle</p>
+						</div> -->
 					</div>
 				</div>
 			</div>
 		</div>
+	</template>
+
+	<template id='tpl-search-tag'>
+		<button class='flex-row search-tag'>
+			<p>Unnamed Tag</p>
+			<div class='search-tag-status'></div>
+		</button>
+	</template>
+
+	<template id='tpl-search-result'>
+		<button class='flex-col search-result' title='Click to load entry in Lexicon Tab.'>
+			<div class='flex-row search-result-header'>
+				<p class='search-result-catg'>catg</p>
+				<p class='search-result-L1'>L1 Word</p>
+			</div>
+		</button>
 	</template>
 
 	<!-- ENTRY EDITOR TEMPLATES -->

@@ -30,6 +30,11 @@ const SEARCH_PATTERN_BEGINS = 0;
 const SEARCH_PATTERN_CONTAINS = 1;
 const SEARCH_PATTERN_ENDS = 2;
 
+const DBG_TAG_STATES = ['EXCL','NOREQ','INCL'];
+const TAG_F = 0; // tag false (exclude)
+const TAG_N = 1; // tag null (no constraint)
+const TAG_T = 2; // tag true (include)
+
 const capitalize = s => (s[0]??'').toUpperCase() + s.slice(1);
 
 
@@ -118,9 +123,9 @@ let search = {
 };
 // search tab search
 let searchSettings = {
-	// tags in same category OR together, tags in diff categories AND together
+	// tags from same filter OR together, tags from diff filters AND together
 		// "catg:n catg:v has:audio has:image" === (catg:n OR catg:v) AND (has:audio OR has:image)
-	// can use "&" to AND tags in same category
+	// use "&" to AND tags in same category
 		// "has:audio has:image" === has:audio OR has:image
 		// "has:audio&has:image" === has:audio AND has:image
 	// using "&" between tags of diff categories changes nothing
@@ -130,124 +135,335 @@ let searchSettings = {
 		// adding one or more in:_ tags sets those tags true and all others false
 	// has:_ tags are false-by-default
 		// no req imposed unless user adds one
-	DEFAULT_INCLUDE : Object.freeze({
-		in : { L1 : false, L2 : false, sentL1 : false, sentL2 : false, note : false },
-		catg : { 'n' : false, 'v' : false, 'adj' : false, misc : false },
+	and : { in : false, catg : false, has : false }, // tags OR together by default; toggle to AND tags together instead
+	filters : {
+		in : { L1 : TAG_N, L2 : TAG_N, sentL1 : TAG_N, sentL2 : TAG_N, note : TAG_N },
+		catg : { misc : TAG_N },
 		has : {
-			L1 : false, L2 : false, sentence : false, note : false, // content
-			audio : false, image : false // media
-		}
-	}),
-	include : {
-		in : { L1 : false, L2 : false, sentL1 : false, sentL2 : false, note : false },
-		catg : { 'n' : false, 'v' : false, 'adj' : false, misc : false },
-		has : {
-			L1 : false, L2 : false, sentence : false, note : false, // content
-			audio : false, image : false // media
+			L1 : TAG_N, L2 : TAG_N, sentence : TAG_N, note : TAG_N, // content
+			audio : TAG_N, image : TAG_N // media
 		}
 	},
-	exclude : {
-		in : { L1 : true, L2 : false, sentL1 : true, sentL2 : false, note : false },
-		catg : { 'n' : true, 'v' : true, 'adj' : true, misc : true },
-		has : {
-			L1 : false, L2 : false, sentence : false, note : false, // content
-			audio : false, image : false // media
+	resetFilter : (filter) => {
+		if (!searchSettings.filters[filter]) { console.warn(`"${filter}" is not a recognized filter.`); return; }
+		for (let qualifier in searchSettings.filters[filter]) {
+			searchSettings.filters[filter][qualifier] = TAG_N;
 		}
 	},
 	reset : () => {
 		for (let filter of ['in','catg','has']) {
-			searchSettings.include[filter] = {}; // need to clear in case a catg was deleted
-			for (let prop in searchSettings.DEFAULT_INCLUDE[filter]) {
-				// console.log(`reset include ${filter} ${prop} ${searchSettings.include[filter][prop]===searchSettings.DEFAULT_INCLUDE[filter][prop] ? 'SET' : 'RESET'}`);
-				searchSettings.include[filter][prop] = searchSettings.DEFAULT_INCLUDE[filter][prop];
+			for (let qualifier in searchSettings.filters[filter]) {
+				searchSettings.filters[filter][qualifier] = TAG_N;
 			}
 		}
 	},
-	setOnly : (tag) => {
+	set : (tag) => {
 		// parse input string
 		const [negate,k,v] = tag.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
-		const includeExclude = (negate) ? 'exclude' : 'include';
 		if (k === undefined && v === undefined) { console.warn(`"${tag}" does not contain a recognized tag.`); return; }
-		console.log(`${includeExclude} ${[k,v]}: ${searchSettings[includeExclude][k][v]} -> ${!searchSettings[includeExclude][k][v]}`);
-		if (typeof searchSettings[includeExclude][k][v] !== 'boolean') { console.warn(`"${v}" not a recognized ${k}:_ tag. (${tag})`); return; }
-		// set target tag and unset all others
-		for (let prop in searchSettings[includeExclude][k]) {
-			searchSettings[includeExclude][k][prop] = (prop === v);
-		}
+		if (typeof searchSettings.filters[k][v] !== 'number') { console.warn(`"${v}" is not a recognized ${k}:_ qualifier. (${tag})`); return; }
+		// set tag
+		const prev = DBG_TAG_STATES[searchSettings.filters[k][v]];
+		searchSettings.filters[k][v] = (negate) ? TAG_F : TAG_T;
+		console.log(`SET ${k}:${v} ${prev}->${DBG_TAG_STATES[searchSettings.filters[k][v]]}`);
 	},
-	toggle : (tag) => {
+	unset : (tag) => {
 		// parse input string
 		const [negate,k,v] = tag.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
-		const includeExclude = (negate) ? 'exclude' : 'include';
 		if (k === undefined && v === undefined) { console.warn(`"${tag}" does not contain a recognized tag.`); return; }
-		console.log(`${includeExclude} ${[k,v]}: ${searchSettings[includeExclude][k][v]} -> ${!searchSettings[includeExclude][k][v]}`);
-		if (typeof searchSettings[includeExclude][k][v] !== 'boolean') { console.warn(`"${v}" not a recognized ${k}:_ tag. (${tag})`); return; }
-		// toggle appropriate search tag
-		searchSettings[includeExclude][k][v] = !searchSettings[includeExclude][k][v];
+		if (typeof searchSettings.filters[k][v] !== 'number') { console.warn(`"${v}" is not a recognized ${k}:_ qualifier. (${tag})`); return; }
+		// unset tag
+		const prev = DBG_TAG_STATES[searchSettings.filters[k][v]];
+		searchSettings.filters[k][v] = TAG_N;
+		console.log(`SET ${k}:${v} ${prev}->${DBG_TAG_STATES[searchSettings.filters[k][v]]}`);
+	},
+	setPrev : (tag) => {
+		// parse input string
+		const [negate,k,v] = tag.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
+		if (k === undefined && v === undefined) { console.warn(`"${tag}" does not contain a recognized tag.`); return; }
+		if (typeof searchSettings.filters[k][v] !== 'number') { console.warn(`"${v}" is not a recognized ${k}:_ qualifier. (${tag})`); return; }
+		// set to prev state
+		const prev = DBG_TAG_STATES[searchSettings.filters[k][v]];
+		searchSettings.filters[k][v] = (searchSettings.filters[k][v] - 1 + 3) % 3;
+		console.log(`SET ${k}:${v} ${prev}->${DBG_TAG_STATES[searchSettings.filters[k][v]]}`);
+	},
+	setNext : (tag) => {
+		// parse input string
+		const [negate,k,v] = tag.match(/(-?)(in|catg|has):(.*)/)?.slice(1,4) ?? [];
+		if (k === undefined && v === undefined) { console.warn(`"${tag}" does not contain a recognized tag.`); return; }
+		if (typeof searchSettings.filters[k][v] !== 'number') { console.warn(`"${v}" is not a recognized ${k}:_ qualifier. (${tag})`); return; }
+		// set to next state
+		const prev = DBG_TAG_STATES[searchSettings.filters[k][v]];
+		searchSettings.filters[k][v] = (searchSettings.filters[k][v] + 1) % 3;
+		console.log(`SET ${k}:${v} ${prev}->${DBG_TAG_STATES[searchSettings.filters[k][v]]}`);
 	},
 	fromString : (s) => {
 		//
 	},
+	toString : () => {
+		let a = [];
+		for (let filter of ['in','catg','has']) {
+			for (let qualifier in searchSettings.filters[filter]) {
+				switch (searchSettings.filters[filter][qualifier]) {
+					case TAG_T: a.push(`${filter}:${qualifier}`); break;
+					case TAG_F: a.push(`-${filter}:${qualifier}`); break;
+				}
+			}
+		}
+		return a.join(' ');
+	},
 	submitSearch : (frag) => {
 		const t0_advancedSearch = performance.now();
 
-		const reFrag = new RegExp( RegExp.escape(frag) );
+		const reFrag = new RegExp( RegExp.escape(frag), 'i' );
 		console.log(reFrag);
-		// all tags of same type false => none specified => search in all
-		// const inAll = !searchSettings.include.in.L1 && !searchSettings.include.in.L2 && !searchSettings.include.in.sentL1 && !searchSettings.include.in.sentL2 && !searchSettings.include.in.note;
-		const inAll = Object.values(searchSettings.include.in).every(x => !x);
-		const catgAll = Object.values(searchSettings.include.catg).every(x => !x);
-		const hasNone = Object.values(searchSettings.include.has).every(x => !x);
-		// use ||= short circuiting for efficient checking
-		for (let entry of lexicon.data) {
+		// no tags in category specified => search in all
+		const inAny = Object.values(searchSettings.filters.in).every(x => x === TAG_N);
+		const catgAny = Object.values(searchSettings.filters.catg).every(x => x === TAG_N);
+		const hasAny = Object.values(searchSettings.filters.has).every(x => x === TAG_N);
+		console.log(inAny,catgAny,hasAny);
+		// check tags with ||= short circuiting for efficient accumulators
+		let numMatches = 0;
+		let eResults = document.createElement('div');
+			eResults.id = `search-results`;
+			eResults.classList.add('flex-col');
+		for (let i = 0; i < lexicon.data.length; i++) {
 			// IN [L1,L2,sentL1,sentL2,note]
 			let matchIn = false;
-			// matchIn ||= (inAll || searchSettings.include.in.L1) && reFrag.test(entry.L1); // exposes "x; y" if desired; future gubbins toggle
-			matchIn ||= (inAll || searchSettings.include.in.L1) && entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w));
-			matchIn ||= (inAll || searchSettings.include.in.L2) && entry.L2.some(form => reFrag.test(form.L2)); // need to integrate "x; y" gubbins toggle here too
-			matchIn ||= (inAll || searchSettings.include.in.sentL1) && entry.sents.some(sent => reFrag.test(sent.L1));
-			matchIn ||= (inAll || searchSettings.include.in.sentL2) && entry.sents.some(sent => reFrag.test(sent.L2));
-			matchIn ||= (inAll || searchSettings.include.in.note) && entry.notes.some(note => reFrag.test(note.note));
-			// console.log(`"${reFrag}" in L1 "${entry.L1}" : ${reFrag.test(entry.L1)},${entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
-			// for (let form of entry.L2) console.log(`"${reFrag}" in L2 "${form.L2}" : ${reFrag.test(form.L2)},${form.L2.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
-			// for (let sent of entry.sents) console.log(`"${reFrag}" in sentence L1,L2: ${reFrag.test(sent.L1)},${reFrag.test(sent.L2)}`);
-			// for (let note of entry.notes) console.log(`"${reFrag}" in note: ${reFrag.test(note.note)}`);
-
+			if (!searchSettings.and.in) {
+				// use OR between tags
+				if (inAny) {
+					matchIn = reFrag.test(lexicon.data[i].L1)
+						|| lexicon.data[i].L2.some(form => reFrag.test(form.L2))
+						|| lexicon.data[i].sents.some(sent => reFrag.test(sent.L1))
+						|| lexicon.data[i].sents.some(sent => reFrag.test(sent.L2))
+						|| lexicon.data[i].notes.some(note => reFrag.test(note.note));
+				} else {
+					// no match if -in:L1 and L1.contains(frag)
+					// no match if in:L1 and !L1.contains(frag)
+					// !inAny && TAG_N => some other in:_ is active but not this one => no way to DQ
+					matchIn ||= (searchSettings.filters.in.L1 === TAG_F) && !reFrag.test(lexicon.data[i].L1);
+					matchIn ||= (searchSettings.filters.in.L1 === TAG_T) && reFrag.test(lexicon.data[i].L1);
+					matchIn ||= (searchSettings.filters.in.L2 === TAG_F) && !lexicon.data[i].L2.some(form => reFrag.test(form.L2));
+					matchIn ||= (searchSettings.filters.in.L2 === TAG_T) && lexicon.data[i].L2.some(form => reFrag.test(form.L2));
+					matchIn ||= (searchSettings.filters.in.sentL1 === TAG_F) && !lexicon.data[i].sents.some(sent => reFrag.test(sent.L1));
+					matchIn ||= (searchSettings.filters.in.sentL1 === TAG_T) && lexicon.data[i].sents.some(sent => reFrag.test(sent.L1));
+					matchIn ||= (searchSettings.filters.in.sentL2 === TAG_F) && !lexicon.data[i].sents.some(sent => reFrag.test(sent.L2));
+					matchIn ||= (searchSettings.filters.in.sentL2 === TAG_T) && lexicon.data[i].sents.some(sent => reFrag.test(sent.L2));
+					matchIn ||= (searchSettings.filters.in.note === TAG_F) && !lexicon.data[i].notes.some(note => reFrag.test(note.note));
+					matchIn ||= (searchSettings.filters.in.note === TAG_T) && lexicon.data[i].notes.some(note => reFrag.test(note.note));
+				}
+			} else {
+				// use AND between tags
+				let notIn = false;
+				if (inAny) {
+					// && short-circuits
+					// notIn = !L1.contains() && !L2.contains() && ...
+					notIn = !reFrag.test(lexicon.data[i].L1)
+						&& !lexicon.data[i].L2.some(form => reFrag.test(form.L2))
+						&& !lexicon.data[i].sents.some(sent => reFrag.test(sent.L1))
+						&& !lexicon.data[i].sents.some(sent => reFrag.test(sent.L2))
+						&& !lexicon.data[i].notes.some(note => reFrag.test(note.note));
+				} else {
+					// no match if -in:L1 and L1.contains(frag)
+					// no match if in:L1 and !L1.contains(frag)
+					// !inAny && TAG_N => some other in:_ is active but not this one => no way to DQ
+					notIn ||= (searchSettings.filters.in.L1 === TAG_F) && reFrag.test(lexicon.data[i].L1);
+					notIn ||= (searchSettings.filters.in.L1 === TAG_T) && !reFrag.test(lexicon.data[i].L1);
+					notIn ||= (searchSettings.filters.in.L2 === TAG_F) && lexicon.data[i].L2.some(form => reFrag.test(form.L2));
+					notIn ||= (searchSettings.filters.in.L2 === TAG_T) && !lexicon.data[i].L2.some(form => reFrag.test(form.L2));
+					notIn ||= (searchSettings.filters.in.sentL1 === TAG_F) && lexicon.data[i].sents.some(sent => reFrag.test(sent.L1));
+					notIn ||= (searchSettings.filters.in.sentL1 === TAG_T) && !lexicon.data[i].sents.some(sent => reFrag.test(sent.L1));
+					notIn ||= (searchSettings.filters.in.sentL2 === TAG_F) && lexicon.data[i].sents.some(sent => reFrag.test(sent.L2));
+					notIn ||= (searchSettings.filters.in.sentL2 === TAG_T) && !lexicon.data[i].sents.some(sent => reFrag.test(sent.L2));
+					notIn ||= (searchSettings.filters.in.note === TAG_F) && lexicon.data[i].notes.some(note => reFrag.test(note.note));
+					notIn ||= (searchSettings.filters.in.note === TAG_T) && !lexicon.data[i].notes.some(note => reFrag.test(note.note));
+				}
+				matchIn = !notIn;
+			}
+			
 			// CATG [...,misc]
 			let matchCatg = false;
-			matchCatg ||= (catgAll || searchSettings.include.catg[entry.catg]);
-			// console.log(`all? ${catgAll}, match? ${catgAll || searchSettings.include.catg[entry.catg]}`);
+			if (searchSettings.and.catg) {
+				// use AND between tags
+				let notCatg = false;
+				if (catgAny) {
+					// no-op; lack of criteria => no way to disqualify match
+				} else {
+					for (let catg in searchSettings.filters.catg) {
+						if (catg !== 'misc') {
+							notCatg ||= (searchSettings.filters.catg[catg] === TAG_F) && (lexicon.data[i].catg === catg);
+							notCatg ||= (searchSettings.filters.catg[catg] === TAG_T) && (lexicon.data[i].catg !== catg);
+						}
+					}
+					const isCatgMisc = searchSettings.filters.catg[lexicon.data[i].catg] === undefined || lexicon.data[i].catg === 'misc';
+					notCatg ||= (searchSettings.filters.catg['misc'] === TAG_F) && isCatgMisc;
+					notCatg ||= (searchSettings.filters.catg['misc'] === TAG_T) && !isCatgMisc;
+				}
+				matchCatg = !notCatg;
+			} else {
+				// use OR between tags
+				if (catgAny) {
+					matchCatg = true; // no-op; lack of criteria => no way to disqualify match
+				} else {
+					for (let catg in searchSettings.filters.catg) {
+						if (catg !== 'misc') {
+							matchCatg ||= (searchSettings.filters.catg[catg] === TAG_F) && (lexicon.data[i].catg !== catg);
+							matchCatg ||= (searchSettings.filters.catg[catg] === TAG_T) && (lexicon.data[i].catg === catg);
+						}
+					}
+					const isCatgMisc = searchSettings.filters.catg[lexicon.data[i].catg] === undefined || lexicon.data[i].catg === 'misc';
+					matchCatg ||= (searchSettings.filters.catg['misc'] === TAG_F) && !isCatgMisc;
+					matchCatg ||= (searchSettings.filters.catg['misc'] === TAG_T) && isCatgMisc;
+				}
+			}
 
 			// HAS [L1,L2,sentence,note,audio,image]
-			let notHas = false; // can't use ||= short circuit w/ true->false accumulator, so use false->true accumulator and invert later
-			notHas ||= searchSettings.include.has.L1 && !entry.L1;
-			notHas ||= searchSettings.include.has.L2 && !(entry.L2?.length > 0);
-			notHas ||= searchSettings.include.has.sentence && !(entry.sents?.length > 0);
-			notHas ||= searchSettings.include.has.note && !(entry.notes?.length > 0);
-			notHas ||= searchSettings.include.has.audio && !(
-				entry.L2?.some(form => form.audio?.length > 0) || entry.sents?.some(sentence => sentence.audio?.length > 0) // (should have audio) AND NOT(either has audio)
-			);
-			notHas ||= searchSettings.include.has.image && !(entry.images?.length > 0);
-			let matchHas = !notHas;
-			// console.log(`has:L1 ${!!entry.L1}`);
-			// console.log(`has:L2 ${entry.L2?.length>0}`);
-			// console.log(`has:sentence ${entry.sents?.length>0}`);
-			// console.log(`has:note ${entry.notes?.length>0}`);
-			// console.log(`has:audio(form) ${entry.L2?.some(form => form.audio?.length>0)}`);
-			// console.log(`has:audio(sentence) ${entry.sents?.some(sentence => sentence.audio?.length>0)}`);
-			// console.log(`has:image ${entry.images?.length>0}`);
-			// console.log(`match has? ${matchHas}`);
+			let matchHas = false;
+			if (searchSettings.and.has) {
+				// use AND between tags
+				let notHas = false;
+				if (hasAny) {
+					// no-op; lack of criteria => no way to disqualify match
+				} else {
+					notHas ||= (searchSettings.filters.has.L1 === TAG_F) && lexicon.data[i].L1;
+					notHas ||= (searchSettings.filters.has.L1 === TAG_T) && !lexicon.data[i].L1;
+					notHas ||= (searchSettings.filters.has.L2 === TAG_F) && (lexicon.data[i].L2?.length > 0);
+					notHas ||= (searchSettings.filters.has.L2 === TAG_T) && !(lexicon.data[i].L2?.length > 0);
+					notHas ||= (searchSettings.filters.has.sentence === TAG_F) && (lexicon.data[i].sents?.length > 0);
+					notHas ||= (searchSettings.filters.has.sentence === TAG_T) && !(lexicon.data[i].sents?.length > 0);
+					notHas ||= (searchSettings.filters.has.note === TAG_F) && (lexicon.data[i].notes?.length > 0);
+					notHas ||= (searchSettings.filters.has.note === TAG_T) && !(lexicon.data[i].notes?.length > 0);
+					notHas ||= (searchSettings.filters.has.audio === TAG_F) && (
+						lexicon.data[i].L2?.some(form => form.audio?.length > 0) || lexicon.data[i].sents?.some(sentence => sentence.audio?.length > 0)
+					);
+					notHas ||= (searchSettings.filters.has.audio === TAG_T) && !(
+						// (should have audio) AND NOT(either has audio)
+						lexicon.data[i].L2?.some(form => form.audio?.length > 0) || lexicon.data[i].sents?.some(sentence => sentence.audio?.length > 0)
+					);
+					notHas ||= (searchSettings.filters.has.image === TAG_F) && (lexicon.data[i].images?.length > 0);
+					notHas ||= (searchSettings.filters.has.image === TAG_T) && !(lexicon.data[i].images?.length > 0);
+				}
+				matchHas = !notHas;
+			} else {
+				// use OR between tags
+				if (hasAny) {
+					matchHas = true; // no-op; lack of criteria => no way to disqualify match
+				} else {
+					matchHas ||= (searchSettings.filters.has.L1 === TAG_F) && !lexicon.data[i].L1;
+					matchHas ||= (searchSettings.filters.has.L1 === TAG_T) && lexicon.data[i].L1;
+					matchHas ||= (searchSettings.filters.has.L2 === TAG_F) && !(lexicon.data[i].L2?.length > 0);
+					matchHas ||= (searchSettings.filters.has.L2 === TAG_T) && (lexicon.data[i].L2?.length > 0);
+					matchHas ||= (searchSettings.filters.has.sentence === TAG_F) && !(lexicon.data[i].sents?.length > 0);
+					matchHas ||= (searchSettings.filters.has.sentence === TAG_T) && (lexicon.data[i].sents?.length > 0);
+					matchHas ||= (searchSettings.filters.has.note === TAG_F) && !(lexicon.data[i].notes?.length > 0);
+					matchHas ||= (searchSettings.filters.has.note === TAG_T) && (lexicon.data[i].notes?.length > 0);
+					matchHas ||= (searchSettings.filters.has.audio === TAG_F) && !(
+						lexicon.data[i].L2?.some(form => form.audio?.length > 0) || lexicon.data[i].sents?.some(sentence => sentence.audio?.length > 0)
+					);
+					matchHas ||= (searchSettings.filters.has.audio === TAG_T) && (
+						// (should have audio) AND NOT(either has audio)
+						lexicon.data[i].L2?.some(form => form.audio?.length > 0) || lexicon.data[i].sents?.some(sentence => sentence.audio?.length > 0)
+					);
+					matchHas ||= (searchSettings.filters.has.image === TAG_F) && !(lexicon.data[i].images?.length > 0);
+					matchHas ||= (searchSettings.filters.has.image === TAG_T) && (lexicon.data[i].images?.length > 0);
+				}
+			}
 
-			console.log((matchIn && matchCatg && matchHas) ? 'MATCH' : 'NO MATCH');
+			if (!matchIn || !matchCatg || !matchHas) continue;
+
+			numMatches++;
+
+			let e = document.getElementById('tpl-search-result').content.firstElementChild.cloneNode(true);
+				e.onclick = () => console.log(`Load entry ${i}...`);
+				// TODO: deleting entry in lexicon tab should clear search results so onclick doesn't become hanging pointer
+
+			// header
+			e.querySelector('.search-result-L1').textContent = lexicon.data[i].L1 || '---';
+			e.querySelector('.search-result-catg').textContent = capitalize(lexicon.data[i].catg || '---');
+			// e.querySelector('.search-result-L2').textContent = lexicon.data[i].L2[0]?.L2 || '---';
+			// wordforms
+
+			eResults.appendChild(e);
+		}
+		// check if we found any results
+		if (numMatches === 0) {
+			const eNoResults = document.getElementById('tpl-bg-status').content.firstElementChild.cloneNode(true);
+			eNoResults.querySelector('p').textContent = `No results...`;
+			eResults.appendChild(eNoResults);
 		}
 
+		// display results
+		tabContent[TAB_SEARCH].querySelector('#search-results-header-right').textContent = `${numMatches}/${lexicon.data.length} entries`;
+		tabContent[TAB_SEARCH].querySelector('#search-results').replaceWith(eResults);
+		
 		console.log(`Advanced search done in ${Math.round(performance.now()-t0_advancedSearch)} ms.`);
-		// if all of search.in are false, set inAll = true (not searching specific fields)
+		// if all of search.in are false, set inAny = true (not searching specific fields)
 		// for entry in lexicon, include if:
-			// (inAll) || (search.in[L1] && entry.L1.contains(searchFrag)) || ...
+			// (inAny) || (search.in[L1] && entry.L1.contains(searchFrag)) || ...
 			// AND entry.catg != 'misc' && search.catg[entry.catg] == true
 			// AND (search.has[audio] && entry.containsAudio()) && ...
-	}
+	},
+	// submitSearch : (frag) => {
+	// 	const t0_advancedSearch = performance.now();
+
+	// 	const reFrag = new RegExp( RegExp.escape(frag) );
+	// 	console.log(reFrag);
+	// 	// all tags of same type false => none specified => search in all
+	// 	// const inAny = !searchSettings.include.in.L1 && !searchSettings.include.in.L2 && !searchSettings.include.in.sentL1 && !searchSettings.include.in.sentL2 && !searchSettings.include.in.note;
+	// 	const inAny = Object.values(searchSettings.include.in).every(x => !x);
+	// 	const catgAny = Object.values(searchSettings.include.catg).every(x => !x);
+	// 	const hasAny = Object.values(searchSettings.include.has).every(x => !x);
+	// 	// use ||= short circuiting for efficient checking
+	// 	for (let entry of lexicon.data) {
+	// 		// IN [L1,L2,sentL1,sentL2,note]
+	// 		let matchIn = false;
+	// 		// matchIn ||= (inAny || searchSettings.include.in.L1) && reFrag.test(entry.L1); // exposes "x; y" if desired; future gubbins toggle
+	// 		matchIn ||= (inAny || searchSettings.include.in.L1) && entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w));
+	// 		matchIn ||= (inAny || searchSettings.include.in.L2) && entry.L2.some(form => reFrag.test(form.L2)); // need to integrate "x; y" gubbins toggle here too
+	// 		matchIn ||= (inAny || searchSettings.include.in.sentL1) && entry.sents.some(sent => reFrag.test(sent.L1));
+	// 		matchIn ||= (inAny || searchSettings.include.in.sentL2) && entry.sents.some(sent => reFrag.test(sent.L2));
+	// 		matchIn ||= (inAny || searchSettings.include.in.note) && entry.notes.some(note => reFrag.test(note.note));
+	// 		// console.log(`"${reFrag}" in L1 "${entry.L1}" : ${reFrag.test(entry.L1)},${entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
+	// 		// for (let form of entry.L2) console.log(`"${reFrag}" in L2 "${form.L2}" : ${reFrag.test(form.L2)},${form.L2.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
+	// 		// for (let sent of entry.sents) console.log(`"${reFrag}" in sentence L1,L2: ${reFrag.test(sent.L1)},${reFrag.test(sent.L2)}`);
+	// 		// for (let note of entry.notes) console.log(`"${reFrag}" in note: ${reFrag.test(note.note)}`);
+
+	// 		// CATG [...,misc]
+	// 		let matchCatg = false;
+	// 		matchCatg ||= (catgAny || searchSettings.include.catg[entry.catg]);
+	// 		// console.log(`all? ${catgAny}, match? ${catgAny || searchSettings.include.catg[entry.catg]}`);
+
+	// 		// HAS [L1,L2,sentence,note,audio,image]
+	// 		let notHas = false; // can't use ||= short circuit w/ true->false accumulator, so use false->true accumulator and invert later
+	// 		notHas ||= searchSettings.include.has.L1 && !entry.L1;
+	// 		notHas ||= searchSettings.include.has.L2 && !(entry.L2?.length > 0);
+	// 		notHas ||= searchSettings.include.has.sentence && !(entry.sents?.length > 0);
+	// 		notHas ||= searchSettings.include.has.note && !(entry.notes?.length > 0);
+	// 		notHas ||= searchSettings.include.has.audio && !(
+	// 			entry.L2?.some(form => form.audio?.length > 0) || entry.sents?.some(sentence => sentence.audio?.length > 0) // (should have audio) AND NOT(either has audio)
+	// 		);
+	// 		notHas ||= searchSettings.include.has.image && !(entry.images?.length > 0);
+	// 		let matchHas = !notHas;
+	// 		// console.log(`has:L1 ${!!entry.L1}`);
+	// 		// console.log(`has:L2 ${entry.L2?.length>0}`);
+	// 		// console.log(`has:sentence ${entry.sents?.length>0}`);
+	// 		// console.log(`has:note ${entry.notes?.length>0}`);
+	// 		// console.log(`has:audio(form) ${entry.L2?.some(form => form.audio?.length>0)}`);
+	// 		// console.log(`has:audio(sentence) ${entry.sents?.some(sentence => sentence.audio?.length>0)}`);
+	// 		// console.log(`has:image ${entry.images?.length>0}`);
+	// 		// console.log(`match has? ${matchHas}`);
+
+	// 		console.log((matchIn && matchCatg && matchHas) ? 'MATCH' : 'NO MATCH');
+	// 	}
+
+	// 	console.log(`Advanced search done in ${Math.round(performance.now()-t0_advancedSearch)} ms.`);
+	// 	// if all of search.in are false, set inAny = true (not searching specific fields)
+	// 	// for entry in lexicon, include if:
+	// 		// (inAny) || (search.in[L1] && entry.L1.contains(searchFrag)) || ...
+	// 		// AND entry.catg != 'misc' && search.catg[entry.catg] == true
+	// 		// AND (search.has[audio] && entry.containsAudio()) && ...
+	// }
 };
 
 
@@ -335,16 +551,39 @@ const init = () => {
 		tabContent[TAB_SEARCH].style.padding = '0';
 		tabContent[TAB_SEARCH].querySelector('#search-query').onfocus = () => activeInput = tabContent[TAB_SEARCH].querySelector('#search-query');
 		tabContent[TAB_SEARCH].querySelector('#search-query').addEventListener('keyup', evt => {
+			// TODO: try parse searchSettings.fromString(input.value) in case user manually typed tag
 			renderSearchFilters();
 		});
 		tabContent[TAB_SEARCH].querySelector('#search-bar').onsubmit = (evt) => {
-			evt.preventDefault();
-			console.log(`SUBMITTING SEARCH`);
-			searchSettings.include.has.audio = true;
-			searchSettings.submitSearch(tabContent[TAB_SEARCH].querySelector('#search-query').value);
+			evt.preventDefault(); // prevent reload
+			const frag = tabContent[TAB_SEARCH].querySelector('#search-query').value;
+			const tags = searchSettings.toString();
+			console.log(`SUBMIT SEARCH "${frag}" ${tags}`);
+			// update search UI
+			const eSearchLeft = tabContent[TAB_SEARCH].querySelector('#search-results-header-left');
+			eSearchLeft.innerHTML = '';
+			let eFrag = document.createElement('p');
+				eFrag.textContent = `"${frag}"`;
+			eSearchLeft.appendChild(eFrag);
+			for (let tag of tags.split(' ')) {
+				let e = document.createElement('p');
+					e.textContent = `${tag}`;
+					e.classList.add((tag[0] === '-') ? 'exclude' : 'include');
+				eSearchLeft.appendChild(e);
+			}
+			// submit search
+			tabContent[TAB_SEARCH].querySelector('#search-results-header-right').textContent = ``;
+			const eResults = tabContent[TAB_SEARCH].querySelector('#search-results');
+			let eLoading = document.getElementById('tpl-bg-status').content.firstElementChild.cloneNode(true);
+				eLoading.querySelector('p').textContent = 'Loading';
+			eResults.innerHTML = '';
+			eResults.appendChild(eLoading);
+			const t0_search_deferred = performance.now();
+			requestAnimationFrame(evt => {
+				console.log(`Search deferred for ${Math.round(performance.now()-t0_search_deferred)} ms to guarantee frame render.`);
+				searchSettings.submitSearch(frag);
+			});
 		};
-		tabContent[TAB_SEARCH].querySelector(`#search-include-all-catg`).onclick = () => console.log(`toggle all catg:_`);
-		tabContent[TAB_SEARCH].querySelector(`#search-include-all-has`).onclick = () => console.log(`toggle all has:_`);
 		
 		// enable tab switching
 		eNavTabs[TAB_PROJECT].onclick = () => renderTab(TAB_PROJECT);
@@ -492,34 +731,47 @@ const populateProjectTab = () => {
 		}
 	});
 	// project statistics
+	const searchTag = (tag) => {
+		console.log(`Search tab "${tag}"`);
+		// switch tabs
+		renderTab(TAB_SEARCH);
+		// clear search
+		searchSettings.reset();
+		searchSettings.set(tag);
+		renderSearchFilters();
+		tabContent[TAB_SEARCH].querySelector(`#search-bar > input`).value = '';
+		// load results by clicking submit button, since calling form.submit() reloads page inspite of event.preventDefault())
+		tabContent[TAB_SEARCH].querySelector(`#search-bar > button`).click();
+		// tabContent[TAB_SEARCH].querySelector(`#search-bar`).submit();
+	};
 	const stats = lexicon.calculateStatistics(); // guaranteed complete, doesn't req checks for props
 	console.log(stats);
 	tabContent[TAB_PROJECT].querySelector('#project-stats-num-entries > span').textContent = stats.numEntries ?? '??';
 	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1 > span').textContent = stats.wordCounts?.L1 ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1').onclick = () => console.log(`Search tab "in:L1"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1').onclick = () => searchTag('has:L1');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2 > span').textContent = stats.wordCounts?.L2 ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2').onclick = () => console.log(`Search tab "in:L2"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2').onclick = () => searchTag('has:L2');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count > span').textContent = stats.numSentences ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count').onclick = () => console.log(`Search tab "has:sentence"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count').onclick = () => searchTag('has:sentence');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count > span').textContent = stats.numNotes ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count').onclick = () => console.log(`Search tab "has:note"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count').onclick = () => searchTag('has:note');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count > span').textContent = stats.mediaCounts.audioEntries ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count').onclick = () => console.log(`Search tab "has:audio"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count').onclick = () => searchTag('has:audio');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count > span').textContent = stats.mediaCounts.imageEntries ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count').onclick = () => console.log(`Search tab "has:image"`);
+	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count').onclick = () => searchTag('has:image');
 	const eStatsCatgs = tabContent[TAB_PROJECT].querySelector('#project-stats-catgs');
 	eStatsCatgs.innerHTML = '';
 	for (let catg in stats.catgCounts) {
 		let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
 			e.title = `catg:${catg}`;
-			e.onclick = () => console.log(`Search tab "catg:${catg}"`);
+			e.onclick = () => searchTag(`catg:${catg}`);
 			e.querySelector('.catg-bubble-label').textContent = project.catgs[catg] ?? catg;
 			e.querySelector('.catg-bubble-count').textContent = stats.catgCounts[catg];
 		eStatsCatgs.appendChild(e);
 	}
 	let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
 		e.title = `catg:misc`;	
-		e.onclick = () => console.log(`Search tab "catg:misc"`);
+		e.onclick = () => searchTag(`catg:misc`);
 		e.querySelector('.catg-bubble-label').textContent = 'MISC';
 		e.querySelector('.catg-bubble-count').textContent = stats.catgMiscCount
 	eStatsCatgs.appendChild(e);
@@ -829,66 +1081,52 @@ window.addEventListener('click', e => {
 
 // search tab
 const populateSearchFilters = () => {
-	// rebuild search tags
-	let tplSearchInclude = {
-		in : { L1 : false, L2 : false, sentL1 : false, sentL2 : false, note : false },
+	// rebuild search filters object
+	let tplSearchFilters = {
+		in : { L1 : TAG_N, L2 : TAG_N, sentL1 : TAG_N, sentL2 : TAG_N, note : TAG_N },
 		catg : {},
-		has : { L1 : false, L2 : false, sentence : false, note : false, audio : false, image : false }
+		has : { L1 : TAG_N, L2 : TAG_N, sentence : TAG_N, note : TAG_N, audio : TAG_N, image : TAG_N }
 	};
-	for (let catg in project.catgs) tplSearchInclude.catg[catg] = false;
-	tplSearchInclude.catg['misc'] = false;
-	searchSettings.DEFAULT_INCLUDE = Object.freeze(tplSearchInclude);
-	searchSettings.reset();
-	// update UI
-	const eSearchCatgs = tabContent[TAB_SEARCH].querySelector('#search-setting-catgs');
+	let catgs = Object.keys(project.catgs).sort();
+	catgs.push('misc');
+	for (let catg of catgs) tplSearchFilters.catg[catg] = TAG_N;
+	// update filter object
+	searchSettings.filters = tplSearchFilters;
+	// searchSettings.reset(); // should be a no-op, since rebuilt filters object already "zeroed out"
+	console.log(searchSettings.filters);
+	// rebuild UI
+	const eSearchCatgs = tabContent[TAB_SEARCH].querySelector('#search-section-catgs');
 	eSearchCatgs.innerHTML = '';
-	for (let catg in searchSettings.DEFAULT_INCLUDE.catg) {
-		let e = document.createElement('button');
-			e.classList.add('search-bubble');
-			e.id = `search-include-catg-${catg}`;
-			e.textContent = (catg==='misc') ? 'MISC' : (project.catgs[catg] ?? catg);
-			e.title = `catg:${catg}`;
+	for (let catg in searchSettings.filters.catg) {
+		let e = document.getElementById('tpl-search-tag').content.firstElementChild.cloneNode(true);
+			e.id = `tag-catg-${catg}`;
+			e.querySelector('p').textContent = `catg:${catg}`;
 			// onclick set by tryLoadProject()
 		eSearchCatgs.appendChild(e);
 	}
 	// TODO: clear search tab results
 };
 const renderSearchFilters = () => {
-	for (let filter in searchSettings.include) {
-		let numSelected = 0;
-		let numTotal = 0;
-		for (let prop in searchSettings.include[filter]) {
-			if (searchSettings.include[filter][prop] === true) numSelected++;
-			numTotal++;
-		}
-		console.log(`render filter ${filter} ${numSelected}/${numTotal}`);
-		// render ALL/NONE toggle
-		if (filter !== 'in') {
-			tabContent[TAB_SEARCH].querySelector(`#search-include-all-${filter}`).textContent = (numSelected===numTotal) ? 'NONE' : 'ALL';
-			// if (numSelected)
-		}
-		// render bubbles
-		for (let prop in searchSettings.include[filter]) {
-			if (searchSettings.include[filter][prop]) {
-				if (numSelected === 1) {
-					// only selected filter in catg (active appearance)
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.add('active');
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('inactive');
-				} else {
-					// one of several selected (neutral appearance)
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('active');
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('inactive');
-				}
-			} else {
-				if (numSelected === 0) {
-					// none selected (all neutral)
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('active');
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('inactive');
-				} else {
-					// not selected (inactive)
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.remove('active');
-					tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).classList.add('inactive');
-				}
+	for (let filter in searchSettings.filters) {
+		for (let qualifier in searchSettings.filters[filter]) {
+			const e = tabContent[TAB_SEARCH].querySelector(`#tag-${filter}-${qualifier}`);
+			switch (searchSettings.filters[filter][qualifier]) {
+				case TAG_F:
+					e?.classList.remove('include');
+					e?.classList.add('exclude');
+					if (e) e.title = `Excluding ${filter}:${qualifier}`;
+					break;
+				case TAG_N:
+					e?.classList.remove('include');
+					e?.classList.remove('exclude');
+					if (e) e.title = `Tag is inactive`;
+					break;
+				case TAG_T:
+					e?.classList.add('include');
+					e?.classList.remove('exclude');
+					if (e) e.title = `Including ${filter}:${qualifier}`;
+					break;
+				default: console.error(`Cannot render tag ${filter}:${qualifier}, value out of bounds.`);
 			}
 		}
 	}
@@ -963,16 +1201,31 @@ const tryLoadProject = async (path) => {
 	// refresh search tab
 	populateSearchFilters();
 	renderSearchFilters();
-	console.log(searchSettings.include);
-	for (let filter in searchSettings.include) {
-		for (let prop in searchSettings.include[filter]) {
-			tabContent[TAB_SEARCH].querySelector(`#search-include-${filter}-${prop}`).onclick = () => {
-				console.log(`${filter}:${prop} ${(shiftDown)?'SET':'TOGGLE'}`);
-				if (shiftDown) {
-					searchSettings.toggle(`${filter}:${prop}`);
-				} else {
-					searchSettings.setOnly(`${filter}:${prop}`);
-				}
+	for (let filter in searchSettings.filters) {
+		tabContent[TAB_SEARCH].querySelector(`#search-reset-${filter}`).onclick = () => {
+			searchSettings.resetFilter(filter);
+			renderSearchFilters();
+		};
+	}
+	for (let filter in searchSettings.and) {
+		tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).onclick = () => {
+			searchSettings.and[filter] = true;
+			console.log(searchSettings.and);
+			tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).classList.add('active');
+			tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).classList.remove('active');
+		};
+		tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).onclick = () => {
+			searchSettings.and[filter] = false;
+			console.log(searchSettings.and);
+			tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).classList.remove('active');
+			tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).classList.add('active');
+		};
+	}
+	for (let filter in searchSettings.filters) {
+		for (let qualifier in searchSettings.filters[filter]) {
+			tabContent[TAB_SEARCH].querySelector(`#tag-${filter}-${qualifier}`).onclick = () => {
+				// console.log(`set next ${filter}:${qualifier}`);
+				searchSettings.setNext(`${filter}:${qualifier}`);
 				renderSearchFilters();
 			};
 		}
@@ -1063,21 +1316,6 @@ const saveLangInfo = () => {
 ////////////////////////////////
 
 init();
-
-// // search single-tag parse/toggle unit tests
-// searchSettings.toggle('ctg:v');
-// searchSettings.toggle('catg:v');
-// searchSettings.toggle('catg:v');
-// searchSettings.toggle('has:note');
-// searchSettings.toggle('bop');
-// searchSettings.toggle('catg:x');
-// searchSettings.toggle('has:nope');
-// searchSettings.toggle('-bop');
-// searchSettings.toggle('-catg:n');
-// searchSettings.toggle('-catg:n');
-
-
-
 
 tryOpenProject();
 
