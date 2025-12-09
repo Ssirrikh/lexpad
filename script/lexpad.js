@@ -67,12 +67,26 @@ let audioPlayer = {
 
 // gubbins toggles (aka settings / behavior config)
 let gubbins = {
+
+	//// ALREADY INTEGRATED ////
+
 	// window behavior
 	quickCopy : {
 		title : `Quick Copy`,
-		desc : `Behavior of quick-copy bar. If OFF: Click to insert, Ctrl+Click to copy. If ON: Click to copy, Ctrl+Click to insert.`,
+		desc : `Clicking characters in the quick-copy bar will either copy them to the clipboard, or insert them into the active textbox. If OFF: Click to insert, Ctrl+Click to copy. If ON: Click to copy, Ctrl+Click to insert.`,
 		state : false
 	},
+
+	//// PLANNED ////
+
+	// search behavior
+	instantSearch : {
+		title : `Instant Search`,
+		desc : `If ON: Changing parameters in the search tab will update results immediately. Only recommended on faster devices. If OFF: After adjusting search paramters, click Submit or hit Enter in the searchbar to update results. Recommended for slower devices.`,
+		state : false
+		// TODO: add gubbins check to all search tab settings buttons
+		// TODO: on keyup in searchbar, reset timer that updates search results
+	}
 };
 
 // let tabNeedsUpdate = [
@@ -135,6 +149,7 @@ let searchSettings = {
 		// adding one or more in:_ tags sets those tags true and all others false
 	// has:_ tags are false-by-default
 		// no req imposed unless user adds one
+	showFullResults : false, // if true, stop dynamically trimming portions of results that don't match search
 	and : { in : false, catg : false, has : false }, // tags OR together by default; toggle to AND tags together instead
 	filters : {
 		in : { L1 : TAG_N, L2 : TAG_N, sentL1 : TAG_N, sentL2 : TAG_N, note : TAG_N },
@@ -217,6 +232,7 @@ let searchSettings = {
 
 		const reFrag = new RegExp( RegExp.escape(frag), 'i' );
 		const reFragHighlight = new RegExp( `(${RegExp.escape(frag)})`, 'ig' );
+		const tryHighlight = (text='') => text.replaceAll(reFragHighlight, '<span class="text-highlight">$1</span>');
 		console.log(reFrag);
 		// no tags in category specified => search in all
 		const inAny = Object.values(searchSettings.filters.in).every(x => x === TAG_N);
@@ -389,8 +405,7 @@ let searchSettings = {
 			// header
 			e.querySelector('.search-result-catg').textContent = capitalize(lexicon.data[i].catg || '---');
 			if ((inAny || searchSettings.filters.in.L1 === TAG_T) && frag !== '') { // guaranteed match at this point, so either inAny&&in.L1==TAG_N or in.L1==TAG_T
-				// TODO: clean UNSAFE arbitrary text
-				e.querySelector('.search-result-L1').innerHTML = lexicon.data[i].L1.replaceAll(reFragHighlight, '<span class="text-highlight">$1</span>');
+				e.querySelector('.search-result-L1').innerHTML = tryHighlight(lexicon.data[i].L1); // TODO: clean UNSAFE arbitrary text
 			} else {
 				e.querySelector('.search-result-L1').textContent = lexicon.data[i].L1 || '---';
 			}
@@ -400,41 +415,58 @@ let searchSettings = {
 			const eWordformContainer = e.querySelector('.search-result-section-L2');
 			let hasMatchingWordform = false;
 			for (let form of lexicon.data[i].L2) {
-				console.log(lexicon.data[i].catg, lexicon.L2.forms[lexicon.data[i].catg], form.form);
-				const formName = (form.form >= 0) ? lexicon.L2.forms[lexicon.data[i].catg][form.form] : `Unknown Form`;
-				const wordform = form.L2 || '---';
-				if (true) hasMatchingWordform = true;
-				let eForm = document.getElementById('tpl-search-result-wordform').content.firstElementChild.cloneNode(true);
-				eForm.querySelector('p:nth-child(1)').textContent = formName;
-				eForm.querySelector('p:nth-child(2)').textContent = wordform;
-				eWordformContainer.appendChild(eForm);
+				if (
+					// always show section if dynamic results are turned off
+					searchSettings.showFullResults
+					// else, only show sections that match active filters and contain search query
+					|| (inAny || searchSettings.filters.in.L2 === TAG_T) && reFrag.test(form.L2)
+				) {
+					hasMatchingWordform = true;
+					const formName = (form.form >= 0) ? lexicon.L2.forms[lexicon.data[i].catg][form.form] : `[No Form Specified]`;
+					const wordform = form.L2 || '---';
+					let eForm = document.getElementById('tpl-search-result-wordform').content.firstElementChild.cloneNode(true);
+					eForm.querySelector('p:nth-child(1)').textContent = formName;
+					eForm.querySelector('p:nth-child(2)').innerHTML = tryHighlight(wordform); // TODO: clean UNSAFE arbitrary text
+					eWordformContainer.appendChild(eForm);
+				}
 			}
 			if (hasMatchingWordform) eWordformContainer.classList.add('active');
 			// sentences
 			const eSentenceContainer = e.querySelector('.search-result-section-sentences');
 			let hasMatchingSentence = false;
 			for (let sentId = 0; sentId < lexicon.data[i].sents.length; sentId++) {
-				const sentL1 = lexicon.data[i].sents[sentId].L1 || '---';
-				const sentL2 = lexicon.data[i].sents[sentId].L2 || '---';
-				if (true) hasMatchingSentence = true;
-				let eSentence = document.getElementById('tpl-search-result-sentence').content.firstElementChild.cloneNode(true);
-				eSentence.querySelector('.subtitle').textContent = `Sentence ${sentId}`;
-				// given elem e w/ class='flex-row', e.querySelector('.flex-row') is targetting e; unsure if this is intended behavior
-				eSentence.querySelector('.flex-col > p:nth-child(1)').textContent = sentL1 + ' ';
-				eSentence.querySelector('.flex-col > p:nth-child(2)').textContent = sentL2;
-				eSentenceContainer.appendChild(eSentence);
+				if (
+					searchSettings.showFullResults
+					|| (inAny || searchSettings.filters.in.sentL1 === TAG_T) && reFrag.test(lexicon.data[i].sents[sentId].L1)
+					|| (inAny || searchSettings.filters.in.sentL2 === TAG_T) && reFrag.test(lexicon.data[i].sents[sentId].L2)
+				) {
+					hasMatchingSentence = true;
+					const sentL1 = lexicon.data[i].sents[sentId].L1 || '---';
+					const sentL2 = lexicon.data[i].sents[sentId].L2 || '---';
+					let eSentence = document.getElementById('tpl-search-result-sentence').content.firstElementChild.cloneNode(true);
+					eSentence.querySelector('.subtitle').textContent = `Sentence ${sentId+1}`;
+					// given elem e w/ class='flex-row', e.querySelector('.flex-row') is targetting e; unsure if this is intended behavior
+					eSentence.querySelector('.flex-col > p:nth-child(1)').innerHTML = ((inAny || searchSettings.filters.in.sentL1 === TAG_T) ? tryHighlight(sentL1) : sentL1) + ' '; // add space char for spacing + nice copy-pasting
+					eSentence.querySelector('.flex-col > p:nth-child(2)').innerHTML = (inAny || searchSettings.filters.in.sentL2 === TAG_T) ? tryHighlight(sentL2) : sentL2; // TODO: clean UNSAFE arbitrary text
+					eSentenceContainer.appendChild(eSentence);
+				}
 			}
 			if (hasMatchingSentence) eSentenceContainer.classList.add('active');
 			// notes
 			const eNoteContainer = e.querySelector('.search-result-section-notes');
 			let hasMatchingNote = false;
 			for (let noteId = 0; noteId < lexicon.data[i].notes.length; noteId++) {
-				const note = lexicon.data[i].notes[noteId].note || '---';
-				if (true) hasMatchingNote = true;
-				let eNote = document.getElementById('tpl-search-result-note').content.firstElementChild.cloneNode(true);
-				eNote.querySelector('.subtitle').textContent = `Note ${noteId}`;
-				eNote.querySelector('p:nth-child(2)').textContent = note;
-				eNoteContainer.appendChild(eNote);
+				if (
+					searchSettings.showFullResults
+					|| (inAny || searchSettings.filters.in.note === TAG_T) && reFrag.test(lexicon.data[i].notes[noteId].note)
+				) {
+					hasMatchingNote = true;
+					const note = lexicon.data[i].notes[noteId].note || '---';
+					let eNote = document.getElementById('tpl-search-result-note').content.firstElementChild.cloneNode(true);
+					eNote.querySelector('.subtitle').textContent = `Note ${noteId+1}`;
+					eNote.querySelector('p:nth-child(2)').innerHTML = tryHighlight(note); // TODO: clean UNSAFE arbitrary text
+					eNoteContainer.appendChild(eNote);
+				}
 			}
 			if (hasMatchingNote) eNoteContainer.classList.add('active');
 
@@ -1263,6 +1295,16 @@ const tryLoadProject = async (path) => {
 	// refresh search tab
 	populateSearchFilters();
 	renderSearchFilters();
+	tabContent[TAB_SEARCH].querySelector('#search-display-full').onclick = () => {
+		searchSettings.showFullResults = true;
+		tabContent[TAB_SEARCH].querySelector('#search-display-full').classList.add('active');
+		tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').classList.remove('active');
+	};
+	tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').onclick = () => {
+		searchSettings.showFullResults = false;
+		tabContent[TAB_SEARCH].querySelector('#search-display-full').classList.remove('active');
+		tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').classList.add('active');
+	};
 	for (let filter in searchSettings.filters) {
 		tabContent[TAB_SEARCH].querySelector(`#search-reset-${filter}`).onclick = () => {
 			searchSettings.resetFilter(filter);

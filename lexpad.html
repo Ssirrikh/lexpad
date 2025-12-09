@@ -179,10 +179,22 @@
 		<div id='r-content' class='no-scrollbar'>
 			<div id='search-wrapper' class='flex-row'>
 				<div id='search-settings-wrapper' class='flex-col'>
-					<form id='search-bar' class='flex-row'>
+					<!-- <form id='search-bar' class='flex-col'>
 						<input id='search-query' type='text' spellcheck='false' placeholder='Search...' title='Submit empty search to view all entries.'>
 						<button id='search-submit' type='submit' class='button-highlight'>Submit</button>
-					</form>
+					</form> -->
+					<div id='search-settings-header' class='flex-col'>
+						<form id='search-bar' class='flex-row'>
+							<input id='search-query' type='text' spellcheck='false' placeholder='Search...' title='Submit empty search to view all entries.'>
+							<button id='search-submit' type='submit' class='button-highlight'>Submit</button>
+						</form>
+						<div id='search-display-settings' class='flex-row'>
+							<!-- <p>Results:</p> -->
+							<!-- <div></div> -->
+							<button id='search-display-full' class='hover-white' title="Display the entirety of each matching entry, even sections that didn't contribute to the match.">Full</button>
+							<button id='search-display-adaptive' class='hover-white active' title='When an entry matches a search, only sections that contributed to the match will be shown.'>Adaptive</button>
+						</div>
+					</div>
 					<div id='search-settings' class='flex-col'>
 						<!-- IN -->
 						<div class='flex-row search-tag-header'>
@@ -191,8 +203,8 @@
 								<p title='Search within specific data field(s). Will search in all fields by default.'>Search In:</p>
 							</div>
 							<div class='flex-row'>
-								<button id='search-and-in' title='Match entries that contain query in datafield x AND in datafield y.'>AND</button>
-								<button id='search-or-in' class='active' title='Match entries that contain query in datafield x OR in datafield y OR in both.'>OR</button>
+								<button id='search-and-in' class='hover-white' title='Match entries that contain query in datafield x AND in datafield y.'>AND</button>
+								<button id='search-or-in' class='hover-white active' title='Match entries that contain query in datafield x OR in datafield y OR in both.'>OR</button>
 							</div>
 						</div>
 						<div class='flex-col search-tag-section'>
@@ -224,8 +236,8 @@
 								<p title='Search entries of specific catg(s). Will search entries of any catg by default.'>Catg / Part of Speech:</p>
 							</div>
 							<div class='flex-row'>
-								<button id='search-and-catg' title='Match entries of catg x AND catg y. Most useful for exclusion (NOT x AND NOT y).'>AND</button>
-								<button id='search-or-catg' class='active' title='Match entries of catg x OR catg y. Most useful for inclusion (x OR y).'>OR</button>
+								<button id='search-and-catg' class='hover-white' title='Match entries of catg x AND catg y. Most useful for exclusion (NOT x AND NOT y).'>AND</button>
+								<button id='search-or-catg' class='hover-white active' title='Match entries of catg x OR catg y. Most useful for inclusion (x OR y).'>OR</button>
 							</div>
 						</div>
 						<div id='search-section-catgs' class='flex-col search-tag-section'>
@@ -241,8 +253,8 @@
 								<p title='Search entries containing at least 1 instance of specific data/media. Will search with no regard for contents by default.'>Has Content:</p>
 							</div>
 							<div class='flex-row'>
-								<button id='search-and-has' title='Match entries that contain data/media x AND data/media y.'>AND</button>
-								<button id='search-or-has' class='active' title='Match entries that contain data/media x OR data/media y OR both.'>OR</button>
+								<button id='search-and-has' class='hover-white' title='Match entries that contain data/media x AND data/media y.'>AND</button>
+								<button id='search-or-has' class='hover-white active' title='Match entries that contain data/media x OR data/media y OR both.'>OR</button>
 							</div>
 						</div>
 						<div class='flex-col search-tag-section'>
@@ -309,49 +321,9 @@
 					<div class='icon'></div>
 				</div>
 			</div>
-			<!-- wordforms -->
-			<div class='flex-row flex-centered search-result-section-L2'>
-				<!-- <div class='flex-row search-result-wordform'>
-					<p class='subtitle'>Form Name</p>
-					<p>wordform</p>
-				</div>
-				<div class='flex-row search-result-wordform'>
-					<p class='subtitle'>Agnes</p>
-					<p>hello world</p>
-				</div>
-				<div class='flex-row search-result-wordform'>
-					<p class='subtitle'>Bobbins</p>
-					<p>Hargle it Urk</p>
-				</div> -->
-			</div>
-			<!-- sentences -->
-			<div class='flex-col search-result-section-sentences'>
-				<!-- <div class='flex-row search-result-sentence'>
-					<p class='subtitle'>Sentence 1</p>
-					<div class='flex-row'>
-						<p>This is a sentence in English. </p>
-						<p>And this is its translation into Wikchamni.</p>
-					</div>
-				</div>
-				<div class='flex-row search-result-sentence'>
-					<p class='subtitle'>Sentence 2</p>
-					<div class='flex-row'>
-						<p>Something about how awesome blackberry jam tastes. </p>
-						<p>Something else about blackberries.</p>
-					</div>
-				</div> -->
-			</div>
-			<!-- notes -->
-			<div class='flex-col search-result-section-notes'>
-				<!-- <div class='flex-row search-result-note'>
-					<p class='subtitle'>Note 1</p>
-					<p>Related language Chukchansi tʰixtʰinitʰ 'sick'</p>
-				</div>
-				<div class='flex-row search-result-note'>
-					<p class='subtitle'>Note 2</p>
-					<p>Related language Chukchansi tʰixtʰinitʰ 'sick'</p>
-				</div> -->
-			</div>
+			<div class='flex-row flex-centered search-result-section-L2'></div>
+			<div class='flex-col search-result-section-sentences'></div>
+			<div class='flex-col search-result-section-notes'></div>
 		</button>
 	</template>
 

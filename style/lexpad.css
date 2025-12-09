@@ -966,8 +966,7 @@ select:focus-visible {
     flex-shrink: 0;
 }
 
-#search-bar {
-    /* border-top: thin solid var(--border-dark); */
+/* #search-bar {
     border-bottom: thin solid var(--border-dark);
     padding: 0.5em;
     gap: 0.25em;
@@ -975,6 +974,38 @@ select:focus-visible {
 }
 #search-query {
     flex-grow: 1;
+} */
+
+#search-settings-header {
+    border-bottom: thin solid var(--border-dark);
+    padding: 0.5em;
+    gap: 0.5em;
+    flex-shrink: 0;
+}
+#search-settings-header > .flex-row {
+    gap: 0.25em;
+}
+#search-query {
+    flex-grow: 1;
+}
+#search-display-settings {
+    padding-left: 0.5em;
+    font-size: 0.8em;
+}
+#search-display-settings > p {
+    color: var(--text-subtitle);
+}
+#search-display-settings > button {
+    color: var(--text-subtitle);
+    border: thin solid transparent;
+    border-radius: 0.25em;
+    padding: 0.2em 0.25em;
+    /* font-size: 0.8em; */
+}
+#search-display-settings > button.active {
+    color: inherit;
+    background-color: white;
+    border: thin solid var(--border-dark);
 }
 
 #search-tooltip {
@@ -1018,9 +1049,9 @@ select:focus-visible {
     background-color: white;
     border: thin solid var(--primary-dark);
 }
-.search-tag-header button:hover {
+/* .search-tag-header button:hover {
     background-color: white;
-}
+} */
 .search-tag-header .icon-x {
     font-size: 0.6em;
 }
@@ -1113,13 +1144,15 @@ select:focus-visible {
     padding: 1em;
     overflow-y: overlay;
     flex-grow: 1;
-    gap: 0.25em;
+    gap: 0.5em;
 }
 .search-result {
     background-color: white;
     background-color: var(--bg-light);
     border-radius: 0.5em;
     padding: 0.5em;
+    /* TODO: set global CSS var for min-content-width */
+    min-width: 40em;
     font-size: 1em;
     /* gap: 0.25em; */
 }
@@ -1152,7 +1185,7 @@ select:focus-visible {
     flex-wrap: wrap;
 }
 .search-result-section-L2.active, .search-result-section-sentences.active, .search-result-section-notes.active {
-    border-top: thin solid var(--border-medium);
+    border-top: thin solid var(--border-dark);
     margin-top: 0.5em;
     padding: 0.5em 1em;
     padding-bottom: 0;
