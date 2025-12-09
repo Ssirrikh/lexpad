@@ -46,18 +46,37 @@ select:focus-visible {
 /* svg icons can't use fill="currentColor" since data:image/svg is technically outside DOM */
 /* either manually set fill color, or use mask instead of background-image */
 
+.icon {
+    border-radius: 0.25em;
+    width: calc(1em + 0.3em + 0.3em);
+    height: calc(1em + 0.3em + 0.3em);
+}
+.icon:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
+
+.hover-white:hover {
+    background-color: white;
+}
+.hover-grey:hover {
+    background-color: var(--bg-offwhite);
+}
+.hover-dark:hover {
+    background-color: var(--primary-selection);
+}
+
 .icon-audio {
     background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="var(--text-dark)" stroke="none"><path d="M 6 15 h -2 a 1 1 0 0 1 -1 -1 v -4 a 1 1 0 0 1 1 -1 h 2 l 3.5 -4.5 a 0.8 0.8 0 0 1 1.5 0.5 v 14 a 0.8 0.8 0 0 1 -1.5 0.5 l -3.5 -4.5 Z M 15 8 a 5 5 0 0 1 0 8 L 14.1 14.8 a 3.5 3.5 0 0 0 0 -5.6 Z M 17.7 5 a 9 9 0 0 1 0 14 L 16.75 17.83 a 8 8 0 0 0 0 -11.67 Z" /></svg>');
     /* <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" stroke="none">
         <path d='M 6 15 h -2 a 1 1 0 0 1 -1 -1 v -4 a 1 1 0 0 1 1 -1 h 2 l 3.5 -4.5 a 0.8 0.8 0 0 1 1.5 0.5 v 14 a 0.8 0.8 0 0 1 -1.5 0.5 l -3.5 -4.5 Z M 15 8 a 5 5 0 0 1 0 8 L 14.1 14.8 a 3.5 3.5 0 0 0 0 -5.6 Z M 17.7 5 a 9 9 0 0 1 0 14 L 16.75 17.83 a 8 8 0 0 0 0 -11.67 Z' />
     </svg> */
-    border-radius: 0.25em;
+    /* border-radius: 0.25em;
     width: calc(1em + 0.3em + 0.3em);
-    height: calc(1em + 0.3em + 0.3em);
+    height: calc(1em + 0.3em + 0.3em); */
 }
-.icon-audio:hover {
+/* .icon-audio:hover {
     background-color: var(--bg-offwhite);
-}
+} */
 .icon-plus {
     background-color: var(--primary);
     background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M 12 18 m -1 0 a 1 1 0 1 0 2 0 v -5 h 5 a 1 1 0 1 0 0 -2 h -5 v -5 a 1 1 0 1 0 -2 0 v 5 h -5 a 1 1 0 1 0 0 2 h 5 z" /></svg>');
@@ -84,33 +103,32 @@ select:focus-visible {
     background-color: var(--bg-offwhite);
 }
 .icon-x {
+    /* known chromium bug causes svg bg with stroke to not use antialiasing */
     /* background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"><path d="M18 6l-12 12 M6 6l12 12" /></svg>'); */
-    /* svg bg with stroke has glaring artefacts from lack of antialiasing */
-    /* use psuedo-elems for now */
-    border-radius: 0.25em;
-    width: calc(1em + 0.3em + 0.3em);
-    height: calc(1em + 0.3em + 0.3em);
+    
+    /* svg bg with fill looks great, but can't change color */
+    /* M 6.5 5.5 A 0.5 0.5 0 1 0 5.5 6.5 L 17.5 18.5 A 0.5 0.5 0 1 0 18.5 17.5 Z M 18.5 6.5 A 0.5 0.5 0 1 0 17.5 5.5 L 5.5 17.5 A 0.5 0.5 0 1 0 6.5 18.5 Z */
+    /* background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="black" stroke="none"><path d="M 6.5 5.5 A 0.5 0.5 0 1 0 5.5 6.5 L 17.5 18.5 A 0.5 0.5 0 1 0 18.5 17.5 Z M 18.5 6.5 A 0.5 0.5 0 1 0 17.5 5.5 L 5.5 17.5 A 0.5 0.5 0 1 0 6.5 18.5 Z" /></svg>'); */
+
+    /* positioned psuedo-elems are most flexible option whenever possible */
+    position: relative;
 }
 .icon-x::before, .icon-x::after {
     content: '';
     background-color: var(--border-dark);
     border-radius: 1em;
     display: inline-block;
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 0.1em;
     height: 1em;
-    /* psuedo-elem's left edge at centerline of parent by default; use margins to center */
-    margin-left: -0.05em;
-    margin-top: 0.05em;
 }
 .icon-x::before {
-    transform: rotate(45deg);
+    transform: translate(-50%,-50%) rotate(45deg);
 }
 .icon-x::after {
-    transform: rotate(-45deg);
-}
-.icon-x:hover {
-    background-color: white;
+    transform: translate(-50%,-50%) rotate(-45deg);
 }
 .icon-x:hover::before, .icon-x:hover::after {
     background-color: red;
@@ -352,6 +370,9 @@ select:focus-visible {
     color: grey;
     font-size: 0.7em;
 }
+.text-highlight {
+    background-color: var(--primary-grey-light);
+}
 
 .r-list-item {
     background-color: white;
@@ -571,7 +592,7 @@ select:focus-visible {
     font-size: 1em;
 }
 #lexicon-search-clear {
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="darkgrey" stroke-width="2" stroke-linecap="round"><path d="M18 6l-12 12 M6 6l12 12" /></svg>');
+    /* background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="darkgrey" stroke-width="2" stroke-linecap="round"><path d="M18 6l-12 12 M6 6l12 12" /></svg>'); */
     /* svg fill property allows named colors, hex colors, and CSS vars */
     /* svg stroke property only allows named colors, nothing else */
     /* no idea why */
@@ -639,9 +660,13 @@ select:focus-visible {
     border-top: thin solid var(--border-light);
     border-top: thin solid var(--border-medium);
 }
+/* TODO: convert to .lexicon-entry.active */
 .active-entry {
     background-color: white !important;
     box-shadow: inset -5px 0 0 0 var(--primary-highlight) !important;
+}
+.lexicon-entry .icon {
+    font-size: 0.8em;
 }
 
 .lexicon-entry-catg {
@@ -649,6 +674,11 @@ select:focus-visible {
     width: 3em;
     font-size: 0.8em;
     text-align: center;
+    flex-shrink: 0;
+}
+.lexicon-entry-word {
+    text-align: left;
+    flex-grow: 1;
 }
 
 /* right panel: entry editor */
@@ -1091,7 +1121,7 @@ select:focus-visible {
     border-radius: 0.5em;
     padding: 0.5em;
     font-size: 1em;
-    gap: 0.25em;
+    /* gap: 0.25em; */
 }
 .search-result:hover {
     background-color: white;
@@ -1099,6 +1129,7 @@ select:focus-visible {
 .search-result:focus-visible {
     outline: medium solid var(--primary-dark);
 }
+
 .search-result-header {
     gap: 0.5em;
 }
@@ -1107,6 +1138,40 @@ select:focus-visible {
     width: 3em;
     font-size: 0.8em;
     text-align: center;
+}
+.search-result-L1 {
+    text-align: left;
+}
+.search-result-header .icon {
+    font-size: 0.8em;
+}
+
+.search-result-section-L2 {
+    justify-content: center;
+    gap: 1em;
+    flex-wrap: wrap;
+}
+.search-result-section-L2.active, .search-result-section-sentences.active, .search-result-section-notes.active {
+    border-top: thin solid var(--border-medium);
+    margin-top: 0.5em;
+    padding: 0.5em 1em;
+    padding-bottom: 0;
+    gap: 0.5em;
+}
+.search-result-wordform, .search-result-sentence, .search-result-note {
+    text-align: left;
+    /* align-items: baseline; */
+    gap: 0.5em;
+}
+.search-result-sentence, .search-result-note {
+    align-items: baseline;
+}
+.search-result-sentence > .subtitle {
+    white-space: pre;
+}
+.search-result-sentence > .flex-col > p:nth-child(2) {
+    /* sentence translation is italicized */
+    font-style: italic;
 }
 
 

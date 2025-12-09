@@ -216,6 +216,7 @@ let searchSettings = {
 		const t0_advancedSearch = performance.now();
 
 		const reFrag = new RegExp( RegExp.escape(frag), 'i' );
+		const reFragHighlight = new RegExp( `(${RegExp.escape(frag)})`, 'ig' );
 		console.log(reFrag);
 		// no tags in category specified => search in all
 		const inAny = Object.values(searchSettings.filters.in).every(x => x === TAG_N);
@@ -374,15 +375,68 @@ let searchSettings = {
 
 			numMatches++;
 
+			const hasImage = lexicon.data[i].images?.length > 0;
+			const hasAudio = lexicon.data[i].L2?.some(form => form.audio?.length > 0) || lexicon.data[i].sents?.some(sentence => sentence.audio?.length > 0);
+
 			let e = document.getElementById('tpl-search-result').content.firstElementChild.cloneNode(true);
-				e.onclick = () => console.log(`Load entry ${i}...`);
+				// e.onclick = () => console.log(`Load entry ${i}...`);
+				e.onclick = () => {
+					renderTab(TAB_LEXICON);
+					tryLoadEntry(i);
+				};
 				// TODO: deleting entry in lexicon tab should clear search results so onclick doesn't become hanging pointer
 
 			// header
-			e.querySelector('.search-result-L1').textContent = lexicon.data[i].L1 || '---';
 			e.querySelector('.search-result-catg').textContent = capitalize(lexicon.data[i].catg || '---');
-			// e.querySelector('.search-result-L2').textContent = lexicon.data[i].L2[0]?.L2 || '---';
+			if ((inAny || searchSettings.filters.in.L1 === TAG_T) && frag !== '') { // guaranteed match at this point, so either inAny&&in.L1==TAG_N or in.L1==TAG_T
+				// TODO: clean UNSAFE arbitrary text
+				e.querySelector('.search-result-L1').innerHTML = lexicon.data[i].L1.replaceAll(reFragHighlight, '<span class="text-highlight">$1</span>');
+			} else {
+				e.querySelector('.search-result-L1').textContent = lexicon.data[i].L1 || '---';
+			}
+			if (hasImage) e.querySelector('.search-result-header .icon:nth-child(1)').classList.add('icon-audio');
+			if (hasAudio) e.querySelector('.search-result-header .icon:nth-child(2)').classList.add('icon-audio');
 			// wordforms
+			const eWordformContainer = e.querySelector('.search-result-section-L2');
+			let hasMatchingWordform = false;
+			for (let form of lexicon.data[i].L2) {
+				console.log(lexicon.data[i].catg, lexicon.L2.forms[lexicon.data[i].catg], form.form);
+				const formName = (form.form >= 0) ? lexicon.L2.forms[lexicon.data[i].catg][form.form] : `Unknown Form`;
+				const wordform = form.L2 || '---';
+				if (true) hasMatchingWordform = true;
+				let eForm = document.getElementById('tpl-search-result-wordform').content.firstElementChild.cloneNode(true);
+				eForm.querySelector('p:nth-child(1)').textContent = formName;
+				eForm.querySelector('p:nth-child(2)').textContent = wordform;
+				eWordformContainer.appendChild(eForm);
+			}
+			if (hasMatchingWordform) eWordformContainer.classList.add('active');
+			// sentences
+			const eSentenceContainer = e.querySelector('.search-result-section-sentences');
+			let hasMatchingSentence = false;
+			for (let sentId = 0; sentId < lexicon.data[i].sents.length; sentId++) {
+				const sentL1 = lexicon.data[i].sents[sentId].L1 || '---';
+				const sentL2 = lexicon.data[i].sents[sentId].L2 || '---';
+				if (true) hasMatchingSentence = true;
+				let eSentence = document.getElementById('tpl-search-result-sentence').content.firstElementChild.cloneNode(true);
+				eSentence.querySelector('.subtitle').textContent = `Sentence ${sentId}`;
+				// given elem e w/ class='flex-row', e.querySelector('.flex-row') is targetting e; unsure if this is intended behavior
+				eSentence.querySelector('.flex-col > p:nth-child(1)').textContent = sentL1 + ' ';
+				eSentence.querySelector('.flex-col > p:nth-child(2)').textContent = sentL2;
+				eSentenceContainer.appendChild(eSentence);
+			}
+			if (hasMatchingSentence) eSentenceContainer.classList.add('active');
+			// notes
+			const eNoteContainer = e.querySelector('.search-result-section-notes');
+			let hasMatchingNote = false;
+			for (let noteId = 0; noteId < lexicon.data[i].notes.length; noteId++) {
+				const note = lexicon.data[i].notes[noteId].note || '---';
+				if (true) hasMatchingNote = true;
+				let eNote = document.getElementById('tpl-search-result-note').content.firstElementChild.cloneNode(true);
+				eNote.querySelector('.subtitle').textContent = `Note ${noteId}`;
+				eNote.querySelector('p:nth-child(2)').textContent = note;
+				eNoteContainer.appendChild(eNote);
+			}
+			if (hasMatchingNote) eNoteContainer.classList.add('active');
 
 			eResults.appendChild(e);
 		}
@@ -815,6 +869,8 @@ const populateLexicon = () => {
 		if (project.activeEntry === lexicon.orderedL1[i].entryId) e.classList.add('active-entry');
 		e.querySelector('.lexicon-entry-catg').textContent = capitalize(lexicon.orderedL1[i].catg) || '---';
 		e.querySelector('.lexicon-entry-word').textContent = lexicon.orderedL1[i].word || '---';
+		if (lexicon.orderedL1[i].hasImage) e.querySelector('.flex-row .icon:nth-child(1)').classList.add('icon-audio');
+		if (lexicon.orderedL1[i].hasAudio) e.querySelector('.flex-row .icon:nth-child(2)').classList.add('icon-audio');
 		eLexicon.appendChild(e);
 	}
 	const eNoResults = document.createElement('p');
@@ -916,7 +972,10 @@ const renderWordform = i => {
 		for (let audio of activeEntry.L2[i].audio) {
 			const url = `${file.path}\\${audio}`.replaceAll('\\','\\\\');
 			let eAudio = document.createElement('button');
+			eAudio.classList.add('icon');
 			eAudio.classList.add('icon-audio');
+			eAudio.classList.add('hover-grey');
+			eAudio.title = audio;
 			eAudio.onclick = () => {
 				console.log(`Entry ${i} playing audio "${url}".`);
 				audioPlayer.play(url);
@@ -956,7 +1015,10 @@ const renderSentence = i => {
 		for (let audio of activeEntry.sents[i].audio) {
 			const url = `${file.path}\\${audio}`.replaceAll('\\','\\\\');
 			let eAudio = document.createElement('button');
+			eAudio.classList.add('icon');
 			eAudio.classList.add('icon-audio');
+			eAudio.classList.add('hover-grey');
+			eAudio.title = audio;
 			eAudio.onclick = () => {
 				console.log(`Entry ${i} playing audio "${url}".`);
 				audioPlayer.play(url);

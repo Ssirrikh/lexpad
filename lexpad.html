@@ -138,7 +138,7 @@
 						<div id='lexicon-search-bar' class='flex-col'>
 							<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search...'>
 							<div id='lexicon-search-actions' class='flex-row'>
-								<button id='lexicon-search-clear' class='lexicon-search-action'></button>
+								<button id='lexicon-search-clear' class='icon icon-x lexicon-search-action'></button>
 							</div>
 						</div>
 					</div>
@@ -166,6 +166,10 @@
 		<button class='flex-row lexicon-entry'>
 			<p class='lexicon-entry-catg'>---</p>
 			<p class='lexicon-entry-word'>Lexicon Entry</p>
+			<div class='flex-row'>
+				<div class='icon'></div>
+				<div class='icon'></div>
+			</div>
 		</button>
 	</template>
 
@@ -183,7 +187,7 @@
 						<!-- IN -->
 						<div class='flex-row search-tag-header'>
 							<div class='flex-row'>
-								<button id='search-reset-in' class='icon-x' title='Reset all in:_ tags.'></button>
+								<button id='search-reset-in' class='icon icon-x hover-white' title='Reset all in:_ tags.'></button>
 								<p title='Search within specific data field(s). Will search in all fields by default.'>Search In:</p>
 							</div>
 							<div class='flex-row'>
@@ -216,7 +220,7 @@
 						<!-- CATG -->
 						<div class='flex-row search-tag-header'>
 							<div class='flex-row'>
-								<button id='search-reset-catg' class='icon-x' title='Reset all catg:_ tags.'></button>
+								<button id='search-reset-catg' class='icon icon-x hover-white' title='Reset all catg:_ tags.'></button>
 								<p title='Search entries of specific catg(s). Will search entries of any catg by default.'>Catg / Part of Speech:</p>
 							</div>
 							<div class='flex-row'>
@@ -233,7 +237,7 @@
 						<!-- HAS -->
 						<div class='flex-row search-tag-header'>
 							<div class='flex-row'>
-								<button id='search-reset-has' class='icon-x' title='Reset all has:_ tags.'></button>
+								<button id='search-reset-has' class='icon icon-x hover-white' title='Reset all has:_ tags.'></button>
 								<p title='Search entries containing at least 1 instance of specific data/media. Will search with no regard for contents by default.'>Has Content:</p>
 							</div>
 							<div class='flex-row'>
@@ -282,26 +286,6 @@
 						<div class='flex-col flex-centered window-status'>
 							<p>Submit a search to get started</p>
 						</div>
-						<!-- <div class='flex-col search-result'>
-							<p>Title</p>
-							<p class='subtitle'>Subtitle</p>
-						</div>
-						<div class='flex-col search-result'>
-							<p>Title</p>
-							<p class='subtitle'>Subtitle</p>
-						</div>
-						<div class='flex-col search-result'>
-							<p>Title</p>
-							<p class='subtitle'>Subtitle</p>
-						</div>
-						<div class='flex-col search-result'>
-							<p>Title</p>
-							<p class='subtitle'>Subtitle</p>
-						</div>
-						<div class='flex-col search-result'>
-							<p>Title</p>
-							<p class='subtitle'>Subtitle</p>
-						</div> -->
 					</div>
 				</div>
 			</div>
@@ -319,9 +303,78 @@
 		<button class='flex-col search-result' title='Click to load entry in Lexicon Tab.'>
 			<div class='flex-row search-result-header'>
 				<p class='search-result-catg'>catg</p>
-				<p class='search-result-L1'>L1 Word</p>
+				<p class='flex-fill search-result-L1'>L1 Word</p>
+				<div class='flex-row'>
+					<div class='icon'></div>
+					<div class='icon'></div>
+				</div>
+			</div>
+			<!-- wordforms -->
+			<div class='flex-row flex-centered search-result-section-L2'>
+				<!-- <div class='flex-row search-result-wordform'>
+					<p class='subtitle'>Form Name</p>
+					<p>wordform</p>
+				</div>
+				<div class='flex-row search-result-wordform'>
+					<p class='subtitle'>Agnes</p>
+					<p>hello world</p>
+				</div>
+				<div class='flex-row search-result-wordform'>
+					<p class='subtitle'>Bobbins</p>
+					<p>Hargle it Urk</p>
+				</div> -->
+			</div>
+			<!-- sentences -->
+			<div class='flex-col search-result-section-sentences'>
+				<!-- <div class='flex-row search-result-sentence'>
+					<p class='subtitle'>Sentence 1</p>
+					<div class='flex-row'>
+						<p>This is a sentence in English. </p>
+						<p>And this is its translation into Wikchamni.</p>
+					</div>
+				</div>
+				<div class='flex-row search-result-sentence'>
+					<p class='subtitle'>Sentence 2</p>
+					<div class='flex-row'>
+						<p>Something about how awesome blackberry jam tastes. </p>
+						<p>Something else about blackberries.</p>
+					</div>
+				</div> -->
+			</div>
+			<!-- notes -->
+			<div class='flex-col search-result-section-notes'>
+				<!-- <div class='flex-row search-result-note'>
+					<p class='subtitle'>Note 1</p>
+					<p>Related language Chukchansi tʰixtʰinitʰ 'sick'</p>
+				</div>
+				<div class='flex-row search-result-note'>
+					<p class='subtitle'>Note 2</p>
+					<p>Related language Chukchansi tʰixtʰinitʰ 'sick'</p>
+				</div> -->
 			</div>
 		</button>
+	</template>
+
+	<template id='tpl-search-result-wordform'>
+		<div class='flex-row search-result-wordform'>
+			<p class='subtitle'>Form Name</p>
+			<p>L2 Wordform</p>
+		</div>
+	</template>
+	<template id='tpl-search-result-sentence'>
+		<div class='flex-row search-result-sentence'>
+			<p class='subtitle'>Sentence N</p>
+			<div class='flex-col'>
+				<p>English sentence followed by space. </p>
+				<p>Wikchamni translation.</p>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-search-result-note'>
+		<div class='flex-row search-result-note'>
+			<p class='subtitle'>Note N</p>
+			<p>Contents of note</p>
+		</div>
 	</template>
 
 	<!-- ENTRY EDITOR TEMPLATES -->

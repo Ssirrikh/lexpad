@@ -107,8 +107,10 @@ const fromJSON = (path,jsonRaw) => {
 	orderedL2 = [];
 	for (let i = 0; i < data.length; i++) {
 		// console.log(data[i]);
-		orderedL1.push(...data[i].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i}}));
-		for (let form of data[i].L2) orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i}}));
+		const hasImage = data[i].images?.length > 0;
+		const hasAudio = data[i].L2?.some(form => form.audio?.length > 0) || data[i].sents?.some(sentence => sentence.audio?.length > 0);
+		orderedL1.push(...data[i].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
+		for (let form of data[i].L2) orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
 	}
 	orderedL1.sort(alphabetizeIndex);
 	orderedL2.sort(alphabetizeIndex);

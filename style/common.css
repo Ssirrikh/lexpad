@@ -105,6 +105,7 @@ body {
     /*overflow-x: hidden; /* 100vw overflows horizontally only on chrome; chrome scrollbars contribute to viewport size, but position themselves outside it, forcing it to expand */
 }
 button {
+    cursor: pointer;
     /* color: var(--text-dark); */
     background-color: transparent;
     border: none;
