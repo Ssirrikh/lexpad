@@ -7,18 +7,103 @@ const fs = require('node:fs/promises');
 
 const isMac = process.platform === 'darwin';
 
+const TAB_PROJECT = 0;
+const TAB_LEXICON = 1;
+const TAB_SEARCH = 2;
+
 
 
 //// PROGRAM STATE ////
 
-// let demoToggle = false;
-// let demoObject = {
-// 	v : 7
-// };
+// https://stackoverflow.com/questions/39574636/prompt-to-save-quit-before-closing-window
+
+// Toolbox's New Project Flow:
+	// (no check for unsaved changes, everything happens in new sub-window)
+	// DIALOGUE choose directory to save in
+	// [create folder if DNE]
+	// PROMPT choose database format
+	// [create empty project]
+	// [save project]
+
+// LexPad's New Project Flow:
+	// [check unsaved changes]
+	// MODAL New Project
+		// LABEL Enter the name of your project file.
+		// TEXTBOX filename
+		// LABEL Select or create project directory. All project files will be stored here.
+		// BUTTON -> DIALOGUE choose directory
+		// LABEL Creating project in ...path/selectedDir
+		// LABEL Main project file will be ...path/selectedDir/filename.json
+		// ACTIONS [Create, Cancel]
+	// [create folder if DNE]
+	// [create empty project]
+	// [save project]
+	// [create assets directory]
+	// [create project settings file]
+
+// Open Project:
+	// CHECK if (activeFile.isOpen && activeFile.modified) prompt to save project [Save Changes, Discard Changes, Cancel]
+	// DIALOGUE open file
+	// 
+
 let activeFile = {
+	// !isOpen => nothing is open
+	// isOpen && path=='' => new project is open
+	// isOpen && path!='' => existing project is open
+	isOpen : false,
 	path : '',
-	contents : {},
 	modified : false,
+};
+
+// mark modified
+const onRendererMarkModified = () => {
+	if (!activeFile.isOpen) { console.error('Renderer tries to mark project modified, but no project currently open.'); return; }
+	activeFile.modified = true;
+	console.log('Renderer marks project as modified.');
+};
+const markModified = (win) => {
+	if (!win) { console.warn('Did not specify window to send signal to. Cannot mark project modified.'); return; };
+	if (!activeFile.isOpen) { console.warn('No project currently open. Nothing to mark as modified.'); return; }
+	if (!activeFile.modified) {
+		console.log('Main marks project as modified.');
+		activeFile.modified = true;
+		win.webContents.send('main-mark-modified');
+	}
+};
+
+// save project
+const onRendererSaveProject = async (evt,contents) => {
+	console.log('Renderer saves project. Received contents:');
+	console.log(contents);
+	// TODO: try write file to disk
+	activeFile.modified = false;
+	return { message : 'Project saved successfully.' }
+};
+const saveProject = (win) => {
+	console.log('Main requests save project.');
+	if (!win) { console.warn('Did not specify window to send signal to. Cannot save project.'); return; };
+	if (!activeFile.isOpen) { console.warn('No project currently open. No changes to save.'); return; }
+	if (!activeFile.modified) { console.warn('No changes to save.'); return; }
+	win.webContents.send('main-save-project');
+};
+
+// open project
+const onRendererOpenProject = async (evt) => {
+	console.log('Renderer opens project.')
+	const { canceled, filePaths } = await dialog.showOpenDialog({
+		properties : ['openFile'],
+		filters : [
+			{ name: 'JSON', extensions: ['json'] },
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePaths?.length) return { canceled: true };
+	return { path: filePaths[0] };
+};
+const openProject = (win) => {
+	console.log('Main requests open project.');
+	if (!win) { console.warn('Did not specify window to send signal to. Cannot open project.'); return; };
+	win.webContents.send('main-open-project');
 };
 
 
@@ -44,33 +129,18 @@ let activeFile = {
 // 	console.log(demoObject);
 // }
 
-const openProject = async e => {
-	console.log('main attempting to use "open file" dialogue')
-	// const webContents = e.sender;
-	// const win = BrowserWindow.fromWebContents(webContents);
-	// "open file" dialogue
-	const { canceled, filePaths } = await dialog.showOpenDialog({
-		properties : ['openFile'],
-		filters : [
-			{ name: 'JSON', extensions: ['json'] },
-			{ name: 'All Files', extensions: ['*'] },
-		]
-	});
-	if (canceled || !filePaths?.length) return { canceled: true };
-	return { path: filePaths[0] };
+const newProject = async e => {
+	console.log('Main creating new project');
 };
-const loadProject = async (e,filepath) => {
-	console.log(filepath);
+
+const onRendererLoadProject = async (e,filepath) => {
+	console.log(`Renderer loads project "${filepath}"`);
 	try {
 		const raw = await fs.readFile(filepath, 'utf8');
-
-		// const dirPath = path.dirname(filepath);
-		// console.log(`Detecting media in ${dirPath}/assets`);
-		// const files = await fs.readdir(path.join(dirPath,'assets'), {recursive:true});
-		// console.log(files);
-		// console.log(files.map(f => `assets/${f}`));
-		// // TODO: handle directory does not exist
-
+		activeFile.isOpen = true;
+		activeFile.path = filepath;
+		activeFile.modified = false;
+		console.log('Main successfully reads project file.');
 		return { path: filepath, json: raw };
 	} catch (err) {
 		return { error: 'read_or_parse_failed', message: String(err) };
@@ -78,18 +148,16 @@ const loadProject = async (e,filepath) => {
 };
 const listMedia = async (e,filepath) => {
 	const dirPath = path.dirname(filepath);
-	console.log(`Detecting media in ${dirPath}/assets`);
+	console.log(`Detecting media in "${dirPath}\\assets"...`);
 	try {
 		const files = await fs.readdir(path.join(dirPath,'assets'), {recursive:true});
-		console.log(files);
-		console.log(files.map(f => `assets/${f}`));
+		console.log(`Discovered ${files.length} files in "${dirPath}\\assets".`);
+		// console.log(files);
+		// console.log(files.map(f => `assets\\${f}`));
 		return { path: filepath, media: files.map(f => `assets/${f}`) };
 	} catch (err) {
 		return { error: 'cannot_read_directory', message: String(err) };
 	}
-};
-const saveProject = () => {
-	// TODO: save file dialogue
 };
 
 
@@ -134,43 +202,97 @@ const createWindow = () => {
 				{
 					label : 'New Project',
 					accelerator : 'CmdOrCtrl+N',
-					onclick : () => console.log('Trigger create new project...')
+					click : () => {
+						console.log('Trigger create new project...');
+						if (activeFile.isOpen && activeFile.modified) {
+							// PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]
+								// if (choice==Save) saveProject();
+								// else if (choice==Discard) continue; // save temp file?
+								// else return;
+							console.log('PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]');
+							return;
+						}
+						// changes were either saved or discarded; trigger new project dialogue
+						// console.log('DIALOGUE New Project "Select location to create project directory:"');
+						console.log('TRIGGER create new project');
+						win.webContents.send('trigger-create-project');
+						activeFile.isOpen = true;
+					}
 				},
 				{
 					label : 'Open Project',
 					accelerator : 'CmdOrCtrl+O',
-					onclick : () => console.log('Trigger open project...')
+					click : () => openProject(win)
+					// click : () => {
+					// 	console.log('Trigger open project...');
+					// 	if (activeFile.isOpen && activeFile.modified) {
+					// 		// PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]
+					// 			// if (choice==Save) saveProject();
+					// 			// else if (choice==Discard) continue; // save temp file?
+					// 			// else return;
+					// 		console.log('PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]');
+					// 		return;
+					// 	}
+					// 	// changes were either saved or discarded; trigger open file dialogue
+					// 	console.log('DIALOGUE Open Project');
+					// 	activeFile.isOpen = true;
+					// }
 				},
 				{
 					label : 'Save',
 					accelerator : 'CmdOrCtrl+S',
-					onclick : () => console.log('Trigger save project...')
+					click : () => saveProject(win)
+					// click : () => {
+					// 	console.log('Trigger save project...');
+					// 	if (activeFile.isOpen) {
+					// 		// save project
+					// 		activeFile.modified = false;
+					// 		console.log('Project saved!');
+					// 	}
+					// }
 				},
 				{
 					label : 'Save As',
 					accelerator : 'CmdOrCtrl+Shift+S',
-					onclick : () => console.log('Trigger save copy of project as...')
+					click : () => {
+						console.log('Trigger save copy of project...');
+						if (activeFile.isOpen) {
+							// save project as
+							activeFile.modified = false;
+							console.log('PROMPT Save As');
+						}
+					}
+				},
+				{
+					label : 'DBG Mark Modified',
+					accelerator : 'CmdOrCtrl+M',
+					click : () => markModified(win)
+					// click : () => {
+					// 	console.log('DBG Mark project as modified to simulate unsaved changes.');
+					// 	if (activeFile.isOpen) activeFile.modified = true;
+					// }
 				},
 				{ type: 'separator' },
 				// {
 				// 	label : 'Run Auto-Cleanup Script',
-				// 	onclick : () => console.log('Trigger auto-cleanup script...')
+				// 	click : () => console.log('Trigger auto-cleanup script...')
 				// },
 				{
 					label : 'LexPad Settings',
 					accelerator : 'CmdOrCtrl+,',
-					onclick : () => console.log('Trigger open LexPad settings tab...')
+					click : () => console.log('Trigger open LexPad settings tab...')
 				},
 				{ type: 'separator' },
 				{
 					label : 'Close Project',
 					accelerator : 'CmdOrCtrl+W',
-					onclick : () => console.log('Trigger close project...')
+					click : () => console.log('Trigger close project...')
 				},
 				// Non-Mac Quit Option (Ctrl+Q)
 				...(isMac ? [] : [{
 					role : 'quit',
 					accelerator : 'CmdOrCtrl+Q'
+					// TODO: check for unsaved changes
 				}])
 			]
 		},
@@ -197,12 +319,11 @@ const createWindow = () => {
 		{
 			label : 'View',
 			submenu : [
-				{ role: 'zoomIn', accelerator : 'CmdOrCtrl+=' },
-				{ role: 'zoomOut' },
-				{ role: 'resetZoom', label : 'Reset Zoom' },
+				{ role: 'zoomIn', accelerator : 'CmdOrCtrl+=' }, // Ctrl+=
+				{ role: 'zoomOut' }, // Ctrl+-
+				{ role: 'resetZoom', label : 'Reset Zoom' }, // Ctrl+0
 				{ type: 'separator' },
-				{ role: 'togglefullscreen' }
-				// { role: 'togglefullscreen', accelerator : 'F11' }
+				{ role: 'togglefullscreen' } // F11
 			]
 		},
 		// Window { role: 'windowMenu' }
@@ -212,24 +333,24 @@ const createWindow = () => {
 				{
 					label : 'Project Tab',
 					accelerator : 'CmdOrCtrl+1',
-					onclick : () => console.log('Trigger renderTab(TAB_PROJECT)...')
+					click : () => {
+						console.log(`Trigger tab ${TAB_PROJECT}`);
+						win.webContents.send('trigger-tab', TAB_PROJECT);
+					}
 				},
 				{
 					label : 'Lexicon Tab',
 					accelerator : 'CmdOrCtrl+2',
-					onclick : () => console.log('Trigger renderTab(TAB_LEXICON)...')
+					click : () => win.webContents.send('trigger-tab', TAB_LEXICON)
 				},
 				{
 					label : 'Search Tab',
 					accelerator : 'CmdOrCtrl+3',
-					onclick : () => console.log('Trigger renderTab(TAB_SEARCH)...')
+					click : () => win.webContents.send('trigger-tab', TAB_SEARCH)
 				},
 				{ type: 'separator' },
 				{
-					// role : 'toggleDevTools',
-					// label : 'Developer Tools',
-					// accelerator : 'F12'
-					role : 'forceReload'
+					role : 'forceReload' // Force Reload 'CmdOrCtrl+Shift+R
 				},
 				{
 					role : 'toggleDevTools',
@@ -244,39 +365,42 @@ const createWindow = () => {
 			submenu : [
 				{
 					label : 'Quick Start Guide',
-					onclick : () => console.log('Open offline quick start guide (window? pdf? modal?)...')
+					click : () => console.log('Open offline quick start guide (window? pdf? modal?)...')
 				},
 				{
 					label : 'Documentation',
 					submenu : [
 						{
 							label : 'Offline PDF',
-							onclick : () => console.log('Open documentation PDF...')
+							click : () => console.log('Open documentation PDF...')
 						},
 						{
 							label : 'Online Documentation',
-							onclick : () => console.log('Open documentation website...')
+							click : () => console.log('Open documentation website...')
 						}
 					]
 				},
 				{
 					label : 'Keyboard Shortcut Reference',
 					accelerator : 'CmdOrCtrl+K',
-					onclick : () => console.log('Open keyboard shortcut list (or settings page?)...')
+					click : () => console.log('Open keyboard shortcut list (or settings page?)...')
 				},
 				{ type: 'separator' },
 				{
 					label : 'Report a Bug',
-					onclick : () => console.log('Opening GitHub bug report page...')
+					click : () => console.log('Opening GitHub bug report page...')
 				},
 				{ type: 'separator' },
 				{
 					label : 'Check for Updates',
-					onclick : () => console.log('Open GitHub newest verion page...')
+					click : () => console.log('Open GitHub newest verion page...')
 				},
 				{
 					label : 'Visit LexPad GitHub',
-					onclick : () => console.log('Open GitHub main page...')
+					click : async () => {
+						console.log('Open GitHub main page...');
+						await shell.openExternal('https://github.com/ssirrikh/lexpad?tab=readme-ov-file#lexpad')
+					}
 				}
 			]
 		}
@@ -304,9 +428,15 @@ app.whenReady().then(() => {
 	// ipcMain.on('dbg-flip-toggle', dbg_flipToggle);
 	// ipcMain.handle('dbg-request-object',dbg_requestObject);
 	// ipcMain.on('dbg-check-object', dbg_checkObject);
+
+	//
+	ipcMain.on('renderer-mark-modified', onRendererMarkModified);
+	ipcMain.handle('renderer-save-project', onRendererSaveProject);
+	ipcMain.handle('renderer-open-project', onRendererOpenProject);
+	ipcMain.handle('renderer-load-project', onRendererLoadProject);
+
 	// IPC bridges: I/O
-	ipcMain.handle('open-project', openProject);
-	ipcMain.handle('load-project', loadProject);
+	// ipcMain.on('trigger-create-project', )
 	ipcMain.handle('list-media', listMedia);
 
 	// open main app window

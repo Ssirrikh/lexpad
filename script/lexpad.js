@@ -100,25 +100,27 @@ let shiftDown = false;
 window.addEventListener('keydown', evt => {
 	if (evt.key === 'Control') ctrlDown = true;
 	if (evt.key === 'Shift') shiftDown = true;
-	let modStr = [];
-	if (ctrlDown) modStr.push('CTRL');
-	if (shiftDown) modStr.push('SHIFT');
-	eStatbarRight.textContent = modStr.join('+');
-	updateQuickCopyBar();
-	// TODO: only update if project currently loaded
-	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+	renderModifierKeys();
+	if (file.isOpen) {
+		updateQuickCopyBar();
+		document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+	}
 });
 window.addEventListener('keyup', evt => {
 	if (evt.key === 'Control') ctrlDown = false;
 	if (evt.key === 'Shift') shiftDown = false;
+	renderModifierKeys();
+	if (file.isOpen) {
+		updateQuickCopyBar();
+		document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+	}
+});
+const renderModifierKeys = () => {
 	let modStr = [];
 	if (ctrlDown) modStr.push('CTRL');
 	if (shiftDown) modStr.push('SHIFT');
 	eStatbarRight.textContent = modStr.join('+');
-	updateQuickCopyBar();
-	// TODO: only update if project currently loaded
-	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
-});
+};
 // focus anchors
 let activeInput;
 
@@ -609,6 +611,7 @@ const init = () => {
 	// construct welcome page
 	nWelcomePage = document.getElementById('tpl-welcome-page').content.firstElementChild.cloneNode(true);
 	nWelcomePage.querySelector('#btn-open-project').onclick = async () => await tryOpenProject(); // needs to be lambda, so function can be hoisted properly
+	// nWelcomePage.querySelector('#btn-create-project').onclick = async () => markModified();
 	// allow page to render, then build content skeletons off-DOM
 	renderWelcomePage();
 	requestAnimationFrame(() => {
@@ -618,10 +621,16 @@ const init = () => {
 		tabContent[TAB_PROJECT].querySelector('#lang-name').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-name');
 		tabContent[TAB_PROJECT].querySelector('#lang-abbr').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
 		tabContent[TAB_PROJECT].querySelector('#lang-alph').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-alph');
+		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markModified();
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_LEXICON].style.padding = '0';
 		tabContent[TAB_LEXICON].querySelector('#lexicon-search').onfocus = () => activeInput = tabContent[TAB_LEXICON].querySelector('#lexicon-search');
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search').addEventListener('keyup', evt => {
+			// TODO: convert to debounce timer so input isn't blocked on slower machines
+				// keep global(?) timeout that is cleared on keydown, restarted on keyup, and triggers filterLexicon() on completion
+			filterLexicon();
+		});
 		search.ePatterns[SEARCH_PATTERN_BEGINS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-begins');
 		search.ePatterns[SEARCH_PATTERN_BEGINS].onclick = () => setLexiconSearchPattern(SEARCH_PATTERN_BEGINS);
 		search.ePatterns[SEARCH_PATTERN_CONTAINS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-contains');
@@ -763,19 +772,17 @@ const populateQuickCopyBar = () => {
 	let alphabet = lexicon.L2.alph.split(' ');
 	for (let i = 0; i < alphabet.length; i++) {
 		const letter = alphabet[i];
-		// console.log(letter, englishAlphabet.indexOf(letter));
 		if (englishAlphabet.indexOf(letter) !== -1) continue;
-		let e = document.createElement('button');
-		Object.assign(e, {
+		eStatbarLeft.appendChild( Object.assign(document.createElement('button'), {
 			id : `quick-copy-${i}`,
 			className : 'quick-copy-letter',
 			textContent : letter,
 			onclick : () => copyOrInsert(letter)
-		});
-		eStatbarLeft.appendChild(e);
+		}) );
 	}
 };
 const updateQuickCopyBar = () => {
+	// if (!file.isOpen) return;
 	let alphabet = lexicon.L2.alph.split(' ');
 	for (let i = 0; i < alphabet.length; i++) {
 		const e = document.querySelector(`#quick-copy-${i}`);
@@ -1174,6 +1181,51 @@ window.addEventListener('click', e => {
 });
 
 // search tab
+const populateSearchTab = () => {
+	// reset searchbar/header
+	tabContent[TAB_SEARCH].querySelector('#search-query').value = '';
+	tabContent[TAB_SEARCH].querySelector('#search-display-full').onclick = () => {
+		searchSettings.showFullResults = true;
+		tabContent[TAB_SEARCH].querySelector('#search-display-full').classList.add('active');
+		tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').classList.remove('active');
+	};
+	tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').onclick = () => {
+		searchSettings.showFullResults = false;
+		tabContent[TAB_SEARCH].querySelector('#search-display-full').classList.remove('active');
+		tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').classList.add('active');
+	};
+	tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').click(); // quick and dirty reset of full/adaptive UI and related vars
+
+	// reset filters
+	populateSearchFilters(); // automatically renders UI
+	for (let filter in searchSettings.and) {
+		tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).onclick = () => {
+			searchSettings.and[filter] = true;
+			tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).classList.add('active');
+			tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).classList.remove('active');
+		};
+		tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).onclick = () => {
+			searchSettings.and[filter] = false;
+			tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).classList.remove('active');
+			tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).classList.add('active');
+		};
+		tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).click(); // quick and dirty reset of AND/OR UI and related vars
+	}
+	for (let filter in searchSettings.filters) {
+		tabContent[TAB_SEARCH].querySelector(`#search-reset-${filter}`).onclick = () => {
+			searchSettings.resetFilter(filter);
+			renderSearchFilters();
+		};
+	}
+
+	// clear search results header
+	tabContent[TAB_SEARCH].querySelector('#search-results-header-left').textContent = '';
+	tabContent[TAB_SEARCH].querySelector('#search-results-header-right').textContent = 'No active search';
+	// clear search results
+	tabContent[TAB_SEARCH].querySelector('#search-results').innerHTML = '';
+	tabContent[TAB_SEARCH].querySelector('#search-results').appendChild( document.getElementById('tpl-bg-status').content.firstElementChild.cloneNode(true) );
+	tabContent[TAB_SEARCH].querySelector('#search-results .window-status p').textContent = 'Submit a search to get started';
+};
 const populateSearchFilters = () => {
 	// rebuild search filters object
 	let tplSearchFilters = {
@@ -1184,21 +1236,29 @@ const populateSearchFilters = () => {
 	let catgs = Object.keys(project.catgs).sort();
 	catgs.push('misc');
 	for (let catg of catgs) tplSearchFilters.catg[catg] = TAG_N;
-	// update filter object
-	searchSettings.filters = tplSearchFilters;
-	// searchSettings.reset(); // should be a no-op, since rebuilt filters object already "zeroed out"
-	console.log(searchSettings.filters);
-	// rebuild UI
+	searchSettings.filters = tplSearchFilters; // no need to call searchSettings.reset(), since new filters obj already "zeroed out"
+	
+	// rebuild catg section of search tab
 	const eSearchCatgs = tabContent[TAB_SEARCH].querySelector('#search-section-catgs');
 	eSearchCatgs.innerHTML = '';
 	for (let catg in searchSettings.filters.catg) {
 		let e = document.getElementById('tpl-search-tag').content.firstElementChild.cloneNode(true);
 			e.id = `tag-catg-${catg}`;
 			e.querySelector('p').textContent = `catg:${catg}`;
-			// onclick set by tryLoadProject()
 		eSearchCatgs.appendChild(e);
 	}
-	// TODO: clear search tab results
+	// render changes
+	renderSearchFilters();
+
+	// attach event listeners to filter UI
+	for (let filter in searchSettings.filters) {
+		for (let qualifier in searchSettings.filters[filter]) {
+			tabContent[TAB_SEARCH].querySelector(`#tag-${filter}-${qualifier}`).onclick = () => {
+				searchSettings.setNext(`${filter}:${qualifier}`);
+				renderSearchFilters();
+			};
+		}
+	}
 };
 const renderSearchFilters = () => {
 	for (let filter in searchSettings.filters) {
@@ -1234,108 +1294,8 @@ const renderSearchFilters = () => {
 
 
 
-const tryOpenProject = async () => {
-	// trigger file select from main process
-	const res = await window.electronAPI.openProject();
-	console.log(res);
-	if (res.canceled) return;
-	if (res.error) { console.error(res.message); return; }
-	// if we got a valid file, trigger loading screen and try to parse it
-	// TODO: trigger loading screen
-	if (res.path) {
-		console.log(res.path, typeof res.path);
-		await tryLoadProject(res.path);
-	} else {
-		console.error(`Open file dialogue did not return a valid filepath.`);
-		// TODO: cancel loading screen
-	}
-};
-const tryLoadProject = async (path) => {
-	const t0_loadProject = performance.now();
-	// request JSON parse of selected file
-	const res = await window.electronAPI.loadProject(path);
-	console.log(res);
-	if (res.error) { console.error(res.message); return; }
-	// parse JSON file and perform indexing
-	lexicon.fromJSON(res.path, res.json);
 
-	// visible updates:
 
-	// TODO: deactivate loading screen
-	// refresh UI
-	populateQuickCopyBar();
-	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
-	eStatbarLeft.title = `Click to insert in current textbox. Ctrl+Click to copy to clipboard. Hold Shift for uppercase.`; // hover text
-	// refresh project tab
-	populateProjectTab();
-	renderTab(TAB_PROJECT);
-	const t1_loadProject = performance.now();
-	console.log(`Project file loaded in ${Math.round(t1_loadProject-t0_loadProject)} ms.`);
-
-	// background updates:
-
-	// check media
-	await tryListMedia(path);
-	const t2_loadProject = performance.now();
-	console.log(`Media scanned in ${Math.round(t2_loadProject-t1_loadProject)} ms.`);
-	// refresh lexicon tab
-	populateLexicon();
-	tabContent[TAB_LEXICON].querySelector('#lexicon-search').addEventListener('keyup', evt => {
-		// TODO: convert to debounce timer so input isn't blocked on slower machines
-			// keep global(?) timeout that is cleared on keydown, restarted on keyup, and triggers filterLexicon() on completion
-		filterLexicon();
-	});
-	if (project.activeEntry !== -1) {
-		console.log(`Loading entry ${project.activeEntry}`);
-		tryLoadEntry(project.activeEntry,true);
-	} else {
-		console.log('Project did not specify an entry to load.');
-	}
-	console.log(`Lexicon tab built in ${Math.round(performance.now()-t2_loadProject)} ms.`);
-	// refresh search tab
-	populateSearchFilters();
-	renderSearchFilters();
-	tabContent[TAB_SEARCH].querySelector('#search-display-full').onclick = () => {
-		searchSettings.showFullResults = true;
-		tabContent[TAB_SEARCH].querySelector('#search-display-full').classList.add('active');
-		tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').classList.remove('active');
-	};
-	tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').onclick = () => {
-		searchSettings.showFullResults = false;
-		tabContent[TAB_SEARCH].querySelector('#search-display-full').classList.remove('active');
-		tabContent[TAB_SEARCH].querySelector('#search-display-adaptive').classList.add('active');
-	};
-	for (let filter in searchSettings.filters) {
-		tabContent[TAB_SEARCH].querySelector(`#search-reset-${filter}`).onclick = () => {
-			searchSettings.resetFilter(filter);
-			renderSearchFilters();
-		};
-	}
-	for (let filter in searchSettings.and) {
-		tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).onclick = () => {
-			searchSettings.and[filter] = true;
-			console.log(searchSettings.and);
-			tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).classList.add('active');
-			tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).classList.remove('active');
-		};
-		tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).onclick = () => {
-			searchSettings.and[filter] = false;
-			console.log(searchSettings.and);
-			tabContent[TAB_SEARCH].querySelector(`#search-and-${filter}`).classList.remove('active');
-			tabContent[TAB_SEARCH].querySelector(`#search-or-${filter}`).classList.add('active');
-		};
-	}
-	for (let filter in searchSettings.filters) {
-		for (let qualifier in searchSettings.filters[filter]) {
-			tabContent[TAB_SEARCH].querySelector(`#tag-${filter}-${qualifier}`).onclick = () => {
-				// console.log(`set next ${filter}:${qualifier}`);
-				searchSettings.setNext(`${filter}:${qualifier}`);
-				renderSearchFilters();
-			};
-		}
-	}
-	console.log(`All loading finished in ${Math.round(performance.now()-t0_loadProject)} ms.`);
-}
 const tryListMedia = async (path) => {
 	// request list of files in %PROJDIR%/assets
 	const res = await window.electronAPI.listMedia(path);
@@ -1409,11 +1369,169 @@ const tryLoadEntry = (i,forceLoad) => {
 
 
 
-//// IPC OUTGOING ////
+//// RENDERER-TO-MAIN IPC TRIGGERS ////
 
-const saveLangInfo = () => {
-	//
+// project state
+
+// mark modified
+window.electronAPI.onMainMarkModified(() => {
+	if (!file.isOpen) { console.error('Main tries to mark project modified, but no project currently open.'); return; }
+	file.modified = true;
+	console.log('Main marks project as modified.');
+});
+const markModified = () => {
+	if (!file.isOpen) { console.warn('No project currently open. Nothing to mark as modified.'); return; }
+	if (!file.modified) {
+		console.log('Renderer marks project as modified.');
+		file.modified = true;
+		window.electronAPI.rendererMarkModified();
+	}
 };
+// save project
+window.electronAPI.onMainSaveProject(() => {
+	console.log('Main requests save project.');
+	trySaveProject();
+});
+const trySaveProject = async () => {
+	if (!file.isOpen) { console.error('No project currently open. No changes to save.'); return; }
+	if (!file.modified) { console.warn('No changes to save.'); return; }
+	console.log('Renderer saves project STUB.');
+	const stubObject = {
+		x : 7,
+		y : 9
+	};
+	const res = await window.electronAPI.rendererSaveProject( JSON.stringify(stubObject) );
+	console.log(res);
+	if (res.error) { console.error(res.message); return; }
+	console.log('Main confirms project is saved.');
+	file.modified = false;
+};
+// open project (choose project -> load project)
+window.electronAPI.onMainOpenProject(() => {
+	console.log('Main requests open project.');
+	tryOpenProject();
+});
+const tryOpenProject = async () => {
+	if (file.isOpen && file.modified) {
+		console.log('Unsaved changes detected.');
+		// trigger [Save,Discard,Cancel] modal
+			// if save, trySaveProject()
+			// if discard, continue
+			// if cancel, return
+		console.log('DBG FORCE Renderer opens project.');
+	} else {
+		console.log('Renderer opens project.');
+	}
+	const res = await window.electronAPI.rendererOpenProject();
+	console.log(res);
+	if (res.canceled) return;
+	if (res.error) { console.error(res.message); return; }
+	// if we got a valid file, trigger loading screen and try to parse it
+	if (res.path) {
+		// TODO: trigger loading screen
+		await tryLoadProject(res.path);
+		// TODO: dispose loading screen
+	} else {
+		console.error(`Open file dialogue did not return a valid filepath.`);
+	}
+};
+const tryLoadProject = async (path) => {
+	const t0_loadProject = performance.now();
+	console.log(`Renderer loads project "${path}".`);
+
+	// request JSON parse of selected file
+	const res = await window.electronAPI.rendererLoadProject(path);
+	console.log(res);
+	if (res.error) { console.error(res.message); return; }
+	// parse JSON file and perform indexing
+	if (!lexicon.fromJSON(res.json)) {
+		console.error('Renderer failed to load project file. Aborting open project.');
+		return;
+	}
+	file.isOpen = true;
+	file.path = res.path.replace(/\\[^\\]+?$/,'');
+	file.filename = res.path.replace(/^.+\\/,'');
+	file.modified = false;
+	console.log(file);
+
+	// build/render app UI (just quick-copy bar at the moment)
+	populateQuickCopyBar();
+	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+	eStatbarLeft.title = `Click to insert in current textbox. Ctrl+Click to copy to clipboard. Hold Shift for uppercase.`; // hover text
+	// reset modifier keys; keyboard shortcuts (ie Ctrl+O) cause modifiers to get stuck in down position cuz of open file dialogue stealing focus
+	ctrlDown = false;
+	shiftDown = false;
+	renderModifierKeys();
+	// rebuild/render project tab
+	populateProjectTab();
+	renderTab(TAB_PROJECT); // disposes loading screen
+
+	const t1_loadProject = performance.now();
+	console.log(`Project file loaded in ${Math.round(t1_loadProject-t0_loadProject)} ms.`);
+
+	// scan for media in project directory
+	await tryListMedia(path);
+
+	const t2_loadProject = performance.now();
+	console.log(`Media scanned in ${Math.round(t2_loadProject-t1_loadProject)} ms.`);
+
+	// rebuild lexicon tab
+	populateLexicon();
+	if (project.activeEntry !== -1) {
+		console.log(`Loading entry ${project.activeEntry}`);
+		tryLoadEntry(project.activeEntry,true); // not async, but may fail to load
+	} else {
+		console.log('Project did not specify an entry to load.');
+	}
+
+	const t3_loadProject = performance.now();
+	console.log(`Lexicon tab built in ${Math.round(t3_loadProject-t2_loadProject)} ms.`);
+
+	// rebuild search tab
+	populateSearchTab(); // automatically renders UI
+
+	console.log(`Search tab built in ${Math.round(performance.now()-t3_loadProject)} ms.`);
+	console.log(`All loading finished in ${Math.round(performance.now()-t0_loadProject)} ms.`);
+}
+
+
+// pattern for two-way comms where TX has authority:
+	// TX checks prereqs
+		// if good, run takeAction() on TX side
+		// if bad, throw error and refuse to transmit
+	// RX receives signal and checks prereqs
+		// if also good, run takeAction() on RX side
+		// if bad, give de-sync warning
+
+// pattern for two-way comms where TX/RX both need to approve action:
+// TX check();request() -> RX check();execute();approve() -> TX execute()
+	// TX checkPrereqs()
+		// if good, send requestAction()
+		// if bad, throw error
+	// RX onRequestAction() -> checkPrereqs()
+		// if good, takeAction() and send approveAction()
+		// if bad, throw error and send denyAction()
+	// TX onApproveAction() -> takeAction()
+	// TX onDenyAction() -> throw error
+
+
+
+
+
+//// MAIN-TO-RENDERER IPC TRIGGERS ////
+
+//
+window.electronAPI.onTriggerCreateProject(() => {
+	console.log(`IPC trigger: Create new project. Main has already verified there are no unsaved changes.`);
+});
+
+// attach keyboard shortcuts
+window.electronAPI.onTriggerTab(tabId => {
+	console.log(`IPC trigger: Render tab ${tabId}.`);
+	renderTab(tabId);
+});
+
+
 
 
 
@@ -1421,7 +1539,7 @@ const saveLangInfo = () => {
 
 init();
 
-tryOpenProject();
+// tryOpenProject();
 
 
 

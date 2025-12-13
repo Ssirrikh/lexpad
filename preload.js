@@ -8,10 +8,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// flipToggle: () => ipcRenderer.send('dbg-flip-toggle'),
 	// requestObject: () => ipcRenderer.invoke('dbg-request-object'),
 	// checkObject: () => ipcRenderer.send('dbg-check-object'),
+
+	// Main-to-Renderer signals
+	onTriggerTab : (callback) => ipcRenderer.on('trigger-tab', (evt,tabId) => callback(tabId)),
+
+	// Project State, File I/O
+
+	// mark modified
+	onMainMarkModified : (callback) => ipcRenderer.on('main-mark-modified', (evt) => callback()),
+	rendererMarkModified : () => ipcRenderer.send('renderer-mark-modified'),
+	// save project
+	onMainSaveProject : (callback) => ipcRenderer.on('main-save-project', (evt) => callback()),
+	rendererSaveProject : (contents) => ipcRenderer.invoke('renderer-save-project', contents),
+	// new project
+	onTriggerCreateProject : (callback) => ipcRenderer.on('trigger-create-project', (evt) => callback()),
+	rendererCreateProject : (parameters) => ipcRenderer.invoke('renderer-create-project', parameters),
+	// open project
+	onMainOpenProject : (callback) => ipcRenderer.on('main-open-project', (evt) => callback()),
+	rendererOpenProject : () => ipcRenderer.invoke('renderer-open-project'),
+	rendererLoadProject : (path) => ipcRenderer.invoke('renderer-load-project', path),
 	
 	// I/O
-	openProject: () => ipcRenderer.invoke('open-project'),
-	loadProject : (path) => ipcRenderer.invoke('load-project', path),
 	listMedia : (path) => ipcRenderer.invoke('list-media', path),
 	// database access
 	// getLangInfo : () => ipcRenderer.invoke('get-lang-info'),

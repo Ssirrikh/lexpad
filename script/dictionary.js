@@ -36,8 +36,9 @@ const tryParseJSON = (jsonStr) => {
 
 //// PROGRAM STATE ////
 
-// program state
+// program state; should always mirror copy in main process
 let file = {
+	isOpen : false,
 	path : ``,
 	filename : ``,
 	modified : false
@@ -81,17 +82,16 @@ const DEFAULT_L2 = Object.freeze({
 
 
 // deep copy and index json w/o storing refs, so it can be GC'd
-const fromJSON = (path,jsonRaw) => {
+const fromJSON = (jsonRaw) => {
 	// store json parse, and allow raw filestring to be GC'd
 	let jsonParse = tryParseJSON(jsonRaw);
 	console.log(jsonParse);
+	if (!jsonParse) return false; // report failure
 	
 	//// TODO: clean unsafe arbitrary text fields
 
-	// reset project
-	file.path = path.replace(/\\[^\\]+?$/,'');
-	file.filename = path.replace(/^.+\\/,'');
-	file.modified = false;
+	// TODO: prob want to leave jsonParse intact and simply bind refs to project/language/lexicon; will make saveProject() a single call of JSON.stringify()
+
 	// link parsed data
 	project = jsonParse.project ?? structuredClone(DEFAULT_PROJECT);
 	L2 = jsonParse.language ?? structuredClone(DEFAULT_L2);
@@ -99,7 +99,7 @@ const fromJSON = (path,jsonRaw) => {
 
 	// block saved active-entry for dbg
 	// project.activeEntry = -1;
-	console.log(project.activeEntry);
+	// console.log(project.activeEntry);
 
 	// index data
 	// TODO: check if anything more than this is req'd to GC previously-open project
@@ -145,6 +145,8 @@ const fromJSON = (path,jsonRaw) => {
 	}
 	console.log(`Indexed ${Object.keys(media).length} media files.`);
 	console.log(media);
+
+	return true; // report success
 };
 
 const calculateStatistics = () => {
