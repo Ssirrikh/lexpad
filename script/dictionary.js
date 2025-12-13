@@ -1,4 +1,6 @@
 
+const VERSION = "v0.0";
+
 const RE_SYNONYM_SPLITTER = /;\s*/;
 
 const SYNONYM_SPLITTER = '; ';
@@ -8,15 +10,11 @@ const ALPHABET_SPLITTER = ' ';
 
 const RE_ESCAPE = /[&<>"']/g;
 const RE_MAP_ESCAPE = { "&" : "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }; // all contexts support &#39; but not all support &apos;, so ignore it
-function escapeHTML (s) {
-	return String(s).replace(RE_ESCAPE, c => RE_MAP_ESCAPE[c]);
-}
+// function escapeHTML (s) {
+// 	return String(s).replace(RE_ESCAPE, c => RE_MAP_ESCAPE[c]);
+// }
+const escapeHTML = (s) => String(s).replace(RE_ESCAPE, c => RE_MAP_ESCAPE[c]);
 
-// const alphabetizeIndex = (oa,ob) => {
-// 	const a = oa.word.toLowerCase();
-// 	const b = ob.word.toLowerCase();
-// 	return a.localeCompare(b);
-// };
 const alphabetizeIndex = (a,b) => a.word.toLowerCase().localeCompare(b.word.toLowerCase());
 
 const tryParseJSON = (jsonStr) => {
@@ -32,7 +30,26 @@ const tryParseJSON = (jsonStr) => {
 
 
 
-//// 
+//// DEFAULTS / PRESETS ////
+
+const L1 = Object.freeze({
+	"name" : "English",
+	"abbr" : "eng",
+	"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
+	"usesForms" : false
+});
+
+const TPL_NEW_PROJECT = `{
+	"project" : {
+		"lexpadVersion" : "${VERSION}",
+		"activeEntry" : -1,
+		"catgs" : {}
+	},
+	"language" : {},
+	"lexicon" : []
+}`;
+
+
 
 //// PROGRAM STATE ////
 
@@ -43,67 +60,65 @@ let file = {
 	filename : ``,
 	modified : false
 };
-let project = {
-    activeEntry : 3,
-	catgs : {}
+
+// file access
+let fileContents = { // gets replaced by JSON.parse(rawFile)
+	project : {},
+	language : {},
+	lexicon : []
 };
-// language data
-const L1 = Object.freeze({
-	"name" : "English",
-	"abbr" : "eng",
-	"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
-	"usesForms" : false
-});
-let L2 = {};
-// lexicon
-let data = [];
-// lexicon indexing
-let orderedL1 = [];
-let orderedL2 = [];
-let media = {}; // hash table of referenced media, containing set of entryIds that reference each file
+let project, L2, data; // named access points for module export
+const rebindAccess = () => {
+	// access points must be rebound whenever file is loaded, so they point to new file
+	project = fileContents.project;
+	L2 = fileContents.language;
+	data = fileContents.lexicon;
+	// TODO: use memory snapshot to make sure old file successfully GC'd
+};
+
+// indexing
+let orderedL1 = []; // sorted list of {word,catg,entryId,hasAudio,hasImage} (sorted alphabetically by obj.word)
+let orderedL2 = []; // sorted list of {word,catg,entryId,hasAudio,hasImage} (sorted alphabetically by obj.word)
+let media = {}; // hash table of referenced media s.t. media[fileName] = [...array of entryId that reference filename]
 
 
-const DEFAULT_FILE = Object.freeze({
-	path : '',
-	modified : false
-});
-const DEFAULT_PROJECT = Object.freeze({
-	activeEntry : -1,
-	catgs : {}
-});
-const DEFAULT_L2 = Object.freeze({
-	"name" : "English",
-	"abbr" : "eng",
-	"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
-	"usesForms" : true,
-	"forms" : {}
-});
 
+//// FILE MANAGEMENT ////
 
+const createProject = () => {
+	console.log(`dictionary.js instantiates new project from template.`);
+	// fromJSON(TPL_NEW_PROJECT);
+};
 
 // deep copy and index json w/o storing refs, so it can be GC'd
 const fromJSON = (jsonRaw) => {
-	// store json parse, and allow raw filestring to be GC'd
+	// raw filestring will be GC'd after function completion
+
+	// store json parse in temp var, so currently-open project can remain open in case of parsing error
 	let jsonParse = tryParseJSON(jsonRaw);
 	console.log(jsonParse);
 	if (!jsonParse) return false; // report failure
+	// check validity of project file
+	if (
+		typeof jsonParse.project !== 'object' || typeof jsonParse.project.lexpadVersion !== 'string'
+		|| typeof jsonParse.language !== 'object'
+		|| !Array.isArray(jsonParse.lexicon)
+	) {
+		console.error(`JSON did not contain valid LexPad project. Unable to load.`);
+		return false;
+	}
+	console.log(`Project file parsed. Last saved with LexPad ${jsonParse.project.lexpadVersion}.`);
 	
-	//// TODO: clean unsafe arbitrary text fields
+	// replace prev project with newly-opened project
+	fileContents = jsonParse;
+	rebindAccess();
 
-	// TODO: prob want to leave jsonParse intact and simply bind refs to project/language/lexicon; will make saveProject() a single call of JSON.stringify()
-
-	// link parsed data
-	project = jsonParse.project ?? structuredClone(DEFAULT_PROJECT);
-	L2 = jsonParse.language ?? structuredClone(DEFAULT_L2);
-	data = jsonParse.lexicon ?? [];
-
-	// block saved active-entry for dbg
-	// project.activeEntry = -1;
-	// console.log(project.activeEntry);
+	// TODO: patch missing pieces of project file; update version if necessary
+	// TODO: clean unsafe arbitrary text fields
+	// TODO: load active entry, if any
 
 	// index data
-	// TODO: check if anything more than this is req'd to GC previously-open project
-	orderedL1 = [];
+	orderedL1 = []; // TODO: check if anything more than this is req'd to GC previously-open project
 	orderedL2 = [];
 	for (let i = 0; i < data.length; i++) {
 		// console.log(data[i]);
@@ -241,72 +256,40 @@ const calculateStatistics = () => {
 };
 
 
-// formNum is index of form within entry's array of forms
-// formId is linguist label corresponding to case/conjugation/etc
-class LexiconEntryPolymorphic {
-	constructor () {
-		this.catg = undefined;
-		this.L1 = [];
-		this.L2 = [];
-		this.sentences = [];
-		this.sentenceAnnotation = [];
-		this.notes = [];
-	}
-	// data interaction
-	addFormL1 (word, form = -1) { this.L1.push(word.split(SYNONYM_SPLITTER)); }
-	addFormL2 (word, form = -1) { this.L2.push({ synonyms: word.split(SYNONYM_SPLITTER), formId: form }); }
-	addSentence (sentL1, sentL2, form = -1) { this.sentences.push({ L1:sentL1, L2:sentL2, formId:form }); }
-	addNote (note, form = -1) { this.notes.push({ note:note, formId:form }); }
-	// lookup
-	hasFormL1 (word) {}
-	hasFormL2 (word) {}
-	// TODO: account for 
-	// hasFormL1 (word) { word=word.toLowerCase(); return this.L1.flat().some(x => (x.synonyms ?? x) o.word.toLowerCase()===word); }
-	// hasFormL2 (word) { word=word.toLowerCase(); return this.L2.flat().some(o => o.word.toLowerCase()===word); }
-	getFormL1 (formNum = 0) {}
-	getFormL2 (formNum = 0) {}
-	getSentence (sentNum = 0) {}
-	getSynonymIdL1 (word) {}
-	getSynonymIdL2 (word) {}
-	// annotation
-	annotateSentences () {}
-	// loops
-	forEachFormL1 (callback = (synonyms,formId,formNum)=>{}) {
-		for (let formNum = 0; formNum < this.L1.length; formNum++) {
-			callback(this.L1[formNum].synonyms,this.L1[formNum].formId,formNum);
-		}
-	}
-	// export
-	toJSON () {
-		return {};
-	}
-}
 
+// // exporting an object allows direct modification of it
+// let myObj = {
+// 	a : {
+// 		x : 7,
+// 		y : 8
+// 	},
+// 	b : {
+// 		z : 'hello'
+// 	}
+// };
+// const checkObj = () => console.log(`OBJ a.x ${myObj.a.x}, a.y ${myObj.a.y}, b.z ${myObj.b.z}`);
+// const replaceObj = () => myObj.a = {x:111};
 
-
-// exporting an object allows direct modification of it
-let myObj = {
-	x : 7
-};
-const checkObj = () => console.log(myObj.x);
-const replaceObj = () => myObj = {x:111};
+// let underlyingData = {
+// 	a : { x:7 },
+// 	b : { y:99 }
+// };
+// let accessA = underlyingData.a;
+// let accessB = underlyingData.b;
+// const checkUnderlying = () => console.log(`OBJ a.x ${underlyingData.a.x}, b.y ${underlyingData.b.y}`);
+// const replaceA = () => underlyingData.a = { x:1000 };
+// const rebindAccess = () => {
+// 	accessA = underlyingData.a;
+// 	accessB = underlyingData.b;
+// };
 
 
 
 //// API ////
 
-//// ERR: when L2 is reset by a load, this remains bound to the old object
-// const lexicon = {
-// 	fromJSON : fromJSON,
-// 	catgs : catgs,
-// 	L1 : L1,
-// 	L2 : L2,
-// 	orderedL1 : orderedL1,
-// 	orderedL2 : orderedL2
-// };
-// console.log(lexicon.L2);
-
-// export { file, project, lexicon };
-
 // directly exporting object allows both modification and replacement w/o breaking link
-export { myObj, checkObj, replaceObj, file, project, fromJSON, calculateStatistics, L1, L2, data, orderedL1, orderedL2, media };
+export {
+	// underlyingData, accessA, accessB, checkUnderlying, replaceA, rebindAccess,
+	// myObj, checkObj, replaceObj,
+	file, project, fromJSON, calculateStatistics, L1, L2, data, orderedL1, orderedL2, media
+};

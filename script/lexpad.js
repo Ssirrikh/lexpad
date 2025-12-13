@@ -1541,6 +1541,17 @@ init();
 
 // tryOpenProject();
 
+// lexicon.checkUnderlying(); // 7,99
+// lexicon.accessA.x = 88; // mods original obj
+// lexicon.checkUnderlying(); // 88,99
+// lexicon.replaceA(); // creates new obj
+// lexicon.checkUnderlying(); // 1000,99
+// lexicon.accessA.x = 88; // no longer works; accessA points to original obj
+// lexicon.checkUnderlying(); // 1000,99
+// lexicon.rebindAccess(); // need to check whether this GCs old object
+// lexicon.accessA.x = 88; // works again
+// lexicon.checkUnderlying(); // 88,99
+
 
 
 
