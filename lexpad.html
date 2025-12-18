@@ -44,6 +44,11 @@
 			</div>
 		</div>
 	</div>
+	<div id='modal-wrapper' class='flex-col flex-centered no-scrollbar hidden' inert>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p>Initializing LexPad...</p>
+		</div>
+	</div>
 
 
 	
@@ -132,14 +137,16 @@
 				<div id='lexicon' class='flex-col'>
 					<div id='lexicon-header' class='flex-col'>
 						<div id='lexicon-search-patterns' class='flex-row flex-centered'>
-							<button id='lexicon-search-pattern-begins' class='lexicon-search-pattern active-search-pattern'>Begins</button>
-							<button id='lexicon-search-pattern-contains' class='lexicon-search-pattern'>Contains</button>
-							<button id='lexicon-search-pattern-ends' class='lexicon-search-pattern'>Ends</button>
+							<button id='lexicon-search-pattern-begins' class='lexicon-search-pattern active-search-pattern' title='Find words that begin with ___.'>Begins</button>
+							<button id='lexicon-search-pattern-contains' class='lexicon-search-pattern' title='Find words that contain ___ anywhere.'>Contains</button>
+							<button id='lexicon-search-pattern-ends' class='lexicon-search-pattern' title='Find words that end with ___.'>Ends</button>
 						</div>
 						<div id='lexicon-search-bar' class='flex-col'>
-							<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search...'>
-							<div id='lexicon-search-actions' class='flex-row'>
-								<button id='lexicon-search-clear' class='icon icon-x lexicon-search-action'></button>
+							<input id='lexicon-search' type='text' spellcheck='false' placeholder='Search L1...'>
+							<div id='lexicon-searchbar-actions' class='flex-row'>
+								<button id='lexicon-search-L1' class='active' title='Search within L1 (English)'>L1</button>
+								<button id='lexicon-search-L2' class='' title="Search within L2 (your project's language)">L2</button>
+								<button id='lexicon-search-clear' class='icon icon-x lexicon-searchbar-action' title='Clear search'></button>
 							</div>
 						</div>
 					</div>
@@ -152,11 +159,12 @@
 					<div id='lexicon-content' class='flex-col no-scrollbar'>
 						<div id='lexicon-no-entries'>No entries...</div>
 					</div>
+					<div id='lexicon-footer' class='flex-row'>
+						<p id='lexicon-num-entries' class='subtitle'>0 Entries</p>
+						<button id='lexicon-create-entry' class='button-highlight'>New Entry</button>
+					</div>
 				</div>
 				<div id='entry-editor' class='flex-col'>
-					<!-- <div class='flex-col flex-centered window-status'>
-						<p>Load an entry to get started.</p>
-					</div> -->
 					<p>No Content</p>
 				</div>
 			</div>
@@ -192,8 +200,8 @@
 						<div id='search-display-settings' class='flex-row'>
 							<!-- <p>Results:</p> -->
 							<!-- <div></div> -->
-							<button id='search-display-full' class='hover-white' title="Display the entirety of each matching entry, even sections that didn't contribute to the match.">Full</button>
-							<button id='search-display-adaptive' class='hover-white active' title='When an entry matches a search, only sections that contributed to the match will be shown.'>Adaptive</button>
+							<button id='search-display-full' class='button-option hover-white' title="Display the entirety of each matching entry, even sections that didn't contribute to the match.">Full</button>
+							<button id='search-display-adaptive' class='button-option hover-white active' title='When an entry matches a search, only sections that contributed to the match will be shown.'>Adaptive</button>
 						</div>
 					</div>
 					<div id='search-settings' class='flex-col'>
@@ -204,8 +212,8 @@
 								<p title='Search within specific data field(s). Will search in all fields by default.'>Search In:</p>
 							</div>
 							<div class='flex-row'>
-								<button id='search-and-in' class='hover-white' title='Match entries that contain query in datafield x AND in datafield y.'>AND</button>
-								<button id='search-or-in' class='hover-white active' title='Match entries that contain query in datafield x OR in datafield y OR in both.'>OR</button>
+								<button id='search-and-in' class='button-option hover-white' title='Match entries that contain query in datafield x AND in datafield y.'>AND</button>
+								<button id='search-or-in' class='button-option hover-white active' title='Match entries that contain query in datafield x OR in datafield y OR in both.'>OR</button>
 							</div>
 						</div>
 						<div class='flex-col search-tag-section'>
@@ -237,8 +245,8 @@
 								<p title='Search entries of specific catg(s). Will search entries of any catg by default.'>Catg / Part of Speech:</p>
 							</div>
 							<div class='flex-row'>
-								<button id='search-and-catg' class='hover-white' title='Match entries of catg x AND catg y. Most useful for exclusion (NOT x AND NOT y).'>AND</button>
-								<button id='search-or-catg' class='hover-white active' title='Match entries of catg x OR catg y. Most useful for inclusion (x OR y).'>OR</button>
+								<button id='search-and-catg' class='button-option hover-white' title='Match entries of catg x AND catg y. Most useful for exclusion (NOT x AND NOT y).'>AND</button>
+								<button id='search-or-catg' class='button-option hover-white active' title='Match entries of catg x OR catg y. Most useful for inclusion (x OR y).'>OR</button>
 							</div>
 						</div>
 						<div id='search-section-catgs' class='flex-col search-tag-section'>
@@ -254,8 +262,8 @@
 								<p title='Search entries containing at least 1 instance of specific data/media. Will search with no regard for contents by default.'>Has Content:</p>
 							</div>
 							<div class='flex-row'>
-								<button id='search-and-has' class='hover-white' title='Match entries that contain data/media x AND data/media y.'>AND</button>
-								<button id='search-or-has' class='hover-white active' title='Match entries that contain data/media x OR data/media y OR both.'>OR</button>
+								<button id='search-and-has' class='button-option hover-white' title='Match entries that contain data/media x AND data/media y.'>AND</button>
+								<button id='search-or-has' class='button-option hover-white active' title='Match entries that contain data/media x OR data/media y OR both.'>OR</button>
 							</div>
 						</div>
 						<div class='flex-col search-tag-section'>
@@ -360,7 +368,7 @@
 				<div class='flex-row flex-fill'>
 					<p id='entry-catg'>---</p>
 				</div>
-				<button id='entry-image'>No Image</button>
+				<button id='entry-image' title='Click to manage images.'>No Image</button>
 			</div>
 			<div id='entry-content' class='flex-col'>
 				<!-- wordforms -->
@@ -475,17 +483,154 @@
 		</div>
 	</template>
 
-	<!-- modals -->
-	<template id='tpl-modal'>
-		<div id='modal-wrapper' class='flex-col flex-centered'>
-			<div id='modal' class='flex-col'>
-				<div id='modal-content' class='flex-col'>
-					<p>Modal popup displayed.</p>
+	<!-- MODALS -->
+
+	<!-- generic modals -->
+	<template id='tpl-modal-alert'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Alert</p>
+			<div id='modal-content' class='flex-col'>
+				<p>No alert message specified.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button class='button-highlight'>Ok</button>
+			</div>
+		</div>
+	</template>
+
+	<!-- project management modals -->
+	<template id='tpl-modal-unsaved-changes'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Unsaved Changes</p>
+			<div id='modal-content' class='flex-col'>
+				<p>You have unsaved changes. Do you want to save before continuing?</p>
+				<p class='subtitle'>If you click "Don't Save", a copy of the unsaved project will be available in the LexPad folder temporarily.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-save' class='button-highlight'>Save</button>
+				<button id='modal-action-discard' class='button-caution'>Don't Save</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-create-project'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Create New Project</p>
+			<div id='modal-content' class='flex-col'>
+				<div class='flex-col modal-section'>
+					<p>Select project directory:</p>
+					<div class='flex-row'>
+						<input id='modal-create-project-directory' type='text' spellcheck='false'>
+						<button id='modal-create-project-select-directory' class='button-highlight'>Browse</button>
+					</div>
+					<p class='subtitle'>The database and all its media files will be stored here.</p>
 				</div>
-				<div id='modal-actions' class='flex-row'>
-					<button class='button-highlight'>Ok</button>
+				<div class='stats-separator'></div>
+				<div class='flex-col modal-section'>
+					<p>Preparing to create:</p>
+					<div class='flex-row'>
+						<div class='icon hover-grey'></div>
+						<p id='modal-create-project-assets'>...path\assets</p>
+					</div>
+					<div class='flex-row'>
+						<div class='icon hover-grey'></div>
+						<p id='modal-create-project-database'>...path\database.json</p>
+						<div class='flex-sep'></div>
+						<button class='button-subtitle'>Rename</button>
+					</div>
 				</div>
 			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-create' class='button-highlight'>Create</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+
+	<!-- lexicon tab modals -->
+	<template id='tpl-modal-create-entry'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Create New Lexicon Entry</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Select entry catg:</p>
+				<select id='modal-create-entry-catg'>
+					<option value='-1'>ERROR: Couldn't load modal properly</option>
+				</select>
+				<p class='subtitle'>If its catg isn't in the list yet, select "Create New Catg" instead.</p>
+				<div id='modal-create-entry-new-catg-section' class='flex-col hidden' inert>
+					<div class='stats-separator'></div>
+					<p>Catg Full Name: <span class='subtitle'>(ex. "Adjective")</span></p>
+					<input id='modal-create-entry-new-catg-name' type='text' spellcheck='false'>
+					<p>Catg Abbreviation: <span class='subtitle'>(ex. "adj")</span></p>
+					<input id='modal-create-entry-new-catg-abbr' type='text' spellcheck='false'>
+				</div>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-create' class='button-highlight'>Create Entry</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-delete-entry'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Delete Entry</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Are you sure you want to delete this entry? This action is <span class='warning'>PERMANENT</span> and cannot be undone.</p>
+				<p class='subtitle'>Note: Only lexicon data will be deleted. Images/audio attached to the entry will remain in the assets directory.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-delete' class='button-caution'>Delete Entry</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-manage-images'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Manage Images</p>
+			<div id='modal-content' class='flex-col'>
+				<div id='modal-image-manager' class='flex-row'>
+					<!-- <div class='modal-image-tile'>
+						<button class='modal-delete-image'></button>
+					</div> -->
+					<button id='modal-add-image' class='icon icon-plus' title='Attach new image(s)'></button>
+				</div>
+				<p class='subtitle warning'>At least one image is outside your project directory. It may become inaccessible if your project is moved or accessed on another machine. It is recommended that all images be stored in ...\[project]\assets.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-done' class='button-highlight'>Done</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-manage-audio'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Manage Audio</p>
+			<div id='modal-content' class='flex-col'>
+				<div id='modal-audio-manager' class='flex-col'>
+					<!-- <div class='flex-row modal-audio-tile'>
+						<button class='icon icon-audio hover-white' title='assets/randomAudio.mp3'></button>
+						<p class='flex-fill'>assets/randomAudio.mp3</p>
+						<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
+					</div>
+					<div class='flex-row modal-audio-tile'>
+						<button class='icon icon-audio hover-white' title='assets/randomAudio.mp3'></button>
+						<p class='flex-fill'>assets/randomAudio.mp3</p>
+						<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
+					</div> -->
+					<!-- <button id='modal-add-audio' class='icon icon-plus' title='Attach new audio'></button> -->
+					 <button id='modal-add-audio' class='button-highlight' title='Attach new audio'>Add Audio</button>
+				</div>
+				<p class='subtitle warning'>At least one audio file is outside your project directory. It may become inaccessible if your project is moved or accessed on another machine. It is recommended that all audio be stored in ...\[project]\assets.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-done' class='button-highlight'>Done</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-audio-tile'>
+		<div class='flex-row modal-audio-tile'>
+			<button class='icon icon-audio hover-white'></button>
+			<p class='flex-fill'></p>
+			<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
 		</div>
 	</template>
 

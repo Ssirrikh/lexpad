@@ -14,6 +14,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 	// Project State, File I/O
 
+	//
+	rendererSelectDirectory : () => ipcRenderer.invoke('renderer-select-directory'),
+	rendererSelectImages : () => ipcRenderer.invoke('renderer-select-images'),
+	rendererSelectAudio : () => ipcRenderer.invoke('renderer-select-audio'),
+
 	// mark modified
 	onMainMarkModified : (callback) => ipcRenderer.on('main-mark-modified', (evt) => callback()),
 	rendererMarkModified : () => ipcRenderer.send('renderer-mark-modified'),
@@ -21,8 +26,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	onMainSaveProject : (callback) => ipcRenderer.on('main-save-project', (evt) => callback()),
 	rendererSaveProject : (contents) => ipcRenderer.invoke('renderer-save-project', contents),
 	// new project
-	onTriggerCreateProject : (callback) => ipcRenderer.on('trigger-create-project', (evt) => callback()),
-	rendererCreateProject : (parameters) => ipcRenderer.invoke('renderer-create-project', parameters),
+	onMainCreateProject : (callback) => ipcRenderer.on('main-create-project', (evt) => callback()),
+	// onTriggerCreateProject : (callback) => ipcRenderer.on('trigger-create-project', (evt) => callback()),
+	rendererCreateProject : (filepath,filename) => ipcRenderer.invoke('renderer-create-project', filepath, filename),
 	// open project
 	onMainOpenProject : (callback) => ipcRenderer.on('main-open-project', (evt) => callback()),
 	rendererOpenProject : () => ipcRenderer.invoke('renderer-open-project'),

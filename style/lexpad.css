@@ -292,7 +292,7 @@ select:focus-visible {
 #modal-wrapper {
     background-color: #00000066;
     z-index: var(--layer-overlay);
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
@@ -300,18 +300,78 @@ select:focus-visible {
     font-size: 0.8em;
 }
 #modal {
-    background-color: white;
+    background-color: var(--bg-light);
+    /* border: thin solid var(--primary-dark); */
+    /* border: thin solid var(--primary-highlight); */
+    /* border: thin solid var(--text-subtitle); */
+    filter: drop-shadow(0 0 10px #00000044);
+    filter: drop-shadow(0 0 10px #00000022);
     border-radius: 0.5em;
     padding: 1em;
-    gap: 1em;
+    width: min(24em, 50%);
     min-width: 20em;
+    gap: 0.5em;
+}
+#modal:focus-visible {
+    outline: medium solid var(--primary-highlight);
 }
 #modal-content {
+    /* padding: 0.5em; */
     gap: 0.25em;
+}
+.modal-title {
+    border-bottom: thin solid var(--border-dark);
+    padding-bottom: 0.25em;
+    font-size: 1.25em;
 }
 #modal-actions {
     justify-content: end;
-    gap: 1em;
+    gap: 0.5em;
+}
+
+.modal-section > .flex-row {
+    gap: 0.25em;
+}
+.modal-section > .flex-row > .button-highlight {
+    /* font-size: 0.8em; */
+}
+
+#modal-create-project-directory {
+    flex-grow: 1;
+}
+#modal-create-project-select-directory {
+    flex-shrink: 0;
+}
+
+/* lexicon tab modals */
+#modal-image-manager {
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+#modal-add-image, .modal-image-tile {
+    border-radius: 0.5em;
+    position: relative;
+    width: 4em;
+    height: 4em;
+}
+.modal-image-tile {
+    background: var(--bg-offwhite) var(--thumbnail-position);
+}
+.modal-delete-image {
+    background-color: red;
+    border-radius: 1em;
+    transform: translate(25%,-25%);
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1em;
+    height: 1em;
+}
+.modal-audio-tile {
+    gap: 0.25em;
+}
+#modal-add-audio {
+    width: fit-content;
 }
 
 
@@ -365,6 +425,39 @@ select:focus-visible {
 .button-caution:focus-visible {
     outline: medium solid var(--warning-dark);
 }
+.button-subtitle {
+    color: var(--text-subtitle);
+    border-radius: 0.3em;
+    padding: 0.25em 1em;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+.button-subtitle:hover {
+    background-color: var(--bg-offwhite);
+    text-decoration: underline;
+}
+.button-subtitle:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
+.button-option {
+    color: var(--text-subtitle);
+    border: thin solid transparent;
+    border-radius: 0.25em;
+    padding: 0.2em 0.25em;
+    font-size: 1em;
+    white-space: nowrap;
+}
+.button-option.active {
+    color: inherit;
+    background-color: white;
+    border: thin solid var(--primary-dark);
+}
+/* .button-option:hover {
+    background-color: white;
+} */
+.button-option:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
 
 .subtitle {
     color: grey;
@@ -372,6 +465,9 @@ select:focus-visible {
 }
 .text-highlight {
     background-color: var(--primary-grey-light);
+}
+.warning {
+    color: var(--warning-highlight);
 }
 
 .r-list-item {
@@ -574,36 +670,33 @@ select:focus-visible {
 
 #lexicon-search-bar {
     position: relative;
+    /* gap: 0.25em; */
 }
-#lexicon-search-actions {
+#lexicon-search {
+    flex-grow: 1;
+}
+#lexicon-searchbar-actions {
     /* border: thin solid magenta; */
     transform: translate(0,-50%);
     position: absolute;
     top: 50%;
     right: 0;
 }
-.lexicon-search-action {
+#lexicon-search-L1, #lexicon-search-L2 {
     color: var(--text-subtitle);
-    /* background-color: var(--primary); */
-    border-radius: 0.25em;
-    /* size = search lineheight 1.2em + padding 0.2em */
-    width: calc(1.2em + 0.2em + 0.2em);
-    height: calc(1.2em + 0.2em + 0.2em);
-    font-size: 1em;
+    width: 2em;
 }
-#lexicon-search-clear {
-    /* background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="darkgrey" stroke-width="2" stroke-linecap="round"><path d="M18 6l-12 12 M6 6l12 12" /></svg>'); */
-    /* svg fill property allows named colors, hex colors, and CSS vars */
-    /* svg stroke property only allows named colors, nothing else */
-    /* no idea why */
+#lexicon-search-L1.active, #lexicon-search-L2.active {
+    color: white;
+    background-color: var(--primary-highlight) !important;
 }
-.lexicon-search-action:hover {
-    color: black;
+#lexicon-search-L1:hover, #lexicon-search-L2:hover {
+    background-color: var(--bg-light);
 }
-.lexicon-search-action:focus-visible {
-    color: black;
-    outline: thin solid var(--primary-dark);
+#lexicon-search-L1:focus-visible, #lexicon-search-L2:focus-visible {
+    outline: medium solid var(--primary-dark);
 }
+
 #lexicon-search-patterns {
     gap: 0.5em;
 }
@@ -624,6 +717,16 @@ select:focus-visible {
     color: black;
     border-bottom: medium solid var(--primary-highlight);
     text-decoration: none !important;
+}
+
+#lexicon-search-actions {
+    /* padding: 0 0.5em; */
+    font-size: 0.8em;
+    justify-content: center;
+    gap: 0.25em;
+}
+#lexicon-search-actions > p {
+    color: var(--text-subtitle);
 }
 
 #lexicon-legend {
@@ -679,6 +782,14 @@ select:focus-visible {
 .lexicon-entry-word {
     text-align: left;
     flex-grow: 1;
+}
+
+#lexicon-footer {
+    border-top: thin solid var(--border-dark);
+    padding: 0.5em;
+    font-size: 1.2em;
+    flex-shrink: 0;
+    justify-content: space-between;
 }
 
 /* right panel: entry editor */
@@ -995,18 +1106,17 @@ select:focus-visible {
 #search-display-settings > p {
     color: var(--text-subtitle);
 }
-#search-display-settings > button {
+/* #search-display-settings > button {
     color: var(--text-subtitle);
     border: thin solid transparent;
     border-radius: 0.25em;
     padding: 0.2em 0.25em;
-    /* font-size: 0.8em; */
 }
 #search-display-settings > button.active {
     color: inherit;
     background-color: white;
     border: thin solid var(--border-dark);
-}
+} */
 
 #search-tooltip {
     color: var(--text-subtitle);
@@ -1037,7 +1147,10 @@ select:focus-visible {
 .search-tag-header > .flex-row {
     gap: 0.2em;
 }
-.search-tag-header button {
+.search-tag-header .button-option {
+    font-size: 0.8em;
+}
+/* .search-tag-header button {
     color: var(--text-subtitle);
     border: thin solid transparent;
     border-radius: 0.25em;
@@ -1048,7 +1161,7 @@ select:focus-visible {
     color: inherit;
     background-color: white;
     border: thin solid var(--primary-dark);
-}
+} */
 /* .search-tag-header button:hover {
     background-color: white;
 } */

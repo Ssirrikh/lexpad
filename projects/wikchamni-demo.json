@@ -84,9 +84,9 @@
 				{ "form" : -1, "L2" : "čʰawpʰaw", "audio" : ["assets\\often.wav"] }
 			],
 			"sents" : [
-				{ "form" : -1, "L1" : "dancing continuously", "L2" : "čʰawpʰaw kʰa&middot;mʼakʰimʼ", "audio" : ["assets\\dancing continuously.wav"] },
-				{ "form" : -1, "L1" : "Do you finish often?", "L2" : "čʰawpʰaw maʔ pe&middot;yapiy", "audio" : ["assets\\Do you finish often.wav"] },
-				{ "form" : -1, "L1" : "Yes, they nurse their babies sometimes one year, two years, or sometimes continuously for five years they feed them even if the are already eating they still nurse them.", "L2" : "ho&middot;wiʔ mine&middot;ṭʼit witʰiphat nahni yetʼ pʼaʔanʼa poŋoy pʼaʔanʼa yow nahni čʰawpʰaw yitʼšiŋta ʔanikʼ tʰaŋ tuytaŋiṭʰ ʔanikʼ tʰaw witʔin hiyam to&middot;yatiy ʔamaʔ hetʰtʰa yow mine&middot;ṭʼit", "audio" : ["assets\\Yes they nurse --- still nurse them.wav"] }
+				{ "form" : -1, "L1" : "dancing continuously", "L2" : "čʰawpʰaw kʰa·mʼakʰimʼ", "audio" : ["assets\\dancing continuously.wav"] },
+				{ "form" : -1, "L1" : "Do you finish often?", "L2" : "čʰawpʰaw maʔ pe·yapiy", "audio" : ["assets\\Do you finish often.wav"] },
+				{ "form" : -1, "L1" : "Yes, they nurse their babies sometimes one year, two years, or sometimes continuously for five years they feed them even if the are already eating they still nurse them.", "L2" : "ho·wiʔ mine·ṭʼit witʰiphat nahni yetʼ pʼaʔanʼa poŋoy pʼaʔanʼa yow nahni čʰawpʰaw yitʼšiŋta ʔanikʼ tʰaŋ tuytaŋiṭʰ ʔanikʼ tʰaw witʔin hiyam to·yatiy ʔamaʔ hetʰtʰa yow mine·ṭʼit", "audio" : ["assets\\Yes they nurse --- still nurse them.wav"] }
 			],
 			"notes" : [],
 			"images" : [],
@@ -102,8 +102,8 @@
 			],
 			"sents" : [
 				{ "form" : -1, "L1" : "Or if theirs is half a month.", "L2" : "yow ʔanikʼ hičʰa čuʔupanʼa ʔupʰiš", "audio" : ["assets\\Or if theirs is half a month.wav"] },
-				{ "form" : -1, "L1" : "or sometimes a half row or sometimes I don't work on it long", "L2" : "yow nahni čuʔupanʼa nahni ʔam waʔa tʰaŋ  čʼo&middot;wʼotʰo", "audio" : ["assets\\or sometimes a --- on it long.wav"] },
-				{ "form" : -1, "L1" : "Coyote returned and said they are not doing well, why are they are eating your dirt, half of the dirt is gone.", "L2" : "kʰayʼiw xuyiwši ʔamaʔ xa&middot;xiy ʔam tʰihinʼ ʔinišiyin xo&middot;ʔoxiʔ to&middot;yatiy tʰihinʼ tiŋta min hin čuʔupanʼa tiŋit kʼaṭʰutʰa", "audio" : ["assets\\Coyote returned --- the dirt is gone.wav"] }
+				{ "form" : -1, "L1" : "or sometimes a half row or sometimes I don't work on it long", "L2" : "yow nahni čuʔupanʼa nahni ʔam waʔa tʰaŋ  čʼo·wʼotʰo", "audio" : ["assets\\or sometimes a --- on it long.wav"] },
+				{ "form" : -1, "L1" : "Coyote returned and said they are not doing well, why are they are eating your dirt, half of the dirt is gone.", "L2" : "kʰayʼiw xuyiwši ʔamaʔ xa·xiy ʔam tʰihinʼ ʔinišiyin xo·ʔoxiʔ to·yatiy tʰihinʼ tiŋta min hin čuʔupanʼa tiŋit kʼaṭʰutʰa", "audio" : ["assets\\Coyote returned --- the dirt is gone.wav"] }
 			],
 			"notes" : [],
 			"images" : [],

@@ -131,6 +131,7 @@ let activeMenu = ''; // id of DOM element
 // lexicon search
 let search = {
 	activePattern : SEARCH_PATTERN_BEGINS,
+	searchL2 : false,
 	ePatterns : [
 		// lexicon search pattern "begins"
 		// lexicon search pattern "contains"
@@ -411,7 +412,9 @@ let searchSettings = {
 			} else {
 				e.querySelector('.search-result-L1').textContent = lexicon.data[i].L1 || '---';
 			}
-			if (hasImage) e.querySelector('.search-result-header .icon:nth-child(1)').classList.add('icon-audio');
+			// if (hasImage) e.querySelector('.search-result-header .icon:nth-child(1)').classList.add('icon-audio');
+			
+			if (hasImage) e.querySelector('.search-result-header .icon:nth-child(1)').textContent = 'i';
 			if (hasAudio) e.querySelector('.search-result-header .icon:nth-child(2)').classList.add('icon-audio');
 			// wordforms
 			const eWordformContainer = e.querySelector('.search-result-section-L2');
@@ -491,67 +494,7 @@ let searchSettings = {
 			// (inAny) || (search.in[L1] && entry.L1.contains(searchFrag)) || ...
 			// AND entry.catg != 'misc' && search.catg[entry.catg] == true
 			// AND (search.has[audio] && entry.containsAudio()) && ...
-	},
-	// submitSearch : (frag) => {
-	// 	const t0_advancedSearch = performance.now();
-
-	// 	const reFrag = new RegExp( RegExp.escape(frag) );
-	// 	console.log(reFrag);
-	// 	// all tags of same type false => none specified => search in all
-	// 	// const inAny = !searchSettings.include.in.L1 && !searchSettings.include.in.L2 && !searchSettings.include.in.sentL1 && !searchSettings.include.in.sentL2 && !searchSettings.include.in.note;
-	// 	const inAny = Object.values(searchSettings.include.in).every(x => !x);
-	// 	const catgAny = Object.values(searchSettings.include.catg).every(x => !x);
-	// 	const hasAny = Object.values(searchSettings.include.has).every(x => !x);
-	// 	// use ||= short circuiting for efficient checking
-	// 	for (let entry of lexicon.data) {
-	// 		// IN [L1,L2,sentL1,sentL2,note]
-	// 		let matchIn = false;
-	// 		// matchIn ||= (inAny || searchSettings.include.in.L1) && reFrag.test(entry.L1); // exposes "x; y" if desired; future gubbins toggle
-	// 		matchIn ||= (inAny || searchSettings.include.in.L1) && entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w));
-	// 		matchIn ||= (inAny || searchSettings.include.in.L2) && entry.L2.some(form => reFrag.test(form.L2)); // need to integrate "x; y" gubbins toggle here too
-	// 		matchIn ||= (inAny || searchSettings.include.in.sentL1) && entry.sents.some(sent => reFrag.test(sent.L1));
-	// 		matchIn ||= (inAny || searchSettings.include.in.sentL2) && entry.sents.some(sent => reFrag.test(sent.L2));
-	// 		matchIn ||= (inAny || searchSettings.include.in.note) && entry.notes.some(note => reFrag.test(note.note));
-	// 		// console.log(`"${reFrag}" in L1 "${entry.L1}" : ${reFrag.test(entry.L1)},${entry.L1.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
-	// 		// for (let form of entry.L2) console.log(`"${reFrag}" in L2 "${form.L2}" : ${reFrag.test(form.L2)},${form.L2.split(RE_SYNONYM_SPLITTER).some(w => reFrag.test(w))}`);
-	// 		// for (let sent of entry.sents) console.log(`"${reFrag}" in sentence L1,L2: ${reFrag.test(sent.L1)},${reFrag.test(sent.L2)}`);
-	// 		// for (let note of entry.notes) console.log(`"${reFrag}" in note: ${reFrag.test(note.note)}`);
-
-	// 		// CATG [...,misc]
-	// 		let matchCatg = false;
-	// 		matchCatg ||= (catgAny || searchSettings.include.catg[entry.catg]);
-	// 		// console.log(`all? ${catgAny}, match? ${catgAny || searchSettings.include.catg[entry.catg]}`);
-
-	// 		// HAS [L1,L2,sentence,note,audio,image]
-	// 		let notHas = false; // can't use ||= short circuit w/ true->false accumulator, so use false->true accumulator and invert later
-	// 		notHas ||= searchSettings.include.has.L1 && !entry.L1;
-	// 		notHas ||= searchSettings.include.has.L2 && !(entry.L2?.length > 0);
-	// 		notHas ||= searchSettings.include.has.sentence && !(entry.sents?.length > 0);
-	// 		notHas ||= searchSettings.include.has.note && !(entry.notes?.length > 0);
-	// 		notHas ||= searchSettings.include.has.audio && !(
-	// 			entry.L2?.some(form => form.audio?.length > 0) || entry.sents?.some(sentence => sentence.audio?.length > 0) // (should have audio) AND NOT(either has audio)
-	// 		);
-	// 		notHas ||= searchSettings.include.has.image && !(entry.images?.length > 0);
-	// 		let matchHas = !notHas;
-	// 		// console.log(`has:L1 ${!!entry.L1}`);
-	// 		// console.log(`has:L2 ${entry.L2?.length>0}`);
-	// 		// console.log(`has:sentence ${entry.sents?.length>0}`);
-	// 		// console.log(`has:note ${entry.notes?.length>0}`);
-	// 		// console.log(`has:audio(form) ${entry.L2?.some(form => form.audio?.length>0)}`);
-	// 		// console.log(`has:audio(sentence) ${entry.sents?.some(sentence => sentence.audio?.length>0)}`);
-	// 		// console.log(`has:image ${entry.images?.length>0}`);
-	// 		// console.log(`match has? ${matchHas}`);
-
-	// 		console.log((matchIn && matchCatg && matchHas) ? 'MATCH' : 'NO MATCH');
-	// 	}
-
-	// 	console.log(`Advanced search done in ${Math.round(performance.now()-t0_advancedSearch)} ms.`);
-	// 	// if all of search.in are false, set inAny = true (not searching specific fields)
-	// 	// for entry in lexicon, include if:
-	// 		// (inAny) || (search.in[L1] && entry.L1.contains(searchFrag)) || ...
-	// 		// AND entry.catg != 'misc' && search.catg[entry.catg] == true
-	// 		// AND (search.has[audio] && entry.containsAudio()) && ...
-	// }
+	}
 };
 
 
@@ -610,9 +553,10 @@ const init = () => {
 	const t0_init = performance.now();
 	// construct welcome page
 	nWelcomePage = document.getElementById('tpl-welcome-page').content.firstElementChild.cloneNode(true);
-	nWelcomePage.querySelector('#btn-open-project').onclick = async () => await tryOpenProject(); // needs to be lambda, so function can be hoisted properly
-	// nWelcomePage.querySelector('#btn-create-project').onclick = async () => markModified();
+	nWelcomePage.querySelector('#btn-open-project').onclick = () => tryBeginOpenProject(); // needs to be lambda, so function can be hoisted properly
+	nWelcomePage.querySelector('#btn-create-project').onclick = () => tryBeginCreateProject();
 	// allow page to render, then build content skeletons off-DOM
+		// closeModal();
 	renderWelcomePage();
 	requestAnimationFrame(() => {
 		const t0_init_deferred = performance.now();
@@ -637,7 +581,10 @@ const init = () => {
 		search.ePatterns[SEARCH_PATTERN_CONTAINS].onclick = () => setLexiconSearchPattern(SEARCH_PATTERN_CONTAINS);
 		search.ePatterns[SEARCH_PATTERN_ENDS] = tabContent[TAB_LEXICON].querySelector('#lexicon-search-pattern-ends');
 		search.ePatterns[SEARCH_PATTERN_ENDS].onclick = () => setLexiconSearchPattern(SEARCH_PATTERN_ENDS);
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search-L1').onclick = () => setLexiconSearchIndex(false);
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search-L2').onclick = () => setLexiconSearchIndex(true);
 		tabContent[TAB_LEXICON].querySelector('#lexicon-search-clear').onclick = () => clearLexiconSearch();
+		tabContent[TAB_LEXICON].querySelector('#lexicon-create-entry').onclick = () => openModalCreateEntry();
 		tabContent[TAB_LEXICON].querySelector('#entry-editor').innerHTML = '';
 		tabContent[TAB_LEXICON].querySelector('#entry-editor').appendChild( document.getElementById('tpl-bg-status').content.firstElementChild.cloneNode(true) );
 		tabContent[TAB_LEXICON].querySelector('#entry-editor .window-status p').textContent = 'Load an entry to get started';
@@ -886,6 +833,23 @@ const setLexiconSearchPattern = (pattern) => {
 	filterLexicon();
 	return true;
 };
+const setLexiconSearchIndex = (searchL2) => {
+	if (!!searchL2 === !!search.searchL2) return; // truthiness check: don't rebuild stuff if new val same as old val
+	search.searchL2 = !!searchL2;
+	tabContent[TAB_LEXICON].querySelector('#lexicon-search').value = '';
+	if (!search.searchL2) {
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search').placeholder = 'Search L1...';
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search-L1').classList.add('active');
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search-L2').classList.remove('active');
+		populateLexicon();
+	} else {
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search').placeholder = 'Search L2...';
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search-L1').classList.remove('active');
+		tabContent[TAB_LEXICON].querySelector('#lexicon-search-L2').classList.add('active');
+		populateLexicon();
+	}
+	tabContent[TAB_LEXICON].querySelector('#lexicon-search').focus();
+};
 const clearLexiconSearch = () => {
 	tabContent[TAB_LEXICON].querySelector('#lexicon-search').value = '';
 	tabContent[TAB_LEXICON].querySelector('#lexicon-search').focus();
@@ -893,23 +857,32 @@ const clearLexiconSearch = () => {
 };
 const populateLexicon = () => {
 	const t0_buildLexicon = performance.now();
+	const searchIndex = (search.searchL2) ? 'orderedL2' : 'orderedL1';
 	const eLexicon = tabContent[TAB_LEXICON].querySelector('#lexicon-content');
 	eLexicon.innerHTML = '';
-	for (let i = 0; i < lexicon.orderedL1.length; i++) {
-		let e = document.getElementById('tpl-lexicon-entry').content.firstElementChild.cloneNode(true);
-		Object.assign(e, {
+	for (let i = 0; i < lexicon[searchIndex].length; i++) {
+		let e = Object.assign(document.getElementById('tpl-lexicon-entry').content.firstElementChild.cloneNode(true), {
 			id : `lexicon-entry-${i}`,
+			title : `Entry ID ${lexicon[searchIndex][i].entryId}`,
 			onclick : async () => {
-				console.log(`Clicked item ${i}. Loading entry ${lexicon.orderedL1[i].entryId}...`);
-				await tryLoadEntry(lexicon.orderedL1[i].entryId);
+				console.log(`Clicked item ${i}. Loading entry ${lexicon[searchIndex][i].entryId}...`);
+				await tryLoadEntry(lexicon[searchIndex][i].entryId);
 			}
 		});
-		// console.log(`${lexicon.orderedL1[i].entryId} (${project.activeEntry})`);
-		if (project.activeEntry === lexicon.orderedL1[i].entryId) e.classList.add('active-entry');
-		e.querySelector('.lexicon-entry-catg').textContent = capitalize(lexicon.orderedL1[i].catg) || '---';
-		e.querySelector('.lexicon-entry-word').textContent = lexicon.orderedL1[i].word || '---';
-		if (lexicon.orderedL1[i].hasImage) e.querySelector('.flex-row .icon:nth-child(1)').classList.add('icon-audio');
-		if (lexicon.orderedL1[i].hasAudio) e.querySelector('.flex-row .icon:nth-child(2)').classList.add('icon-audio');
+		// console.log(`${lexicon[searchIndex][i].entryId} (${project.activeEntry})`);
+		if (project.activeEntry === lexicon[searchIndex][i].entryId) e.classList.add('active-entry');
+		e.querySelector('.lexicon-entry-catg').title = project.catgs[lexicon[searchIndex][i].catg] || capitalize(lexicon[searchIndex][i].catg);
+		e.querySelector('.lexicon-entry-catg').textContent = capitalize(lexicon[searchIndex][i].catg) || '---';
+		e.querySelector('.lexicon-entry-word').textContent = lexicon[searchIndex][i].word || '---';
+		if (lexicon[searchIndex][i].hasImage) {
+			// e.querySelector('.flex-row .icon:nth-child(1)').classList.add('icon-audio');
+			e.querySelector('.flex-row .icon:nth-child(1)').textContent = 'i';
+			e.querySelector('.flex-row .icon:nth-child(1)').title = 'Has image';
+		}
+		if (lexicon[searchIndex][i].hasAudio) {
+			e.querySelector('.flex-row .icon:nth-child(2)').classList.add('icon-audio');
+			e.querySelector('.flex-row .icon:nth-child(2)').title = 'Has audio';
+		}
 		eLexicon.appendChild(e);
 	}
 	const eNoResults = document.createElement('p');
@@ -919,16 +892,18 @@ const populateLexicon = () => {
 	});
 	eNoResults.style.display = 'none';
 	eLexicon.appendChild(eNoResults);
+	tabContent[TAB_LEXICON].querySelector('#lexicon-num-entries').textContent = `${lexicon[searchIndex].length} Results`;
 	console.log(`Lexicon built in ${Math.round(performance.now()-t0_buildLexicon)} ms.`);
 };
 const updateLexiconActiveEntry = (newActiveEntry) => {
 	// must run before updating project.activeEntry
+	const searchIndex = (search.searchL2) ? 'orderedL2' : 'orderedL1';
 	const eLexicon = tabContent[TAB_LEXICON].querySelector('#lexicon-content');
-	for (let i = 0; i < lexicon.orderedL1.length; i++) {
-		if (lexicon.orderedL1[i].entryId === project.activeEntry) {
+	for (let i = 0; i < lexicon[searchIndex].length; i++) {
+		if (lexicon[searchIndex][i].entryId === project.activeEntry) {
 			eLexicon.querySelector(`#lexicon-entry-${i}`).classList.remove('active-entry');
 		}
-		if (lexicon.orderedL1[i].entryId === newActiveEntry) {
+		if (lexicon[searchIndex][i].entryId === newActiveEntry) {
 			eLexicon.querySelector(`#lexicon-entry-${i}`).classList.add('active-entry');
 		}
 	}
@@ -941,9 +916,10 @@ const filterLexicon = () => {
 		'i'
 	); // RegExp(string,flags)
 	console.log(frag);
+	const searchIndex = (search.searchL2) ? 'orderedL2' : 'orderedL1';
 	let numResults = 0;
-	for (let i = 0; i < lexicon.orderedL1.length; i++) {
-		if (frag.test(lexicon.orderedL1[i].word)) {
+	for (let i = 0; i < lexicon[searchIndex].length; i++) {
+		if (frag.test(lexicon[searchIndex][i].word)) {
 			numResults++;
 			tabContent[TAB_LEXICON].querySelector(`#lexicon-entry-${i}`).style.display = ''; // empty string defaults to original value
 		} else {
@@ -951,10 +927,11 @@ const filterLexicon = () => {
 		}
 	}
 	tabContent[TAB_LEXICON].querySelector(`#lexicon-no-entries`).style.display = (numResults === 0) ? '' : 'none'; // empty string defaults to original value
+	tabContent[TAB_LEXICON].querySelector('#lexicon-num-entries').textContent = (numResults === lexicon[searchIndex].length) ? `${lexicon[searchIndex].length} Results` : `${numResults}/${lexicon[searchIndex].length} Results`;
 	console.log(`Lexicon filtered in ${Math.round(performance.now()-t0_search)} ms.`);
 };
 
-const renderEditorHeader = () => {
+const renderEditorHeader = (entryId) => {
 	console.log(activeEntry.L1);
 	Object.assign(tabContent[TAB_LEXICON].querySelector('#entry-L1'), {
 		value : activeEntry.L1,
@@ -965,17 +942,14 @@ const renderEditorHeader = () => {
 		}
 	});
 	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? capitalize(activeEntry.catg);
-	// TODO: try load image, set up image management modal
+	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(entryId);
 	if (activeEntry.images?.length > 0) {
 		// const url = RegExp.escape(`${file.path}\\${activeEntry.images[0]}`);
 		// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
 		const url = `${file.path}\\${activeEntry.images[0]}`.replaceAll('\\','\\\\');
 		console.log(`Loading entry image "${url}"`);
 		tabContent[TAB_LEXICON].querySelector('#entry-image').style.backgroundImage = `url("${url}")`;
-		Object.assign(tabContent[TAB_LEXICON].querySelector('#entry-image'), {
-			textContent : '', // remove "No Image" text
-			onclick : () => console.log(`Open entry image management modal.`)
-		});
+		tabContent[TAB_LEXICON].querySelector('#entry-image').textContent = ''; // remove "No Image" text
 	}
 };
 const renderWordform = i => {
@@ -1008,6 +982,7 @@ const renderWordform = i => {
 	if (activeEntry.L2[i].audio?.length > 0) {
 		const eAudioGallery = e.querySelector('.audio-gallery');
 		eAudioGallery.innerHTML = '';
+		// TODO: only render first 3 audio
 		for (let audio of activeEntry.L2[i].audio) {
 			const url = `${file.path}\\${audio}`.replaceAll('\\','\\\\');
 			let eAudio = document.createElement('button');
@@ -1022,10 +997,20 @@ const renderWordform = i => {
 			eAudioGallery.appendChild(eAudio);
 		}
 	}
+	e.querySelector('.audio-gallery-wrapper > .icon-plus').onclick = async () => {
+		console.log(activeEntry.L2[i].audio);
+		if (!(await addAudioTo(activeEntry.L2[i]))) return; // force reload active entry to refresh audio display
+		console.log(activeEntry.L2[i].audio);
+		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
+		for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
+	};
 	// menu
 	e.querySelector('.options-menu').id = `entry-form-${i}-menu`;
 	e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt,`#entry-form-${i}-menu`);
-	e.querySelector('.options-menu > .menu-option-standard').onclick = () => console.log(`Trigger modal: manage audio for wordform ${i}`);
+	e.querySelector('.options-menu > .menu-option-standard').onclick = () => {
+		console.log(`Trigger modal: manage audio for wordform ${i}`);
+		openModalManageAudio(activeEntry.L2[i]);
+	};
 	e.querySelector('.options-menu > .menu-option-caution').onclick = () => console.log(`Trigger modal: delete wordform ${i}`);
 
 	// events
@@ -1051,6 +1036,7 @@ const renderSentence = i => {
 	if (activeEntry.sents[i].audio?.length > 0) {
 		const eAudioGallery = e.querySelector('.audio-gallery');
 		eAudioGallery.innerHTML = '';
+		// TODO: only render first 3 audio
 		for (let audio of activeEntry.sents[i].audio) {
 			const url = `${file.path}\\${audio}`.replaceAll('\\','\\\\');
 			let eAudio = document.createElement('button');
@@ -1065,6 +1051,13 @@ const renderSentence = i => {
 			eAudioGallery.appendChild(eAudio);
 		}
 	}
+	e.querySelector('.audio-gallery-wrapper > .icon-plus').onclick = async () => {
+		console.log(activeEntry.sents[i].audio);
+		if (!(await addAudioTo(activeEntry.sents[i]))) return; // force reload active entry to refresh audio display
+		console.log(activeEntry.sents[i].audio);
+		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
+		for (let i = 0; i < activeEntry.sents.length; i++) renderSentence(i);
+	};
 	// sentences
 	Object.assign(e.querySelector('.entry-sentence-L1'), {
 		id : `entry-sentence-${i}-L1`,
@@ -1087,7 +1080,10 @@ const renderSentence = i => {
 	// menu
 	e.querySelector('.options-menu').id = `entry-sentence-${i}-menu`;
 	e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt,`#entry-sentence-${i}-menu`);
-	e.querySelector('.options-menu > .menu-option-standard').onclick = () => console.log(`Trigger modal: manage audio for sentence ${i}`);
+	e.querySelector('.options-menu > .menu-option-standard').onclick = () => {
+		console.log(`Trigger modal: manage audio for sentence ${i}`);
+		openModalManageAudio(activeEntry.sents[i]);
+	};
 	e.querySelector('.options-menu > .menu-option-caution').onclick = () => console.log(`Trigger modal: delete sentence ${i}`);
 
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').appendChild(e);
@@ -1290,6 +1286,252 @@ const renderSearchFilters = () => {
 
 ////////////////////////////////////////////////////////////////////////
 
+//// MODALS ////
+
+let isModalOpen = false; // allow [Esc] to close open modal
+
+const closeModal = () => {
+	document.querySelector('#modal-wrapper').inert = true; // make uninteractive
+	document.querySelector('#modal-wrapper').classList.add('hidden'); // hide
+	document.querySelector('#modal').innerHTML = '[no modal content]'; // reset contents
+	// TODO: make main content interactible
+	document.querySelector('#main').inert = false;
+	// TODO: focus management should return to active tab
+	isModalOpen = false;
+};
+const activateModal = (modal) => {
+	if (!modal) return;
+	document.querySelector('#modal-wrapper').innerHTML = ''; // clear previous contents, if any
+	document.querySelector('#modal-wrapper').appendChild(modal); // add modal to DOM
+	document.querySelector('#modal-wrapper').inert = false; // make interactible
+	document.querySelector('#modal-wrapper').classList.remove('hidden'); // make visible
+	// TODO: make main content uninteractible (focus trap)
+	document.querySelector('#main').inert = true;
+	modal.focus();
+	isModalOpen = true;
+};
+
+// project management modals
+const openModalUnsavedChanges = (takeAction=(choice)=>{}) => {
+	const eModal = document.querySelector('#tpl-modal-unsaved-changes').content.firstElementChild.cloneNode(true);
+	// set up modal actions
+	eModal.querySelector('#modal-action-save').onclick = () => takeAction(0);
+	eModal.querySelector('#modal-action-discard').onclick = () => takeAction(1);
+	eModal.querySelector('#modal-action-cancel').onclick = () => takeAction(2);
+	activateModal(eModal);
+};
+const openModalCreateProject = () => {
+	const eModal = document.querySelector('#tpl-modal-create-project').content.firstElementChild.cloneNode(true);
+	// project creation logic
+	let filepath = '';
+	let filename = 'database';
+	const updateFilepath = (newFilepath) => {
+		filepath = newFilepath.replace(/\\+$/,''); // clear trailing slashes
+		const lastdir = /\\/.test(filepath) ? `...\\${filepath.replace(/^.+\\/,'')}` : filepath; // (not empty or root) ? "...\projectDir" : raw filepath
+		eModal.querySelector('#modal-create-project-assets').textContent = `${lastdir}\\assets`;
+		eModal.querySelector('#modal-create-project-database').textContent = `${lastdir}\\${filename}.json`;
+	};
+	const submitModal = async () => {
+		const res = await tryCreateProject(filepath, filename);
+	};
+	// select directory
+	eModal.querySelector('#modal-create-project-directory').onblur = () => {
+		updateFilepath(eModal.querySelector('#modal-create-project-directory').value);
+	};
+	eModal.querySelector('#modal-create-project-select-directory').onclick = async () => {
+		console.log('Renderer selects directory to create new project in.');
+		const res = await window.electronAPI.rendererSelectDirectory();
+		console.log(res);
+		if (res.canceled) return;
+		if (res.error) { console.error(res.message); return; }
+		if (res.path) {
+			eModal.querySelector('#modal-create-project-directory').value = res.path;
+			updateFilepath(res.path);
+		}
+	};
+	// TODO: hook up rename button
+	eModal.querySelector('#modal-action-create').onclick = () => submitModal();
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+
+// lexicon tab modals
+const openModalCreateEntry = () => {
+	const eModal = document.querySelector('#tpl-modal-create-entry').content.firstElementChild.cloneNode(true);
+	const eSelect = eModal.querySelector('#modal-create-entry-catg');
+	// build <select> element
+	eSelect.innerHTML = '';
+	for (let catg in project.catgs) {
+		eSelect.appendChild( Object.assign(document.createElement('option'), {
+			value : catg,
+			textContent : project.catgs[catg] || capitalize(catg)
+		}) );
+	}
+	eSelect.appendChild( Object.assign(document.createElement('option'), {
+		value : '+',
+		textContent : '++ Create New Catg ++'
+	}) );
+	// update logic
+	eSelect.onchange = () => {
+		if (eSelect.value === '+') {
+			console.log('New entry modal: Create new catg');
+			eModal.querySelector('#modal-create-entry-new-catg-section').inert = false;
+			eModal.querySelector('#modal-create-entry-new-catg-section').classList.remove('hidden');
+		} else {
+			console.log(`New entry modal: select catg "${eSelect.value}"`);
+			eModal.querySelector('#modal-create-entry-new-catg-section').inert = true;
+			eModal.querySelector('#modal-create-entry-new-catg-section').classList.add('hidden');
+		}
+	};
+	// modal actions
+	eModal.querySelector('#modal-action-create').onclick = () => {
+		let newEntryId;
+		if (eSelect.value === '+') {
+			if (!eModal.querySelector('#modal-create-entry-new-catg-name').value || !eModal.querySelector('#modal-create-entry-new-catg-abbr').value) {
+				console.warn('Cannot create catg. Both the full name and the abbreviation must be specified.');
+				return;
+			}
+			if (eModal.querySelector('#modal-create-entry-new-catg-name').value !== '' && eModal.querySelector('#modal-create-entry-new-catg-abbr').value !== '') {
+				console.warn('Creating new catg...');
+				lexicon.createCatg(eModal.querySelector('#modal-create-entry-new-catg-name').value, eModal.querySelector('#modal-create-entry-new-catg-abbr').value);
+			}
+			newEntryId = lexicon.createEntry(eModal.querySelector('#modal-create-entry-new-catg-abbr').value);
+		} else {
+			newEntryId = lexicon.createEntry(eSelect.value);
+		}
+		populateLexicon();
+		tryLoadEntry(newEntryId);
+		console.log('Created new entry.');
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalDeleteEntry = (entryId) => {
+	const eModal = document.querySelector('#tpl-modal-delete-entry').content.firstElementChild.cloneNode(true);
+	// modal actions
+	eModal.querySelector('#modal-action-delete').onclick = () => {
+		lexicon.deleteEntry(entryId);
+		tryLoadEntry(-1);
+		populateLexicon(); // TODO: perform targetted refresh if possible
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalManageImages = (entryId) => {
+	const eModal = document.querySelector('#tpl-modal-manage-images').content.firstElementChild.cloneNode(true);
+	// modal content
+	if (lexicon.data[entryId].images) {
+		for (let image of lexicon.data[entryId].images) {
+			let eImage = Object.assign(document.createElement('div'), {
+				title : image || "[no image source]"
+			});
+			eImage.classList.add('modal-image-tile');
+			let eClose = document.createElement('div');
+			eClose.classList.add('modal-delete-image');
+			// TODO: impl remove image button
+			eImage.appendChild(eClose);
+			// TODO: check if more character escaping needed for bg image
+			// TODO: figure out how to use relative paths instead of constructing an absolute path
+			// TODO: check for broken image links
+			// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
+			const url = `${file.path}\\${image}`.replaceAll('\\','\\\\');
+			eImage.style.backgroundImage = `url("${url}")`;
+			eModal.querySelector('#modal-image-manager').insertBefore(eImage, eModal.querySelector('#modal-add-image'));
+		}
+	}
+	eModal.querySelector('#modal-add-image').onclick = async () => {
+		console.log('Renderer selects image file(s).');
+		const needRefreshEntryEditor = !Array.isArray(lexicon.data[entryId].images) || lexicon.data[entryId].images.length < 1;
+		const res = await window.electronAPI.rendererSelectImages();
+		if (res.canceled) return;
+		const pathFrag = file.path + '\\';
+		const pathTest = new RegExp( RegExp.escape(pathFrag) );
+		if (!Array.isArray(lexicon.data[entryId].images)) lexicon.data[entryId].images = [];
+		for (let image of res.paths) {
+			// console.log(`${image} test "${pathFrag}" ${pathTest.test(image)}`);
+			if (pathTest.test(image)) {
+				console.log(`GOOD "${image.replace(pathFrag,'')}"`);
+				lexicon.data[entryId].images.push(image.replace(pathFrag,''));
+			} else {
+				console.log(`OUTSIDE PROJ "${image}"`);
+			}
+		}
+		if (needRefreshEntryEditor) renderEditorHeader(entryId);
+		openModalManageImages(entryId);
+	};
+	// modal actions
+	eModal.querySelector('#modal-action-done').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalManageAudio = (audioParent) => {
+	const eModal = document.querySelector('#tpl-modal-manage-audio').content.firstElementChild.cloneNode(true);
+	// modal content
+	if (!Array.isArray(audioParent.audio) || audioParent.audio.length === 0) {
+		console.log('[no audio attached yet]');
+		const eNoAudio = Object.assign(document.createElement('p'), {
+			textContent : `No audio attached.`
+		});
+		eModal.querySelector('#modal-audio-manager').insertBefore(eNoAudio, eModal.querySelector('#modal-add-audio'));
+	}
+	if (Array.isArray(audioParent.audio)) {
+		console.log('Existing audio:');
+		for (let audio of audioParent.audio) {
+			console.log(audio);
+			// TODO: check character escaping
+			// TODO: use relative paths, check for broken links
+			// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
+			const url = `${file.path}\\${audio}`.replaceAll('\\','\\\\');
+			const eAudio = document.querySelector('#tpl-modal-audio-tile').content.firstElementChild.cloneNode(true);
+			eAudio.querySelector('.icon-audio').title = audio || '[no audio source]';
+			eAudio.querySelector('.icon-audio').onclick = () => {
+				console.log(`Modal playing audio "${url}".`);
+				audioPlayer.play(url);
+			};
+			eAudio.querySelector('p').textContent = audio || '[no audio source]';
+			// TODO: impl remove audio button
+			eModal.querySelector('#modal-audio-manager').insertBefore(eAudio, eModal.querySelector('#modal-add-audio'));
+		}
+	}
+	eModal.querySelector('#modal-add-audio').onclick = async () => {
+		console.log(audioParent.audio);
+		if (!(await addAudioTo(audioParent))) return; // skip refresh if selection cancelled
+		console.log(audioParent.audio);
+		// tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
+		// for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
+		tryLoadEntry(project.activeEntry, true); // force reload active entry to refresh audio display
+		// TODO: allow targetted reloading of forms vs sentences
+		openModalManageAudio(audioParent);
+	};
+	// modal actions
+	eModal.querySelector('#modal-action-done').onclick = () => closeModal();
+	activateModal(eModal);
+};
+
+const addAudioTo = async (parent) => {
+	// given parent data[i].sents[j], will create data[i].sents[j].audio = [] if needed, then push to it
+	console.log('Renderer selects audio file(s).');
+	const res = await window.electronAPI.rendererSelectAudio();
+	if (res.canceled || !res.paths || res.paths.length === 0) return false;
+	const pathFrag = file.path + '\\';
+	const pathTest = new RegExp( RegExp.escape(pathFrag) );
+	if (!Array.isArray(parent.audio)) parent.audio = [];
+	for (let audio of res.paths) {
+		if (pathTest.test(audio)) {
+			console.log(`GOOD "${audio.replace(pathFrag,'')}"`);
+			parent.audio.push(audio.replace(pathFrag,''));
+		} else {
+			console.log(`ERR OUTSIDE PROJ "${audio}"`);
+		}
+	}
+	return true;
+};
+
+
+
+////////////////////////////////////////////////////////////////////////
+
 //// IPC INCOMING ////
 
 
@@ -1317,7 +1559,14 @@ const tryListMedia = async (path) => {
 	console.log('Missing media',mediaMissing);
 };
 const tryLoadEntry = (i,forceLoad) => {
-	if (i < 0 || i >= lexicon.data.length) {
+	if (i < 0) {
+		// display "no entry loaded"
+		tabContent[TAB_LEXICON].querySelector('#entry-editor').innerHTML = '';
+		tabContent[TAB_LEXICON].querySelector('#entry-editor').appendChild( document.getElementById('tpl-bg-status').content.firstElementChild.cloneNode(true) );
+		tabContent[TAB_LEXICON].querySelector('#entry-editor .window-status p').textContent = 'Load an entry to get started';
+		return;
+	}
+	if (i >= lexicon.data.length) {
 		console.error(`Cannot load entry ${i}, out of bounds. Max index is ${lexicon.data.length-1}.`);
 		return;
 	}
@@ -1334,7 +1583,7 @@ const tryLoadEntry = (i,forceLoad) => {
 	// reset entry editor
 	tabContent[TAB_LEXICON].querySelector('#entry-editor').replaceWith( document.querySelector('#tpl-entry-editor').content.firstElementChild.cloneNode(true) );
 	// rebuild header
-	renderEditorHeader();
+	renderEditorHeader(i);
 	// rebuild wordforms
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
 	if (activeEntry.L2.length === 0) {
@@ -1363,8 +1612,7 @@ const tryLoadEntry = (i,forceLoad) => {
 	}
 	tabContent[TAB_LEXICON].querySelector('#entry-add-note').onclick = () => addNote();
 	// page events
-	tabContent[TAB_LEXICON].querySelector('#entry-delete').onclick = () => console.log(`Modal: confirm delete entry ${i}`);
-	// tabContent[TAB_LEXICON].querySelector('#entry-delete').onclick = () => showModal();
+	tabContent[TAB_LEXICON].querySelector('#entry-delete').onclick = () => openModalDeleteEntry(i);
 };
 
 
@@ -1393,8 +1641,8 @@ window.electronAPI.onMainSaveProject(() => {
 	trySaveProject();
 });
 const trySaveProject = async () => {
-	if (!file.isOpen) { console.error('No project currently open. No changes to save.'); return; }
-	if (!file.modified) { console.warn('No changes to save.'); return; }
+	if (!file.isOpen) { console.error('No project currently open. No changes to save.'); return false; }
+	if (!file.modified) { console.warn('No changes to save.'); return false; }
 	console.log('Renderer saves project STUB.');
 	const stubObject = {
 		x : 7,
@@ -1402,26 +1650,82 @@ const trySaveProject = async () => {
 	};
 	const res = await window.electronAPI.rendererSaveProject( JSON.stringify(stubObject) );
 	console.log(res);
-	if (res.error) { console.error(res.message); return; }
+	if (res.error) { console.error(res.message); return false; }
 	console.log('Main confirms project is saved.');
 	file.modified = false;
+	return true;
 };
-// open project (choose project -> load project)
-window.electronAPI.onMainOpenProject(() => {
-	console.log('Main requests open project.');
-	tryOpenProject();
-});
-const tryOpenProject = async () => {
+// create new project
+const tryBeginCreateProject = () => {
 	if (file.isOpen && file.modified) {
 		console.log('Unsaved changes detected.');
-		// trigger [Save,Discard,Cancel] modal
-			// if save, trySaveProject()
-			// if discard, continue
-			// if cancel, return
-		console.log('DBG FORCE Renderer opens project.');
+		openModalUnsavedChanges(choice => {
+			switch (choice) {
+				case 0: if (trySaveProject()) openModalCreateProject(); break;
+				case 1: console.log('Modal choice: Don\'t save'); openModalCreateProject(); break;
+				case 2: closeModal(); break;
+			}
+		});
 	} else {
-		console.log('Renderer opens project.');
+		console.log('Open create project modal.');
+		openModalCreateProject();
 	}
+};
+window.electronAPI.onMainCreateProject(() => {
+	console.log('Main requests create new project.');
+	tryBeginCreateProject();
+});
+const tryCreateProject = async (filepath,filename) => {
+	// can't support headless project since projects need to access their settings file and assets folder
+	// ask main to create relevant files/directories
+	console.log(`Renderer creates project in "${filepath}".`);
+	console.log(`Project file will be "${filepath}\\${filename}.json".`);
+	console.log(`Media will be stored in "${filepath}\\assets".`);
+	const res = await window.electronAPI.rendererCreateProject(filepath,filename);
+	console.log(res);
+	if (res.error) { console.error(res.message); return; }
+	// if success, close modal and open project
+	console.log(`Project successfully created. Opening project "${filepath}\\${filename}.json"...`);
+	closeModal();
+	// await tryLoadProject(`${filepath}\\${filename}.json`);
+};
+// open project (choose project -> load project)
+const tryBeginOpenProject = () => {
+	if (file.isOpen && file.modified) {
+		console.log('Unsaved changes detected.');
+		openModalUnsavedChanges(choice => {
+			switch (choice) {
+				case 0:
+					if (trySaveProject()) {
+						tryOpenProject();
+						closeModal();
+					}
+					break;
+				case 1: console.log('Modal choice: Don\'t save'); tryOpenProject(); closeModal(); break;
+				case 2: closeModal(); break;
+			}
+		});
+	} else {
+		tryOpenProject();
+	}
+};
+window.electronAPI.onMainOpenProject(() => {
+	console.log('Main requests open project.');
+	// tryOpenProject();
+	tryBeginOpenProject();
+});
+const tryOpenProject = async () => {
+	// if (file.isOpen && file.modified) {
+	// 	console.log('Unsaved changes detected.');
+	// 	// trigger [Save,Discard,Cancel] modal
+	// 		// if save, trySaveProject()
+	// 		// if discard, continue
+	// 		// if cancel, return
+	// 	console.log('DBG FORCE Renderer opens project.');
+	// } else {
+	// 	console.log('Renderer opens project.');
+	// }
+	console.log('Renderer open project.');
 	const res = await window.electronAPI.rendererOpenProject();
 	console.log(res);
 	if (res.canceled) return;
@@ -1429,6 +1733,7 @@ const tryOpenProject = async () => {
 	// if we got a valid file, trigger loading screen and try to parse it
 	if (res.path) {
 		// TODO: trigger loading screen
+		// TODO: close new project modal
 		await tryLoadProject(res.path);
 		// TODO: dispose loading screen
 	} else {
@@ -1520,10 +1825,10 @@ const tryLoadProject = async (path) => {
 
 //// MAIN-TO-RENDERER IPC TRIGGERS ////
 
-//
-window.electronAPI.onTriggerCreateProject(() => {
-	console.log(`IPC trigger: Create new project. Main has already verified there are no unsaved changes.`);
-});
+// //
+// window.electronAPI.onTriggerCreateProject(() => {
+// 	console.log(`IPC trigger: Create new project. Main has already verified there are no unsaved changes.`);
+// });
 
 // attach keyboard shortcuts
 window.electronAPI.onTriggerTab(tabId => {
@@ -1540,6 +1845,8 @@ window.electronAPI.onTriggerTab(tabId => {
 init();
 
 // tryOpenProject();
+
+// openModalCreateProject();
 
 // lexicon.checkUnderlying(); // 7,99
 // lexicon.accessA.x = 88; // mods original obj

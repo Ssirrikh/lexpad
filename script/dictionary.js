@@ -39,15 +39,22 @@ const L1 = Object.freeze({
 	"usesForms" : false
 });
 
-const TPL_NEW_PROJECT = `{
-	"project" : {
-		"lexpadVersion" : "${VERSION}",
-		"activeEntry" : -1,
-		"catgs" : {}
-	},
-	"language" : {},
-	"lexicon" : []
-}`;
+// const TPL_NEW_PROJECT = `{
+// 	"_WARNING" : "Save a backup of this project before mucking around in here! It will be annoying for everyone involved if you break something and have to call IT about it because you didn't save a backup.",
+// 	"project" : {
+// 		"lexpadVersion" : "${VERSION}",
+// 		"activeEntry" : -1,
+// 		"catgs" : {}
+// 	},
+// 	"language" : {
+// 		"name" : "",
+// 		"abbr" : "",
+// 		"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
+// 		"usesForms" : true,
+// 		"forms" : {}
+// 	},
+// 	"lexicon" : []
+// }`;
 
 
 
@@ -88,6 +95,47 @@ let media = {}; // hash table of referenced media s.t. media[fileName] = [...arr
 const createProject = () => {
 	console.log(`dictionary.js instantiates new project from template.`);
 	// fromJSON(TPL_NEW_PROJECT);
+};
+
+const createCatg = (catgName,catgAbbr) => {
+	if (!catgName || !catgAbbr) { console.error(`Cannot create catg "${catgName}" with abbreviation "${catgAbbr}". One or both values were falsey.`); return false; }
+	catgAbbr = catgAbbr.toLowerCase();
+	project.catgs[catgAbbr] = catgName;
+	L2.forms[catgAbbr] = [];
+	console.log(project);
+	console.log(L2);
+	return true;
+};
+
+const createEntry = (catg) => {
+	data.push({
+		"L1" : "",
+		"catg" : catg,
+		"L2" : [],
+		"sents" : [],
+		"notes" : [],
+		"images" : [],
+		// "meta" : {}
+	});
+	orderedL1.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
+	orderedL2.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
+	return data.length - 1;
+};
+const deleteEntry = (entryId) => {
+	for (let i = 0; i < orderedL1.length; i++) {
+		console.log(`${i}, ${orderedL1[i].entryId} vs ${entryId}`);
+		if (orderedL1[i].entryId === entryId) {
+			orderedL1.splice(i,1); // if index card belongs to target entry, delete it
+			i--;
+		}
+	}
+	for (let i = 0; i < orderedL2.length; i++) {
+		console.log(`${i}, ${orderedL2[i].entryId} vs ${entryId}`);
+		if (orderedL2[i].entryId === entryId) {
+			orderedL2.splice(i,1); // if index card belongs to target entry, delete it
+			i--;
+		}
+	}
 };
 
 // deep copy and index json w/o storing refs, so it can be GC'd
@@ -291,5 +339,7 @@ const calculateStatistics = () => {
 export {
 	// underlyingData, accessA, accessB, checkUnderlying, replaceA, rebindAccess,
 	// myObj, checkObj, replaceObj,
-	file, project, fromJSON, calculateStatistics, L1, L2, data, orderedL1, orderedL2, media
+	file, project,
+	createCatg, createEntry, deleteEntry, fromJSON, calculateStatistics,
+	L1, L2, data, orderedL1, orderedL2, media
 };

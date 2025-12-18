@@ -7,9 +7,28 @@ const fs = require('node:fs/promises');
 
 const isMac = process.platform === 'darwin';
 
+const VERSION = 'v0.0';
+
 const TAB_PROJECT = 0;
 const TAB_LEXICON = 1;
 const TAB_SEARCH = 2;
+
+const TPL_NEW_PROJECT = `{
+	"_WARNING" : "Save a backup of this project before mucking around in here! It will be annoying for everyone involved if you break something and have to call IT about it because you didn't save a backup.",
+	"project" : {
+		"lexpadVersion" : "${VERSION}",
+		"activeEntry" : -1,
+		"catgs" : {}
+	},
+	"language" : {
+		"name" : "",
+		"abbr" : "",
+		"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
+		"usesForms" : true,
+		"forms" : {}
+	},
+	"lexicon" : []
+}`;
 
 
 
@@ -55,6 +74,52 @@ let activeFile = {
 	modified : false,
 };
 
+// file selection
+	// https://en.wikipedia.org/wiki/Comparison_of_web_browsers#Image_format_support
+	// Chromium Images: jpeg, webp, gif, png, apng, <canvas>/blob, bmp, ico
+	// https://www.chromium.org/audio-video/
+	// Chromium Audio Codecs: flac , mp3, opus, pcm, vorbis
+	// => mp3, wav, ogg + mpeg, 3gp + mp4, adts, flac, webm
+const onRendererSelectImages = async (evt) => {
+	console.log('Renderer selects image file(s).')
+	const { canceled, filePaths } = await dialog.showOpenDialog({
+		properties : ['openFile','multiSelections'],
+		filters : [
+			{ name: 'Supported Images', extensions: ['bmp','jpeg','jpg','png','webp'] },
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePaths?.length) return { canceled: true };
+	return { paths: filePaths };
+};
+const onRendererSelectAudio = async (evt) => {
+	console.log('Renderer selects audio file(s).')
+	const { canceled, filePaths } = await dialog.showOpenDialog({
+		properties : ['openFile','multiSelections'],
+		filters : [
+			{ name: 'Supported Audio', extensions: ['mp3','mpeg','ogg','wav'] },
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePaths?.length) return { canceled: true };
+	return { paths: filePaths };
+};
+const onRendererSelectDirectory = async (evt) => {
+	console.log('Renderer selects directory.')
+	const { canceled, filePaths } = await dialog.showOpenDialog({
+		properties : [
+			'openDirectory',
+			'createDirectory', // MAC: allow dialogue to create new directories
+			// 'promptToCreate', // WINDOWS: allow selection of non-existant directory, which app will be expected to create
+		],
+		filters : [
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePaths?.length) return { canceled: true };
+	return { path: filePaths[0] };
+};
+
 // mark modified
 const onRendererMarkModified = () => {
 	if (!activeFile.isOpen) { console.error('Renderer tries to mark project modified, but no project currently open.'); return; }
@@ -85,6 +150,21 @@ const saveProject = (win) => {
 	if (!activeFile.isOpen) { console.warn('No project currently open. No changes to save.'); return; }
 	if (!activeFile.modified) { console.warn('No changes to save.'); return; }
 	win.webContents.send('main-save-project');
+};
+
+// create project
+const onRendererCreateProject = async (evt,filepath,filename) => {
+	// TODO: check validity of path
+	// TODO: create relevant files/directories
+	console.log(`Renderer creates project in "${filepath}".`);
+	console.log(`Created project file "${filepath}\\${filename}.json".`);
+	console.log(`Created assets folder "${filepath}\\assets".`);
+	return { message : 'Project created successfully.' };
+};
+const createProject = (win) => {
+	console.log('Main requests create new project.');
+	if (!win) { console.warn('Did not specify window to send signal to. Cannot create project.'); return; };
+	win.webContents.send('main-create-project');
 };
 
 // open project
@@ -153,7 +233,7 @@ const listMedia = async (e,filepath) => {
 		const files = await fs.readdir(path.join(dirPath,'assets'), {recursive:true});
 		console.log(`Discovered ${files.length} files in "${dirPath}\\assets".`);
 		// console.log(files);
-		// console.log(files.map(f => `assets\\${f}`));
+		console.log(files.map(f => `assets\\${f}`));
 		return { path: filepath, media: files.map(f => `assets/${f}`) };
 	} catch (err) {
 		return { error: 'cannot_read_directory', message: String(err) };
@@ -173,6 +253,7 @@ const createWindow = () => {
 		height: 800,
 		// fullscreen: true,
 		// frame: false,
+		// useContentSize : true,
 		webPreferences: {
     		preload: path.join(__dirname, 'preload.js')
     	},
@@ -202,22 +283,23 @@ const createWindow = () => {
 				{
 					label : 'New Project',
 					accelerator : 'CmdOrCtrl+N',
-					click : () => {
-						console.log('Trigger create new project...');
-						if (activeFile.isOpen && activeFile.modified) {
-							// PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]
-								// if (choice==Save) saveProject();
-								// else if (choice==Discard) continue; // save temp file?
-								// else return;
-							console.log('PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]');
-							return;
-						}
-						// changes were either saved or discarded; trigger new project dialogue
-						// console.log('DIALOGUE New Project "Select location to create project directory:"');
-						console.log('TRIGGER create new project');
-						win.webContents.send('trigger-create-project');
-						activeFile.isOpen = true;
-					}
+					click : () => createProject(win)
+					// click : () => {
+					// 	console.log('Trigger create new project...');
+					// 	if (activeFile.isOpen && activeFile.modified) {
+					// 		// PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]
+					// 			// if (choice==Save) saveProject();
+					// 			// else if (choice==Discard) continue; // save temp file?
+					// 			// else return;
+					// 		console.log('PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]');
+					// 		return;
+					// 	}
+					// 	// changes were either saved or discarded; trigger new project dialogue
+					// 	// console.log('DIALOGUE New Project "Select location to create project directory:"');
+					// 	console.log('TRIGGER create new project');
+					// 	win.webContents.send('trigger-create-project');
+					// 	activeFile.isOpen = true;
+					// }
 				},
 				{
 					label : 'Open Project',
@@ -429,9 +511,15 @@ app.whenReady().then(() => {
 	// ipcMain.handle('dbg-request-object',dbg_requestObject);
 	// ipcMain.on('dbg-check-object', dbg_checkObject);
 
+	// 
+	ipcMain.handle('renderer-select-directory', onRendererSelectDirectory);
+	ipcMain.handle('renderer-select-images', onRendererSelectImages);
+	ipcMain.handle('renderer-select-audio', onRendererSelectAudio);
+
 	//
 	ipcMain.on('renderer-mark-modified', onRendererMarkModified);
 	ipcMain.handle('renderer-save-project', onRendererSaveProject);
+	ipcMain.handle('renderer-create-project', onRendererCreateProject);
 	ipcMain.handle('renderer-open-project', onRendererOpenProject);
 	ipcMain.handle('renderer-load-project', onRendererLoadProject);
 
