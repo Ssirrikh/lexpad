@@ -35,7 +35,10 @@ const TAG_F = 0; // tag false (exclude)
 const TAG_N = 1; // tag null (no constraint)
 const TAG_T = 2; // tag true (include)
 
+const MODAL_FOCUS_MAXLEN = 20;
+
 const capitalize = s => (s[0]??'').toUpperCase() + s.slice(1);
+const trim = (text,maxLen=null) => (maxLen === null || text.length <= maxLen) ? text : `${text.slice(0,maxLen)}...`; // if maxLen neg, trim n chars off end; if maxLen pos, act as max len
 
 
 //// media.js ////
@@ -982,19 +985,16 @@ const renderWordform = i => {
 	if (activeEntry.L2[i].audio?.length > 0) {
 		const eAudioGallery = e.querySelector('.audio-gallery');
 		eAudioGallery.innerHTML = '';
-		// TODO: only render first 3 audio
-		for (let audio of activeEntry.L2[i].audio) {
+		for (let audio of activeEntry.L2[i].audio.slice(0,3)) {
 			const url = `${file.path}\\${audio}`.replaceAll('\\','\\\\');
-			let eAudio = document.createElement('button');
-			eAudio.classList.add('icon');
-			eAudio.classList.add('icon-audio');
-			eAudio.classList.add('hover-grey');
-			eAudio.title = audio;
-			eAudio.onclick = () => {
-				console.log(`Entry ${i} playing audio "${url}".`);
-				audioPlayer.play(url);
-			};
-			eAudioGallery.appendChild(eAudio);
+			eAudioGallery.appendChild( Object.assign(document.createElement('button'), {
+				className : 'icon icon-audio hover-grey',
+				title : audio,
+				onclick : () => {
+					console.log(`Entry ${project.activeEntry} wordform ${i} playing audio "${url}".`);
+					audioPlayer.play(url);
+				}
+			}) );
 		}
 	}
 	e.querySelector('.audio-gallery-wrapper > .icon-plus').onclick = async () => {
@@ -1011,7 +1011,10 @@ const renderWordform = i => {
 		console.log(`Trigger modal: manage audio for wordform ${i}`);
 		openModalManageAudio(activeEntry.L2[i]);
 	};
-	e.querySelector('.options-menu > .menu-option-caution').onclick = () => console.log(`Trigger modal: delete wordform ${i}`);
+	e.querySelector('.options-menu > .menu-option-caution').onclick = () => {
+		console.log(`Trigger modal: delete wordform ${i}`);
+		openModalDeleteWordform(i);
+	};
 
 	// events
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').appendChild(e);
@@ -1506,6 +1509,31 @@ const openModalManageAudio = (audioParent) => {
 	};
 	// modal actions
 	eModal.querySelector('#modal-action-done').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalDeleteWordform = (formId) => {
+	const eModal = document.querySelector('#tpl-modal-delete-wordform').content.firstElementChild.cloneNode(true);
+	// modal content
+	eModal.querySelector('#modal-wordform').textContent = trim(activeEntry.L2[formId].L2 || '---', MODAL_FOCUS_MAXLEN);
+	if (!activeEntry.catg) {
+		eModal.querySelector('#modal-wordform-case').textContent = '(entry has no catg)';
+	} else if (activeEntry.L2[formId].form >= 0) {
+		eModal.querySelector('#modal-wordform-case').textContent = `(${lexicon.L2.forms[activeEntry.catg][activeEntry.L2[formId].form] || `Form ${formId}`})`;
+	} else {
+		eModal.querySelector('#modal-wordform-case').textContent = '(form unspecified)';
+	}
+	// modal actions
+	eModal.querySelector('#modal-action-delete').onclick = () => {
+		console.log(activeEntry.L2);
+		console.log(activeEntry.L2[formId]);
+		// delete
+		activeEntry.L2.splice(formId,1);
+		// re-render
+		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
+		for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
 	activateModal(eModal);
 };
 

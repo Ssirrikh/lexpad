@@ -633,6 +633,24 @@
 			<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
 		</div>
 	</template>
+	<template id='tpl-modal-delete-wordform'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Delete Wordform</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Are you sure you want to delete this wordform?</p>
+				<div class='flex-row flex-centered modal-focus'>
+					<p id='modal-wordform'>---</p>
+					<p id='modal-wordform-case' class='subtitle'>(case unspecified)</p>
+				</div>
+				<!-- <p><span id='modal-wordform'>---</span> <span id='modal-wordform-case' class='subtitle'>(case unspecified)</span></p> -->
+				<p class='subtitle'>Attached media will remain in the project assets folder.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-delete' class='button-caution'>Delete Wordform</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
 
 
 

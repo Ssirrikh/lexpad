@@ -328,6 +328,12 @@ select:focus-visible {
     justify-content: end;
     gap: 0.5em;
 }
+.modal-focus {
+    border: thin solid var(--border-medium);
+    border-radius: 4px;
+    padding: 0.25em;
+    gap: 0.25em;
+}
 
 .modal-section > .flex-row {
     gap: 0.25em;
