@@ -476,9 +476,13 @@
 		</div>
 	</template>
 	<!-- entry notes -->
-	<template id='tpl-entry-note'>
+	 <template id='tpl-entry-note'>
 		<div class='flex-col entry-note-wrapper'>
-			<p></p>
+			<div class='flex-row'>
+				<p>Note</p>
+				<div class='flex-sep'></div>
+				<button class='icon icon-x hover-white' title='Delete note'></button>
+			</div>
 			<textarea rows='3'></textarea>
 		</div>
 	</template>
@@ -633,6 +637,7 @@
 			<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
 		</div>
 	</template>
+	<!-- delete entry field -->
 	<template id='tpl-modal-delete-wordform'>
 		<div id='modal' class='flex-col' tabindex='0'>
 			<p class='modal-title'>Delete Wordform</p>
@@ -642,11 +647,49 @@
 					<p id='modal-wordform'>---</p>
 					<p id='modal-wordform-case' class='subtitle'>(case unspecified)</p>
 				</div>
-				<!-- <p><span id='modal-wordform'>---</span> <span id='modal-wordform-case' class='subtitle'>(case unspecified)</span></p> -->
 				<p class='subtitle'>Attached media will remain in the project assets folder.</p>
 			</div>
 			<div id='modal-actions' class='flex-row'>
 				<button id='modal-action-delete' class='button-caution'>Delete Wordform</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-delete-sentence'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Delete Sentence</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Are you sure you want to delete this sentence?</p>
+				<div class='flex-col modal-focus'>
+					<div class='flex-row'>
+						<p id='modal-abbr-L2' class='subtitle modal-abbr'>L2</p>
+						<p id='modal-sent-L2'>---</p>
+					</div>
+					<div class='flex-row'>
+						<p id='modal-abbr-L1' class='subtitle modal-abbr'>Eng</p>
+						<p id='modal-sent-L1'>---</p>
+					</div>
+				</div>
+				<p class='subtitle'>Attached media will remain in the project assets folder.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-delete' class='button-caution'>Delete Sentence</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-delete-note'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Delete Note</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Are you sure you want to delete this note?</p>
+				<!-- <div class='flex-col modal-focus'>
+					<p id=''>---</p>
+				</div> -->
+				<p id='modal-note' class='modal-focus'>---</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-delete' class='button-caution'>Delete Note</button>
 				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
 			</div>
 		</div>

@@ -332,7 +332,15 @@ select:focus-visible {
     border: thin solid var(--border-medium);
     border-radius: 4px;
     padding: 0.25em;
+    margin: 0 0.5em;
     gap: 0.25em;
+}
+.modal-focus > .flex-row {
+    gap: 0.25em;
+}
+.modal-abbr {
+    width: 3em;
+    text-align: center;
 }
 
 .modal-section > .flex-row {

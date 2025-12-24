@@ -934,7 +934,7 @@ const filterLexicon = () => {
 	console.log(`Lexicon filtered in ${Math.round(performance.now()-t0_search)} ms.`);
 };
 
-const renderEditorHeader = (entryId) => {
+const renderEditorHeader = () => {
 	console.log(activeEntry.L1);
 	Object.assign(tabContent[TAB_LEXICON].querySelector('#entry-L1'), {
 		value : activeEntry.L1,
@@ -945,7 +945,7 @@ const renderEditorHeader = (entryId) => {
 		}
 	});
 	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? capitalize(activeEntry.catg);
-	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(entryId);
+	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(project.activeEntry);
 	if (activeEntry.images?.length > 0) {
 		// const url = RegExp.escape(`${file.path}\\${activeEntry.images[0]}`);
 		// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
@@ -955,6 +955,34 @@ const renderEditorHeader = (entryId) => {
 		tabContent[TAB_LEXICON].querySelector('#entry-image').textContent = ''; // remove "No Image" text
 	}
 };
+const renderAllWordforms = () => {
+	tabContent[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
+	if (activeEntry.L2.length === 0) {
+		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = `<div class='entry-section-no-content'>No Wordforms</div>`;
+	} else {
+		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
+		for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
+	}
+};
+const renderAllSentences = () => {
+	tabContent[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sents.length})`;
+	if (activeEntry.sents.length === 0) {
+		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = `<div class='entry-section-no-content'>No Sentences</div>`;
+	} else {
+		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
+		for (let i = 0; i < activeEntry.sents.length; i++) renderSentence(i);
+	}
+};
+const renderAllNotes = () => {
+	tabContent[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
+	if (activeEntry.notes.length === 0) {
+		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = `<div class='entry-section-no-content'>No Notes</div>`;
+	} else {
+		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = '';
+		for (let i = 0; i < activeEntry.notes.length; i++) renderNote(i);
+	}
+};
+
 const renderWordform = i => {
 	let e = document.getElementById('tpl-entry-wordform').content.cloneNode(true);
 	// form select
@@ -1087,13 +1115,20 @@ const renderSentence = i => {
 		console.log(`Trigger modal: manage audio for sentence ${i}`);
 		openModalManageAudio(activeEntry.sents[i]);
 	};
-	e.querySelector('.options-menu > .menu-option-caution').onclick = () => console.log(`Trigger modal: delete sentence ${i}`);
+	e.querySelector('.options-menu > .menu-option-caution').onclick = () => {
+		console.log(`Trigger modal: delete sentence ${i}`);
+		openModalDeleteSentence(i);
+	};
 
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').appendChild(e);
 };
 const renderNote = i => {
 	let e = document.getElementById('tpl-entry-note').content.cloneNode(true);
 	e.querySelector('p').textContent = `Note #${i+1}`;
+	e.querySelector('.icon-x').onclick = () => {
+		console.log(`Trigger modal: delete note ${i}`);
+		openModalDeleteNote(i);
+	};
 	Object.assign(e.querySelector('textarea'), {
 		id : `entry-note-${i}`,
 		value : activeEntry.notes[i].note,
@@ -1461,7 +1496,7 @@ const openModalManageImages = (entryId) => {
 				console.log(`OUTSIDE PROJ "${image}"`);
 			}
 		}
-		if (needRefreshEntryEditor) renderEditorHeader(entryId);
+		if (needRefreshEntryEditor) renderEditorHeader();
 		openModalManageImages(entryId);
 	};
 	// modal actions
@@ -1526,11 +1561,42 @@ const openModalDeleteWordform = (formId) => {
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.L2);
 		console.log(activeEntry.L2[formId]);
-		// delete
-		activeEntry.L2.splice(formId,1);
-		// re-render
-		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
-		for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
+		activeEntry.L2.splice(formId,1); // delete data
+		activeMenu = null; // clear menu pointer (menu will be deleted)
+		renderAllWordforms();
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalDeleteSentence = (sentId) => {
+	const eModal = document.querySelector('#tpl-modal-delete-sentence').content.firstElementChild.cloneNode(true);
+	// modal content
+	eModal.querySelector('#modal-abbr-L2').textContent = capitalize(lexicon.L2.abbr || 'L2');
+	eModal.querySelector('#modal-abbr-L1').textContent = capitalize(lexicon.L1.abbr || 'L1');
+	eModal.querySelector('#modal-sent-L2').textContent = trim(activeEntry.sents[sentId].L2 || '---', MODAL_FOCUS_MAXLEN);
+	eModal.querySelector('#modal-sent-L1').textContent = trim(activeEntry.sents[sentId].L1 || '---', MODAL_FOCUS_MAXLEN);
+	// modal actions
+	eModal.querySelector('#modal-action-delete').onclick = () => {
+		console.log(activeEntry.sents[sentId]);
+		activeEntry.sents.splice(sentId,1); // delete data
+		activeMenu = null; // clear menu pointer (menu will be deleted)
+		renderAllSentences();
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalDeleteNote = (noteId) => {
+	const eModal = document.querySelector('#tpl-modal-delete-note').content.firstElementChild.cloneNode(true);
+	// modal content
+	eModal.querySelector('#modal-note').textContent = `"${trim(activeEntry.notes[noteId].note || '---', MODAL_FOCUS_MAXLEN)}"`;
+	// modal actions
+	eModal.querySelector('#modal-action-delete').onclick = () => {
+		console.log(activeEntry.notes[noteId]);
+		activeEntry.notes.splice(noteId,1); // delete data
+		activeMenu = null; // clear menu pointer (menu will be deleted)
+		renderAllNotes();
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
@@ -1610,36 +1676,15 @@ const tryLoadEntry = (i,forceLoad) => {
 	buildFormSelect(activeEntry.catg);
 	// reset entry editor
 	tabContent[TAB_LEXICON].querySelector('#entry-editor').replaceWith( document.querySelector('#tpl-entry-editor').content.firstElementChild.cloneNode(true) );
-	// rebuild header
-	renderEditorHeader(i);
-	// rebuild wordforms
-	tabContent[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
-	if (activeEntry.L2.length === 0) {
-		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = `<div class='entry-section-no-content'>No Wordforms</div>`;
-	} else {
-		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
-		for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
-	}
-	tabContent[TAB_LEXICON].querySelector('#entry-add-wordform').onclick = () => addWordform();
-	// rebuild sentences
-	tabContent[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sents.length})`;
-	if (activeEntry.sents.length === 0) {
-		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = `<div class='entry-section-no-content'>No Sentences</div>`;
-	} else {
-		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
-		for (let i = 0; i < activeEntry.sents.length; i++) renderSentence(i);
-	}
-	tabContent[TAB_LEXICON].querySelector('#entry-add-sentence').onclick = () => addSentence();
-	// rebuild notes
-	tabContent[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
-	if (activeEntry.notes.length === 0) {
-		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = `<div class='entry-section-no-content'>No Notes</div>`;
-	} else {
-		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = '';
-		for (let i = 0; i < activeEntry.notes.length; i++) renderNote(i);
-	}
-	tabContent[TAB_LEXICON].querySelector('#entry-add-note').onclick = () => addNote();
+	// rebuild contents
+	renderEditorHeader();
+	renderAllWordforms();
+	renderAllSentences();
+	renderAllNotes();
 	// page events
+	tabContent[TAB_LEXICON].querySelector('#entry-add-wordform').onclick = () => addWordform();
+	tabContent[TAB_LEXICON].querySelector('#entry-add-sentence').onclick = () => addSentence();
+	tabContent[TAB_LEXICON].querySelector('#entry-add-note').onclick = () => addNote();
 	tabContent[TAB_LEXICON].querySelector('#entry-delete').onclick = () => openModalDeleteEntry(i);
 };
 
