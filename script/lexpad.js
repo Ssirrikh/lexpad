@@ -993,7 +993,10 @@ const renderWordform = i => {
 		onchange : () => {
 			if (document.getElementById(`entry-form-${i}-selector`).value === '+') {
 				console.log(`Add New Form, triggered by wordform ${i}`);
-				document.getElementById(`entry-form-${i}-selector`).value = activeEntry.L2[i].form;
+				// console.log(activeEntry.catg);
+				// console.log(activeEntry.L2[i]);
+				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]);
+				// document.getElementById(`entry-form-${i}-selector`).value = activeEntry.L2[i].form;
 			} else {
 				activeEntry.L2[i].formId = document.getElementById(`entry-form-${i}-selector`).value;
 			}
@@ -1600,6 +1603,39 @@ const openModalDeleteNote = (noteId) => {
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalCreateForm = (catg,parent) => {
+	const eModal = document.querySelector('#tpl-modal-create-form').content.firstElementChild.cloneNode(true);
+	// modal content
+	eModal.querySelector('#modal-catg').textContent = project.catgs[catg] || capitalize(catg);
+	eModal.querySelector('select').replaceWith( document.querySelector('#tpl-form-select').content.firstElementChild.cloneNode(true) );
+	// modal actions
+	eModal.querySelector('#modal-action-create').onclick = () => {
+		const formName = eModal.querySelector('#modal-form-name').value;
+		if (!formName) { console.warn('No form name specified. Nothing to create.'); return; }
+		if (!lexicon.L2.forms[catg]) lexicon.L2.forms[catg] = [];
+		if (lexicon.L2.forms[catg].indexOf(formName) !== -1) {
+			console.warn('A form with that name already exists. Nothing to create.');
+			parent.form = lexicon.L2.forms[catg].indexOf(formName);
+		} else {
+			lexicon.L2.forms[catg].push(formName);
+			console.log(lexicon.L2.forms);
+			parent.form = lexicon.L2.forms[catg].length - 1;
+		}
+		console.log(parent);
+		// need to refresh interface, whether we created form or not
+		buildFormSelect(catg);
+		renderAllWordforms();
+		renderAllSentences();
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => {
+		// reset to previously-selected option
+		renderAllWordforms();
+		renderAllSentences();
+		closeModal();
+	};
 	activateModal(eModal);
 };
 

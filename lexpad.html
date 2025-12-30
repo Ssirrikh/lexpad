@@ -697,6 +697,28 @@
 
 
 
+	<template id='tpl-modal-create-form'>
+		<div id='modal' class='flex-col' tabindex='0'>
+			<p class='modal-title'>Create New Form/Case</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Form Name: <span class='subtitle'>(for catg "<span id='modal-catg'>---</span>")</span></p>
+				<input id='modal-form-name' type='text' spellcheck='false'>
+				<p class='subtitle'>Forms are created per-catg to represent case/conjugation/etc. The linguist must decide what forms represent and maintain consistency. Newly-created forms will become available in the dropdown for all entries of the same catg.</p>
+				<div class='stats-separator'></div>
+				<p>List of existing forms, for reference:</p>
+				<select>
+					<option>None</option>
+				</select>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-create' class='button-highlight'>Create Form</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+
+
+
 	<!-- //////////////////////// -->
 
 	<script type='module' src='script/dictionary.js'></script>
