@@ -1,7 +1,9 @@
 {
-	"_WARNING" : "Save a backup of this project before mucking around in here! It will be annoying for everyone involved if you break something and have to call IT about it because you didn't save a backup.",
+	"_WARNING" : "To whoever reads this warning: Save a backup before mucking around in here! It will be annoying for everyone involved if you break something and have to call a techie about it because you didn't save a backup.",
 	"project" : {
 		"lexpadVersion" : "v0.0",
+		"authorship" : "Data collected by Geoff Gamble, with edits/fixes by Chris Golston and Kat Adisasmito-Smith.",
+		"lastEdited" : 1767133020865,
 		"togglePrimary" : false,
 		"activeEntry" : 3,
 		"catgs" : {

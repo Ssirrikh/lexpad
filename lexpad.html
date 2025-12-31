@@ -79,32 +79,40 @@
 	<template id='tpl-project-page'>
 		<div id='r-content' class='flex-col'>
 			<div id='project-lang-info' class='flex-col project-tab-section'>
-				<label id='label-lang-name' for='lang-name'>Language Full Name</label>
+				<label id='label-lang-name' for='lang-name'>Language Full Name <span class='subtitle'>(ex. "English")</span></label>
 				<input id='lang-name' type='text' spellcheck='false'>
-				<label id='label-lang-abbr' for='lang-abbr'>Abbreviation</label>
+				<label id='label-lang-abbr' for='lang-abbr'>Abbreviation <span class='subtitle'>(ex. "eng")</span></label>
 				<input id='lang-abbr' type='text' spellcheck='false'>
 				<p class='subtitle'>2-3 letter abbreviation of language name, for example "eng" for English.</p>
 				<label id='label-lang-alph' for='lang-alph'>Letters</label>
 				<input id='lang-alph' type='text' spellcheck='false'>
 				<p class='subtitle'>Lowercase letters separated by spaces, ie "a á b c ch". Determines alphabetization order and contents of quick-copy bar. Supports multi-character letters.</p>
 				<p class='subtitle'>Note: It is recommended that the linguist decide whether this represents spelling conventions or IPA and maintain consistency throughout their project.</p>
+				<div class='stats-separator'></div>
+				<label for='project-authors'>Project Authorship</label>
+				<input id='project-authors' type='text' spellcheck='false' placeholder='Authorship'>
+				<p class='subtitle'>Credit yourself and your collaborators. Example of recommended format: "Data collected by Mary Sue. Edits/fixes by John Smith and Milo Thatch."</p>
 			</div>
+			<!-- <div id='project-authorship' class='flex-col project-tab-section'>
+				<input id='project-authors' type='text' spellcheck='false' placeholder='Authorship'>
+				<p class='subtitle'>Credit yourself and your collaborators. Example of recommended format: "Data collected by Mary Sue. Edits/fixes by John Smith and Milo Thatch."</p>
+			</div> -->
 			<div id='project-stats' class='flex-col project-tab-section'>
 				<p class='subtitle'>Click any statistic to view it in the search tab.</p>
 				<div class='stats-separator'></div>
 				<div id='project-stats-totals' class='flex-row'>
 					<h2 id='project-stats-num-entries'><span>0</span> Entries</h2>
 					<div class='flex-col'>
-						<button id='project-stats-wordcount-L1' class='flex-row statcount-bubble' title='has:L1'><span>0</span><p>words in L1</p></button>
-						<button id='project-stats-wordcount-L2' class='flex-row statcount-bubble' title='has:L2'><span>0</span><p>words in L2</p></button>
+						<button id='project-stats-wordcount-L1' class='flex-row statcount-bubble' title='Click to search has:L1'><span>0</span><p>words in L1</p></button>
+						<button id='project-stats-wordcount-L2' class='flex-row statcount-bubble' title='Click to search has:L2'><span>0</span><p>words in L2</p></button>
 					</div>
 					<div class='flex-col'>
-						<button id='project-stats-sentence-count' class='flex-row statcount-bubble' title='has:sentence'><span>0</span> Sentences</button>
-						<button id='project-stats-notes-count' class='flex-row statcount-bubble' title='has:note'><span>0</span> Notes</button>
+						<button id='project-stats-sentence-count' class='flex-row statcount-bubble' title='Click to search has:sentence'><span>0</span> Sentences</button>
+						<button id='project-stats-notes-count' class='flex-row statcount-bubble' title='Click to search has:note'><span>0</span> Notes</button>
 					</div>
 					<div class='flex-col'>
-						<button id='project-stats-audio-count' class='flex-row statcount-bubble' title='has:audio'><span>0</span> Entries w/ Audio</button>
-						<button id='project-stats-image-count' class='flex-row statcount-bubble' title='has:image'><span>0</span> Entries w/ Images</button>
+						<button id='project-stats-audio-count' class='flex-row statcount-bubble' title='Click to search has:audio'><span>0</span> Entries w/ Audio</button>
+						<button id='project-stats-image-count' class='flex-row statcount-bubble' title='Click to search has:image'><span>0</span> Entries w/ Images</button>
 					</div>
 				</div>
 				<div class='stats-separator'></div>

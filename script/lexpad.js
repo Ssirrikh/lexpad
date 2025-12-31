@@ -568,6 +568,7 @@ const init = () => {
 		tabContent[TAB_PROJECT].querySelector('#lang-name').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-name');
 		tabContent[TAB_PROJECT].querySelector('#lang-abbr').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
 		tabContent[TAB_PROJECT].querySelector('#lang-alph').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-alph');
+		tabContent[TAB_PROJECT].querySelector('#project-authors').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#project-authors');
 		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markModified();
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
@@ -741,79 +742,91 @@ const updateQuickCopyBar = () => {
 };
 const populateProjectTab = () => {
 	// language data
-	// TODO: onblur events mark project modified if change detected
-	Object.assign(tabContent[TAB_PROJECT].querySelector('#lang-name'), {
-		value : lexicon.L2.name ?? '',
-		onblur : () => {
-			const e = tabContent[TAB_PROJECT].querySelector('#lang-name');
-			if (lexicon.L2.name === e.value) return;
-			console.log(`Lang name changed from "${lexicon.L2.name}" to "${e.value}".`);
-			lexicon.L2.name = e.value;
-			console.log(lexicon.L2);
-		}
-	});
-	Object.assign(tabContent[TAB_PROJECT].querySelector('#lang-abbr'), {
-		value : lexicon.L2.abbr ?? '',
-		onblur : () => {
-			const e = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
-			if (lexicon.L2.abbr === e.value) return;
-			console.log(`Lang abbr changed from "${lexicon.L2.abbr}" to "${e.value}".`);
-			lexicon.L2.abbr = e.value;
-			console.log(lexicon.L2);
-		}
-	});
-	Object.assign(tabContent[TAB_PROJECT].querySelector('#lang-alph'), {
-		value : lexicon.L2.alph ?? '',
-		onblur : () => {
-			const e = tabContent[TAB_PROJECT].querySelector('#lang-alph');
-			if (lexicon.L2.alph === e.value) return;
-			console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${e.value}".`);
-			lexicon.L2.alph = e.value;
-			console.log(lexicon.L2);
-			populateQuickCopyBar();
-		}
-	});
-	// project statistics
-	const searchTag = (tag) => {
-		console.log(`Search tab "${tag}"`);
-		// switch tabs
-		renderTab(TAB_SEARCH);
-		// clear search
-		searchSettings.reset();
-		searchSettings.set(tag);
-		renderSearchFilters();
-		tabContent[TAB_SEARCH].querySelector(`#search-bar > input`).value = '';
-		// load results by clicking submit button, since calling form.submit() reloads page inspite of event.preventDefault())
-		tabContent[TAB_SEARCH].querySelector(`#search-bar > button`).click();
-		// tabContent[TAB_SEARCH].querySelector(`#search-bar`).submit();
+	renderProjectInfo();
+	tabContent[TAB_PROJECT].querySelector('#lang-name').onblur = () => {
+		const e = tabContent[TAB_PROJECT].querySelector('#lang-name');
+		if (lexicon.L2.name === e.value) return;
+		console.log(`Lang name changed from "${lexicon.L2.name}" to "${e.value}".`);
+		lexicon.L2.name = e.value;
+		markModified();
 	};
+	tabContent[TAB_PROJECT].querySelector('#lang-abbr').onblur = () => {
+		const e = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
+		if (lexicon.L2.abbr === e.value) return;
+		console.log(`Lang abbr changed from "${lexicon.L2.abbr}" to "${e.value}".`);
+		lexicon.L2.abbr = e.value;
+		markModified();
+	};
+	tabContent[TAB_PROJECT].querySelector('#lang-alph').onblur = () => {
+		const e = tabContent[TAB_PROJECT].querySelector('#lang-alph');
+		if (lexicon.L2.alph === e.value) return;
+		console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${e.value}".`);
+		lexicon.L2.alph = e.value;
+		markModified();
+		populateQuickCopyBar();
+	};
+	tabContent[TAB_PROJECT].querySelector('#project-authors').onblur = () => {
+		const e = tabContent[TAB_PROJECT].querySelector('#project-authors');
+		if (project.authorship === e.value) return;
+		console.log(`Authorship info changed from "${project.authorship}" to "${e.value}".`);
+		project.authorship = e.value;
+		markModified();
+	};
+	// project statistics
+	renderProjectStats();
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1').onclick = () => searchTag('has:L1');
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2').onclick = () => searchTag('has:L2');
+	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count').onclick = () => searchTag('has:sentence');
+	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count').onclick = () => searchTag('has:note');
+	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count').onclick = () => searchTag('has:audio');
+	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count').onclick = () => searchTag('has:image');
+};
+
+// clear search tab, then run search for specified tag
+const searchTag = (tag) => {
+	console.log(`Search tab "${tag}"`);
+	// switch tabs
+	renderTab(TAB_SEARCH);
+	// clear search
+	searchSettings.reset();
+	searchSettings.set(tag);
+	renderSearchFilters();
+	tabContent[TAB_SEARCH].querySelector(`#search-bar > input`).value = '';
+	// load results by clicking submit button, since calling form.submit() reloads page inspite of event.preventDefault())
+	tabContent[TAB_SEARCH].querySelector(`#search-bar > button`).click();
+	// tabContent[TAB_SEARCH].querySelector(`#search-bar`).submit();
+};
+
+const renderProjectInfo = () => {
+	tabContent[TAB_PROJECT].querySelector('#lang-name').value = lexicon.L2.name ?? '';
+	tabContent[TAB_PROJECT].querySelector('#lang-abbr').value = lexicon.L2.abbr ?? '';
+	tabContent[TAB_PROJECT].querySelector('#lang-alph').value = lexicon.L2.alph ?? '';
+	tabContent[TAB_PROJECT].querySelector('#project-authors').value = project.authorship ?? '';
+};
+const renderProjectStats = () => {
 	const stats = lexicon.calculateStatistics(); // guaranteed complete, doesn't req checks for props
 	console.log(stats);
+	// entry contents
 	tabContent[TAB_PROJECT].querySelector('#project-stats-num-entries > span').textContent = stats.numEntries ?? '??';
 	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1 > span').textContent = stats.wordCounts?.L1 ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1').onclick = () => searchTag('has:L1');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2 > span').textContent = stats.wordCounts?.L2 ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2').onclick = () => searchTag('has:L2');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count > span').textContent = stats.numSentences ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count').onclick = () => searchTag('has:sentence');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count > span').textContent = stats.numNotes ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count').onclick = () => searchTag('has:note');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count > span').textContent = stats.mediaCounts.audioEntries ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count').onclick = () => searchTag('has:audio');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count > span').textContent = stats.mediaCounts.imageEntries ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count').onclick = () => searchTag('has:image');
+	// catgs
 	const eStatsCatgs = tabContent[TAB_PROJECT].querySelector('#project-stats-catgs');
 	eStatsCatgs.innerHTML = '';
 	for (let catg in stats.catgCounts) {
 		let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
-			e.title = `catg:${catg}`;
+			e.title = `Click to search catg:${catg}`;
 			e.onclick = () => searchTag(`catg:${catg}`);
 			e.querySelector('.catg-bubble-label').textContent = project.catgs[catg] ?? catg;
 			e.querySelector('.catg-bubble-count').textContent = stats.catgCounts[catg];
 		eStatsCatgs.appendChild(e);
 	}
 	let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
-		e.title = `catg:misc`;	
+		e.title = `Click to search catg:misc`;	
 		e.onclick = () => searchTag(`catg:misc`);
 		e.querySelector('.catg-bubble-label').textContent = 'MISC';
 		e.querySelector('.catg-bubble-count').textContent = stats.catgMiscCount
