@@ -188,6 +188,15 @@ const openProject = (win) => {
 
 
 
+// tutorials
+const openKeyboardShortcutReference = (win) => {
+	console.log('Main requests open keyboard shortcut reference.');
+	if (!win) { console.warn('Did not specify window to send signal to. Cannot open keyboard shortcut reference.'); return; };
+	win.webContents.send('main-open-keyboard-shortcuts');
+};
+
+
+
 //// APP COMPONENTS ////
 
 	
@@ -284,54 +293,16 @@ const createWindow = () => {
 					label : 'New Project',
 					accelerator : 'CmdOrCtrl+N',
 					click : () => createProject(win)
-					// click : () => {
-					// 	console.log('Trigger create new project...');
-					// 	if (activeFile.isOpen && activeFile.modified) {
-					// 		// PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]
-					// 			// if (choice==Save) saveProject();
-					// 			// else if (choice==Discard) continue; // save temp file?
-					// 			// else return;
-					// 		console.log('PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]');
-					// 		return;
-					// 	}
-					// 	// changes were either saved or discarded; trigger new project dialogue
-					// 	// console.log('DIALOGUE New Project "Select location to create project directory:"');
-					// 	console.log('TRIGGER create new project');
-					// 	win.webContents.send('trigger-create-project');
-					// 	activeFile.isOpen = true;
-					// }
 				},
 				{
 					label : 'Open Project',
 					accelerator : 'CmdOrCtrl+O',
 					click : () => openProject(win)
-					// click : () => {
-					// 	console.log('Trigger open project...');
-					// 	if (activeFile.isOpen && activeFile.modified) {
-					// 		// PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]
-					// 			// if (choice==Save) saveProject();
-					// 			// else if (choice==Discard) continue; // save temp file?
-					// 			// else return;
-					// 		console.log('PROMPT "You have unsaved changes." [Save, Discard Changes, Cancel]');
-					// 		return;
-					// 	}
-					// 	// changes were either saved or discarded; trigger open file dialogue
-					// 	console.log('DIALOGUE Open Project');
-					// 	activeFile.isOpen = true;
-					// }
 				},
 				{
 					label : 'Save',
 					accelerator : 'CmdOrCtrl+S',
 					click : () => saveProject(win)
-					// click : () => {
-					// 	console.log('Trigger save project...');
-					// 	if (activeFile.isOpen) {
-					// 		// save project
-					// 		activeFile.modified = false;
-					// 		console.log('Project saved!');
-					// 	}
-					// }
 				},
 				{
 					label : 'Save As',
@@ -349,10 +320,6 @@ const createWindow = () => {
 					label : 'DBG Mark Modified',
 					accelerator : 'CmdOrCtrl+M',
 					click : () => markModified(win)
-					// click : () => {
-					// 	console.log('DBG Mark project as modified to simulate unsaved changes.');
-					// 	if (activeFile.isOpen) activeFile.modified = true;
-					// }
 				},
 				{ type: 'separator' },
 				// {
@@ -465,7 +432,7 @@ const createWindow = () => {
 				{
 					label : 'Keyboard Shortcut Reference',
 					accelerator : 'CmdOrCtrl+K',
-					click : () => console.log('Open keyboard shortcut list (or settings page?)...')
+					click : () => openKeyboardShortcutReference(win)
 				},
 				{ type: 'separator' },
 				{

@@ -1106,6 +1106,8 @@ const renderSentence = i => {
 		for (let i = 0; i < activeEntry.sents.length; i++) renderSentence(i);
 	};
 	// sentences
+	e.querySelector('.entry-sentence-label-L1').textContent = capitalize(lexicon.L1.abbr || 'L1');
+	e.querySelector('.entry-sentence-label-L2').textContent = capitalize(lexicon.L2.abbr || 'L2');
 	Object.assign(e.querySelector('.entry-sentence-L1'), {
 		id : `entry-sentence-${i}-L1`,
 		value : activeEntry.sents[i].L1,
@@ -1229,6 +1231,23 @@ window.addEventListener('click', e => {
 		toggleMenu(e, undefined); // if a menu was open and we clicked something unrelated to menus, close it
 	}
 });
+window.addEventListener('keydown', e => {
+	if (e.key === 'Escape') {
+		if (isTutorialOpen) {
+			closeTutorial();
+		} else if (isModalOpen) {
+			closeModal();
+		// TODO: else, close popup banner
+		} else if (activeMenu) {
+			toggleMenu({stopPropagation:()=>{}}, activeMenu); // stub evt to prevent errors
+		}
+		// prio order:
+			// tutorial
+			// modal
+			// popup notification
+			// options menu
+	}
+});
 
 // search tab
 const populateSearchTab = () => {
@@ -1343,10 +1362,11 @@ const renderSearchFilters = () => {
 //// MODALS ////
 
 let isModalOpen = false; // allow [Esc] to close open modal
+let isTutorialOpen = false;
 
 const closeModal = () => {
-	document.querySelector('#modal-wrapper').inert = true; // make uninteractive
-	document.querySelector('#modal-wrapper').classList.add('hidden'); // hide
+	document.querySelector('#popup-wrapper').inert = true; // make uninteractive
+	document.querySelector('#popup-wrapper').classList.add('hidden'); // hide
 	document.querySelector('#modal').innerHTML = '[no modal content]'; // reset contents
 	// TODO: make main content interactible
 	document.querySelector('#main').inert = false;
@@ -1355,14 +1375,41 @@ const closeModal = () => {
 };
 const activateModal = (modal) => {
 	if (!modal) return;
-	document.querySelector('#modal-wrapper').innerHTML = ''; // clear previous contents, if any
-	document.querySelector('#modal-wrapper').appendChild(modal); // add modal to DOM
-	document.querySelector('#modal-wrapper').inert = false; // make interactible
-	document.querySelector('#modal-wrapper').classList.remove('hidden'); // make visible
+	document.querySelector('#popup-wrapper').innerHTML = ''; // clear previous contents, if any
+	document.querySelector('#popup-wrapper').appendChild(modal); // add modal to DOM
+	document.querySelector('#popup-wrapper').inert = false; // make interactible
+	document.querySelector('#popup-wrapper').classList.remove('hidden'); // make visible
 	// TODO: make main content uninteractible (focus trap)
 	document.querySelector('#main').inert = true;
 	modal.focus();
 	isModalOpen = true;
+};
+const closeTutorial = () => {
+	document.querySelector('#tutorial-wrapper').inert = true; // make uninteractive
+	document.querySelector('#tutorial-wrapper').classList.add('hidden'); // hide
+	document.querySelector('#tutorial').innerHTML = '[no tutorial content]'; // reset contents
+	// TODO: make main content interactible
+	document.querySelector('#main').inert = false;
+	// TODO: focus management should return to active tab
+	isTutorialOpen = false;
+};
+const activateTutorial = (modal) => {
+	if (!modal) return;
+	document.querySelector('#tutorial-wrapper').innerHTML = ''; // clear previous contents, if any
+	document.querySelector('#tutorial-wrapper').appendChild(modal); // add modal to DOM
+	document.querySelector('#tutorial-wrapper').inert = false; // make interactible
+	document.querySelector('#tutorial-wrapper').classList.remove('hidden'); // make visible
+	// TODO: make main content uninteractible (focus trap)
+	document.querySelector('#main').inert = true;
+	modal.focus();
+	isTutorialOpen = true;
+};
+
+// keyboard shortcut reference
+const openTutorialKeyboardShortcuts = () => {
+	const eModal = document.querySelector('#tpl-keyboard-shortcuts').content.firstElementChild.cloneNode(true);
+	eModal.querySelector('.icon-x').onclick = () => closeTutorial();
+	activateTutorial(eModal);
 };
 
 // project management modals
@@ -1958,6 +2005,12 @@ window.electronAPI.onTriggerTab(tabId => {
 	renderTab(tabId);
 });
 
+// tutorials/references
+window.electronAPI.onMainOpenKeyboardShortcuts(() => {
+	console.log(`IPC trigger: Open keyboard shortcut reference.`);
+	openTutorialKeyboardShortcuts();
+});
+
 
 
 
@@ -1982,81 +2035,6 @@ init();
 // lexicon.checkUnderlying(); // 88,99
 
 
-
-
-
-
-
-
-///////////////////////////////////////
-
-
-
-// // modals
-
-// let activeModal = null;
-// const showModal  = () => {
-//     closeModal();
-//     activeModal = document.getElementById('tpl-modal').content.firstElementChild.cloneNode(true); // clone firstElementChild so activeModal is actual element and not document fragment
-//     activeModal.querySelector('#modal-actions button').onclick = () => closeModal();
-//     document.body.appendChild(activeModal);
-// };
-// const closeModal = () => {
-//     if (activeModal) {
-//         console.log('Scrubing modal...');
-//         activeModal.remove();
-//         activeModal = null; // element should be garbage collected
-//     }
-// }
-
-
-
-
-
-// const toggleMenu = (evt,menuId) => {
-//     evt.stopPropagation(); // menu closes when user clicks outside it, so block that if user clicked explicit menu trigger
-	
-//     // console.log(`Current menu is "${activeMenu}". Toggling menu "${menuId}"...`);
-	
-//     if (!menuId) {
-//         // no menu targetted -> close active menu, if any
-//         if (activeMenu) {
-//             // console.log(`No menu targetted. Closing prev menu...`);
-//             tabContent[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
-//             activeMenu = undefined;
-//         } else {
-//             console.log(`No menu targetted. No open menues need closing.`);
-//         }
-//     } else if (menuId === activeMenu) {
-//         // this menu already open -> close it
-//         // console.log(`Menu already open. Toggling closed...`);
-//         tabContent[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
-//         activeMenu = undefined;
-//     } else {
-//         // diff menu already open -> close it
-//         if (activeMenu) {
-//             // console.log(`Closing menu "${activeMenu}"...`);
-//             tabContent[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
-//         }
-//         // open target menu
-//         // console.log(`Opening menu "${menuId}"...`);
-//         tabContent[TAB_LEXICON].querySelector(menuId).style.visibility = 'visible';
-//         activeMenu = menuId;
-//     }
-
-//     // clicked inside menu -> do nothing
-//     // clicked menu trigger
-//         // if this menu already open -> close it
-//         // if a diff menu open -> close that menu, then open this one
-//         // if no menu is open -> open this menu
-//     // clicked somewhere else -> close open menu, if any
-
-// };
-// window.addEventListener('click', e => {
-//     if (activeMenu && !tabContent[TAB_LEXICON].querySelector(activeMenu).contains(e.target)) {
-//         toggleMenu(e, undefined); // if a menu was open and we clicked something unrelated to menus, close it
-//     }
-// });
 
 
 

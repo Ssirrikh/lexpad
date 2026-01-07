@@ -36,6 +36,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	
 	// I/O
 	listMedia : (path) => ipcRenderer.invoke('list-media', path),
+
+	// Tutorials
+	onMainOpenKeyboardShortcuts : (callback) => ipcRenderer.on('main-open-keyboard-shortcuts', (evt) => callback()),
+
 	// database access
 	// getLangInfo : () => ipcRenderer.invoke('get-lang-info'),
 	// getOrderedWords : () => ipcRenderer.invoke('get-ordered-words'),

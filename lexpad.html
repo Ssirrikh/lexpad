@@ -44,9 +44,20 @@
 			</div>
 		</div>
 	</div>
-	<div id='modal-wrapper' class='flex-col flex-centered no-scrollbar hidden' inert>
-		<div id='modal' class='flex-col' tabindex='0'>
+	<div id='popup-wrapper' class='flex-col flex-centered modal-wrapper no-scrollbar hidden' inert>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p>Initializing LexPad...</p>
+		</div>
+	</div>
+	<div id='tutorial-wrapper' class='flex-col flex-centered modal-wrapper no-scrollbar hidden' inert>
+		<div id='tutorial' class='flex-col modal' tabindex='0'>
+			<div class='flex-row'>
+				<p id='tutorial-title'>Tutorial Title</p>
+				<div class='flex-sep'></div>
+				<button class='icon icon-x hover-white' title='Close tutorial'></button>
+			</div>
+			<div class='stats-separator'></div>
+			<div id='tutorial-content' class='flex-col'>[tutorial contents]</div>
 		</div>
 	</div>
 
@@ -83,7 +94,7 @@
 				<input id='lang-name' type='text' spellcheck='false'>
 				<label id='label-lang-abbr' for='lang-abbr'>Abbreviation <span class='subtitle'>(ex. "eng")</span></label>
 				<input id='lang-abbr' type='text' spellcheck='false'>
-				<p class='subtitle'>2-3 letter abbreviation of language name, for example "eng" for English.</p>
+				<!-- <p class='subtitle'>2-3 letter abbreviation of language name, for example "eng" for English.</p> -->
 				<label id='label-lang-alph' for='lang-alph'>Letters</label>
 				<input id='lang-alph' type='text' spellcheck='false'>
 				<p class='subtitle'>Lowercase letters separated by spaces, ie "a á b c ch". Determines alphabetization order and contents of quick-copy bar. Supports multi-character letters.</p>
@@ -91,7 +102,7 @@
 				<div class='stats-separator'></div>
 				<label for='project-authors'>Project Authorship</label>
 				<input id='project-authors' type='text' spellcheck='false' placeholder='Authorship'>
-				<p class='subtitle'>Credit yourself and your collaborators. Example of recommended format: "Data collected by Mary Sue. Edits/fixes by John Smith and Milo Thatch."</p>
+				<p class='subtitle'>Example: "Data collected by Mary Sue. Edits/fixes by John Smith and Milo Thatch."</p>
 			</div>
 			<!-- <div id='project-authorship' class='flex-col project-tab-section'>
 				<input id='project-authors' type='text' spellcheck='false' placeholder='Authorship'>
@@ -474,11 +485,11 @@
 				<button class='menu-option-caution'>Delete Sentence</button>
 			</div>
 			<div class='flex-row'>
-				<label>Wik</label>
+				<label class='entry-sentence-label-L2'>Wik</label>
 				<input class='entry-sentence-L2' type='text' spellcheck='false'>
 			</div>
 			<div class='flex-row'>
-				<label>Eng</label>
+				<label class='entry-sentence-label-L1'>Eng</label>
 				<input class='entry-sentence-L1' type='text'>
 			</div>
 		</div>
@@ -495,11 +506,11 @@
 		</div>
 	</template>
 
-	<!-- MODALS -->
+	<!-- POPUP MODALS -->
 
 	<!-- generic modals -->
 	<template id='tpl-modal-alert'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Alert</p>
 			<div id='modal-content' class='flex-col'>
 				<p>No alert message specified.</p>
@@ -512,7 +523,7 @@
 
 	<!-- project management modals -->
 	<template id='tpl-modal-unsaved-changes'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Unsaved Changes</p>
 			<div id='modal-content' class='flex-col'>
 				<p>You have unsaved changes. Do you want to save before continuing?</p>
@@ -526,7 +537,7 @@
 		</div>
 	</template>
 	<template id='tpl-modal-create-project'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Create New Project</p>
 			<div id='modal-content' class='flex-col'>
 				<div class='flex-col modal-section'>
@@ -561,7 +572,7 @@
 
 	<!-- lexicon tab modals -->
 	<template id='tpl-modal-create-entry'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Create New Lexicon Entry</p>
 			<div id='modal-content' class='flex-col'>
 				<p>Select entry catg:</p>
@@ -584,7 +595,7 @@
 		</div>
 	</template>
 	<template id='tpl-modal-delete-entry'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Delete Entry</p>
 			<div id='modal-content' class='flex-col'>
 				<p>Are you sure you want to delete this entry? This action is <span class='warning'>PERMANENT</span> and cannot be undone.</p>
@@ -597,7 +608,7 @@
 		</div>
 	</template>
 	<template id='tpl-modal-manage-images'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Manage Images</p>
 			<div id='modal-content' class='flex-col'>
 				<div id='modal-image-manager' class='flex-row'>
@@ -614,7 +625,7 @@
 		</div>
 	</template>
 	<template id='tpl-modal-manage-audio'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Manage Audio</p>
 			<div id='modal-content' class='flex-col'>
 				<div id='modal-audio-manager' class='flex-col'>
@@ -647,7 +658,7 @@
 	</template>
 	<!-- delete entry field -->
 	<template id='tpl-modal-delete-wordform'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Delete Wordform</p>
 			<div id='modal-content' class='flex-col'>
 				<p>Are you sure you want to delete this wordform?</p>
@@ -664,7 +675,7 @@
 		</div>
 	</template>
 	<template id='tpl-modal-delete-sentence'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Delete Sentence</p>
 			<div id='modal-content' class='flex-col'>
 				<p>Are you sure you want to delete this sentence?</p>
@@ -687,7 +698,7 @@
 		</div>
 	</template>
 	<template id='tpl-modal-delete-note'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Delete Note</p>
 			<div id='modal-content' class='flex-col'>
 				<p>Are you sure you want to delete this note?</p>
@@ -706,7 +717,7 @@
 
 
 	<template id='tpl-modal-create-form'>
-		<div id='modal' class='flex-col' tabindex='0'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Create New Form/Case</p>
 			<div id='modal-content' class='flex-col'>
 				<p>Form Name: <span class='subtitle'>(for catg "<span id='modal-catg'>---</span>")</span></p>
@@ -721,6 +732,97 @@
 			<div id='modal-actions' class='flex-row'>
 				<button id='modal-action-create' class='button-highlight'>Create Form</button>
 				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+
+
+
+	<!-- TUTORIAL/REFERENCE MODALS -->
+
+	<template id='tpl-keyboard-shortcuts'>
+		<div id='tutorial' class='flex-col modal unbounded' tabindex='0'>
+			<!-- <p class='modal-title'>Keyboard Shortcut Reference</p> -->
+			<div class='flex-row modal-title'>
+				<p id='modal-title-text'>Keyboard Shortcut Reference</p>
+				<div class='flex-sep'></div>
+				<button class='icon icon-x hover-white' title='Close reference sheet'></button>
+			</div>
+			<div class='flex-row modal-columns'>
+				<div class='flex-col'>
+					<!-- proj -->
+					<div class='ref-section-title'>Project</div>
+					<div class='flex-row ref-section' title='Create a new blank LexPad project. If a project is already open, you will be prompted to save.'>
+						<p>New Project</p><p>Ctrl + N</p>
+					</div>
+					<div class='flex-row ref-section' title='Select an existing LexPad project and open it. If a project is already open, you will be prompted to save.'>
+						<p>Open Project</p><p>Ctrl + O</p>
+					</div>
+					<div class='flex-row ref-section' title='Save any changes made to the current project.'>
+						<p>Save Project</p><p>Ctrl + S</p>
+					</div>
+					<div class='flex-row ref-section' title='Copy project contents into a new project file.'>
+						<p>Save As New Project</p><p>Ctrl + Shift + S</p>
+					</div>
+					<div class='flex-row ref-section' title='Close the current project. If it has unsaved changes, you will be prompted to save.'>
+						<p>Quit LexPad</p><p>Ctrl + Q</p>
+					</div>
+					<!-- edit -->
+					<div class='ref-section-title'>Editing</div>
+					<div class='flex-row ref-section' title='While in a textbox, undo prior actions one by one.'>
+						<p>Undo Action</p><p>Ctrl + Z</p>
+					</div>
+					<div class='flex-row ref-section' title='While in a textbox, redo prior actions that were undone.'>
+						<p>Redo Action</p><p>Ctrl + Y</p>
+					</div>
+					<div class='flex-row ref-section' title='While in a textbox, select all text in that box. Otherwise, select all text in the active tab.'>
+						<p>Select All Text</p><p>Ctrl + A</p>
+					</div>
+					<div class='flex-row ref-section' title='Copy selected text to the clipboard for pasting.'>
+						<p>Copy Text</p><p>Ctrl + C</p>
+					</div>
+					<div class='flex-row ref-section' title='Copy selected text to the clipboard for pasting, then delete the selected text from its original location.'>
+						<p>Cut Text</p><p>Ctrl + X</p>
+					</div>
+					<div class='flex-row ref-section' title='Paste the contents of the clipboard into a textbox.'>
+						<p>Paste Text</p><p>Ctrl + V</p>
+					</div>
+				</div>
+				<div class='flex-col'>
+					<!-- display -->
+					<div class='ref-section-title'>Display</div>
+					<div class='flex-row ref-section' title='Zoom in by one step, making text larger but allowing less to fit onscreen.'>
+						<p>Zoom In</p><p>Ctrl + =</p>
+					</div>
+					<div class='flex-row ref-section' title='Zoom out by one step, making text smaller but allowing more to fit onscreen'>
+						<p>Zoom Out</p><p>Ctrl + -</p>
+					</div>
+					<div class='flex-row ref-section' title='Reset zoom to the default level.'>
+						<p>Reset Zoom</p><p>Ctrl + 0</p>
+					</div>
+					<div class='flex-row ref-section' title='Toggle in and out of fullscreen mode.'>
+						<p>Toggle Fullscreen Mode</p><p>F11</p>
+					</div>
+					<!-- nav -->
+					<div class='ref-section-title'>Navigation</div>
+					<div class='flex-row ref-section' title='Switch to the Project Tab, where you can add information about your language and view statistics about your database.'>
+						<p>Project Tab</p><p>Ctrl + 1</p>
+					</div>
+					<div class='flex-row ref-section' title='Switch to the Lexicon Tab, where you can add words, example sentences, and media to your database.'>
+						<p>Lexicon Tab</p><p>Ctrl + 2</p>
+					</div>
+					<div class='flex-row ref-section' title='Switch to the Search Tab, where you can use filters to perform advanced searches of your database.'>
+						<p>Search Tab</p><p>Ctrl + 3</p>
+					</div>
+					<!-- ref -->
+					<div class='ref-section-title'>Settings</div>
+					<div class='flex-row ref-section' title='Open the LexPad Settings page, where you can change the way LexPad looks or behaves.'>
+						<p>LexPad Settings</p><p>Ctrl + ,</p>
+					</div>
+					<div class='flex-row ref-section' title='Open this reference page.'>
+						<p>Keyboard Shortcut Reference</p><p>Ctrl + K</p>
+					</div>
+				</div>
 			</div>
 		</div>
 	</template>

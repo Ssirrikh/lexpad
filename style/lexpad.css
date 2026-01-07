@@ -289,7 +289,7 @@ select:focus-visible {
 
 /**** MODALS ****/
 
-#modal-wrapper {
+.modal-wrapper {
     background-color: #00000066;
     z-index: var(--layer-overlay);
     position: absolute;
@@ -299,7 +299,7 @@ select:focus-visible {
     height: 100%;
     font-size: 0.8em;
 }
-#modal {
+.modal {
     background-color: var(--bg-light);
     /* border: thin solid var(--primary-dark); */
     /* border: thin solid var(--primary-highlight); */
@@ -310,9 +310,14 @@ select:focus-visible {
     padding: 1em;
     width: min(24em, 50%);
     min-width: 20em;
+    max-height: calc(100% - 2em);
     gap: 0.5em;
 }
-#modal:focus-visible {
+.modal.unbounded {
+    width: fit-content;
+    max-width: calc(100% - 2em);
+}
+.modal:focus-visible {
     outline: medium solid var(--primary-highlight);
 }
 #modal-content {
@@ -323,6 +328,10 @@ select:focus-visible {
     border-bottom: thin solid var(--border-dark);
     padding-bottom: 0.25em;
     font-size: 1.25em;
+}
+.modal-columns {
+    align-items: start;
+    gap: 1em;
 }
 #modal-actions {
     justify-content: end;
@@ -386,6 +395,28 @@ select:focus-visible {
 }
 #modal-add-audio {
     width: fit-content;
+}
+
+
+
+.ref-section-title {
+    border-bottom: thin solid var(--border-dark);
+    padding: 0.15em;
+    font-size: 1.2em;
+}
+.ref-section {
+    justify-content: space-between;
+    gap: 1em;
+}
+.ref-section > p:nth-child(2) {
+    color: var(--text-subtitle);
+    font-size: 0.8em;
+}
+.ref-section + .ref-section-title {
+    margin-top: 1em;
+}
+.ref-section-title + .ref-section {
+    margin-top: 0.15em;
 }
 
 
