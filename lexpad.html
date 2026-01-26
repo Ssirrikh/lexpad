@@ -88,26 +88,22 @@
 	</template>
 
 	<template id='tpl-project-page'>
-		<div id='r-content' class='flex-col'>
+		<div id='r-content' class='flex-col padded'>
 			<div id='project-lang-info' class='flex-col project-tab-section'>
 				<label id='label-lang-name' for='lang-name'>Language Full Name <span class='subtitle'>(ex. "English")</span></label>
 				<input id='lang-name' type='text' spellcheck='false'>
 				<label id='label-lang-abbr' for='lang-abbr'>Abbreviation <span class='subtitle'>(ex. "eng")</span></label>
 				<input id='lang-abbr' type='text' spellcheck='false'>
 				<!-- <p class='subtitle'>2-3 letter abbreviation of language name, for example "eng" for English.</p> -->
-				<label id='label-lang-alph' for='lang-alph'>Letters</label>
+				<label id='label-lang-alph' for='lang-alph'>Letters <span class='subtitle'>(ex. "a á b c ch")</span></label>
 				<input id='lang-alph' type='text' spellcheck='false'>
-				<p class='subtitle'>Lowercase letters separated by spaces, ie "a á b c ch". Determines alphabetization order and contents of quick-copy bar. Supports multi-character letters.</p>
-				<p class='subtitle'>Note: It is recommended that the linguist decide whether this represents spelling conventions or IPA and maintain consistency throughout their project.</p>
+				<p class='subtitle'>Determines alphabetization order. Multi-character and non-english letters will appear in quick-copy bar.</p>
+				<p class='subtitle'>You should choose what this represents (spelling convention, IPA, APA, etc) and stay consistent.</p>
 				<div class='stats-separator'></div>
-				<label for='project-authors'>Project Authorship</label>
+				<label for='project-authors'>Project Authorship <span class='subtitle'>(ex. "Data collected by Mary Sue. Corrections by John Smith.")</span></label>
 				<input id='project-authors' type='text' spellcheck='false' placeholder='Authorship'>
-				<p class='subtitle'>Example: "Data collected by Mary Sue. Edits/fixes by John Smith and Milo Thatch."</p>
+				<!-- <p class='subtitle'>Example: "Data collected by Mary Sue. Edits/fixes by John Smith and Milo Thatch."</p> -->
 			</div>
-			<!-- <div id='project-authorship' class='flex-col project-tab-section'>
-				<input id='project-authors' type='text' spellcheck='false' placeholder='Authorship'>
-				<p class='subtitle'>Credit yourself and your collaborators. Example of recommended format: "Data collected by Mary Sue. Edits/fixes by John Smith and Milo Thatch."</p>
-			</div> -->
 			<div id='project-stats' class='flex-col project-tab-section'>
 				<p class='subtitle'>Click any statistic to view it in the search tab.</p>
 				<div class='stats-separator'></div>
@@ -127,25 +123,74 @@
 					</div>
 				</div>
 				<div class='stats-separator'></div>
-				<!-- <p class='subtitle'>Click any statistic to view it in the search tab.</p> -->
 				<div id='project-stats-catgs' class='flex-row'>
 					<button class='flex-row catg-bubble'>
 						<p class='catg-bubble-label'>MISC</p>
 						<p class='catg-bubble-count'>0</p>
 					</button>
 				</div>
-				<!-- <p id='project-stats-tooltip'>Click any statistic to view it in the search tab.</p> -->
+			</div>
+			<div class='flex-col project-tab-section'>
+				<div id='project-forms-header' class='flex-row'>
+					<p>X forms across Y catgs</p>
+					<button id='project-new-catg' class='button-highlight' title='Create new catg. It will become available in the dropdown menu when creating lexicon entries.'>New Catg</button>
+				</div>
+				<div class='stats-separator'></div>
+				<div id='project-forms' class='flex-col'>
+					<p>[no catgs]</p>
+				</div>
 			</div>
 			<p id='project-coming-soon'>More project statistics coming soon...</p>
 			<button id='dbg-mark-modified' class='button-highlight'>DBG Mark Modified</button>
+			<button id='dbg-trigger' class='button-highlight'>DBG Trigger Action</button>
 		</div>
 	</template>
 
+	<!-- project stats section -->
 	<template id='tpl-catg-bubble'>
 		<button class='flex-row catg-bubble'>
 			<p class='catg-bubble-label'>Catg</p>
 			<p class='catg-bubble-count'>0</p>
 		</button>
+	</template>
+
+	<!-- project catgs section -->
+	<template id='tpl-project-catg'>
+		<div class='flex-col'>
+			<div class='flex-row project-catg-header'>
+				<div class='flex-row'>
+					<p class='project-catg-name'>Catg</p>
+					<p class='subtitle project-catg-abbr'>ctg.</p>
+					<p class='project-catg-formcount'>(0)</p>
+				</div>
+				<div class='flex-row row-actions'>
+					<button class='icon icon-plus hover-dark'></button>
+					<button class='icon icon-tridot hover-white'></button>
+				</div>
+				<div class='flex-col options-menu'>
+					<button class='menu-option-standard'>Edit Catg</button>
+					<div class='menu-separator'></div>
+					<button class='menu-option-caution'>Delete Catg</button>
+				</div>
+			</div>
+			<div class='flex-col project-catg-forms'>
+				<div class='flex-row'>
+					<p class='project-catg-no-forms'>[no forms]</p>
+				</div>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-project-catg-form'>
+		<div class='flex-row project-catg-form'>
+			<p class='subtitle catg-form-id'>Form n</p>
+			<input class='catg-form-name' type='text'>
+			<div class='flex-row row-actions'>
+				<button class='icon icon-tridot hover-white'></button>
+			</div>
+			<div class='flex-col options-menu'>
+				<button class='menu-option-caution'>Delete Form</button>
+			</div>
+		</div>
 	</template>
 
 	<!-- LEXICON TAB TEMPLATES -->
@@ -382,7 +427,7 @@
 	<template id='tpl-entry-editor'>
 		<div id='entry-editor' class='flex-col'>
 			<div id='entry-header' class='flex-row'>
-				<label for='entry-L1'>English Word(s)</label>
+				<label id='entry-L1-label' for='entry-L1'>English Word(s)</label>
 				<input id='entry-L1' type='text'>
 				<div class='flex-row flex-fill'>
 					<p id='entry-catg'>---</p>
@@ -565,6 +610,51 @@
 			</div>
 			<div id='modal-actions' class='flex-row'>
 				<button id='modal-action-create' class='button-highlight'>Create</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+
+	<!-- project tab modals -->
+	<template id='tpl-modal-create-catg'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
+			<p class='modal-title'>Create New Catg</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Catg Full Name: <span class='subtitle'>(ex. "Adjective")</span></p>
+				<input id='modal-catg-name' type='text' spellcheck='false'>
+				<p>Catg Abbreviation: <span class='subtitle'>(ex. "adj")</span></p>
+				<input id='modal-catg-abbr' type='text' spellcheck='false'>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-confirm' class='button-highlight'>Create Catg</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-delete-catg'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
+			<p class='modal-title'>Delete Catg</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Are you sure you want to delete the following catg?</p>
+				<p>"<span id='modal-catg-name'>Name</span>" (<span id='modal-catg-abbr'>abbr</span>)</p>
+				<p class='subtitle'>Note that in entries of this catg, you may have assigned a specific form to words/sentences. Deleting this catg will reset those form assignments.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-confirm' class='button-caution'>Delete Catg</button>
+				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
+			</div>
+		</div>
+	</template>
+	<template id='tpl-modal-delete-catg-form'>
+		<div id='modal' class='flex-col modal' tabindex='0'>
+			<p class='modal-title'>Delete Form</p>
+			<div id='modal-content' class='flex-col'>
+				<p>Are you sure you want to delete the following form?</p>
+				<p>Form #<span id='modal-catg-form-num'>X</span> "<span id='modal-catg-form-name'>Formname</span>" of catg "<span id='modal-catg-name'>Catgname</span>" (<span id='modal-catg-abbr'>abbr</span>)</p>
+				<p class='subtitle'>Any words previously assigned this form will have that assignment reset.</p>
+			</div>
+			<div id='modal-actions' class='flex-row'>
+				<button id='modal-action-confirm' class='button-caution'>Delete Form</button>
 				<button id='modal-action-cancel' class='button-highlight'>Cancel</button>
 			</div>
 		</div>

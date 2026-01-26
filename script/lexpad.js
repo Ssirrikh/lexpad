@@ -129,7 +129,87 @@ let activeInput;
 
 // active entry
 let activeEntry = {};
-let activeMenu = ''; // id of DOM element
+
+
+
+// hiding menus
+let activeMenu = { // access menu via container.querySelector(id)
+	container : null, // pointer to ancestor of target menu
+	id : '', // element id of target menu
+	reset : () => {
+		activeMenu.container = null;
+		activeMenu.id = '';
+	}
+};
+const toggleMenu = (evt,menuContainer,menuId) => {
+	evt.stopPropagation(); // active menu closes when user clicks outside it; block that if user explicitly clicked menu trigger
+	
+	// console.log(`Current menu is "${activeMenu.id}". Toggling menu "${menuId}"...`);
+
+	if (!menuId) {
+		// no menu targetted -> close active menu, if any
+		if (activeMenu.id) {
+			// console.log(`No menu targetted. Closing prev menu...`);
+			activeMenu.container.querySelector(activeMenu.id).style.visibility = 'hidden';
+			activeMenu.container = null;
+			activeMenu.id = null;
+		} else {
+			console.log(`No menu targetted. No open menues need closing.`);
+		}
+	} else if (menuId === activeMenu.id) {
+		// this menu already open -> close it
+		// console.log(`Menu already open. Toggling closed...`);
+		activeMenu.container.querySelector(activeMenu.id).style.visibility = 'hidden';
+		activeMenu.container = null;
+		activeMenu.id = null;
+	} else {
+		// diff menu already open -> close it
+		if (activeMenu.id) {
+			// console.log(`Closing menu "${activeMenu.id}"...`);
+			activeMenu.container.querySelector(activeMenu.id).style.visibility = 'hidden';
+		}
+		// open target menu
+		// console.log(`Opening menu "${menuId}"...`);
+		menuContainer.querySelector(menuId).style.visibility = 'visible';
+		activeMenu.container = menuContainer;
+		activeMenu.id = menuId;
+	}
+
+	// clicked inside menu -> do nothing
+	// clicked menu trigger
+		// if this menu already open -> close it
+		// if a diff menu open -> close that menu, then open this one
+		// if no menu is open -> open this menu
+	// clicked somewhere else -> close open menu, if any
+};
+window.addEventListener('click', evt => {
+	if (activeMenu.id && !activeMenu.container.querySelector(activeMenu.id).contains(evt.target)) {
+		toggleMenu(evt, undefined, undefined); // if a menu was open and we clicked something unrelated to menus, close it
+	}
+});
+
+
+
+// global escape
+window.addEventListener('keydown', e => {
+	if (e.key === 'Escape') {
+		if (isTutorialOpen) {
+			closeTutorial();
+		} else if (isModalOpen) {
+			closeModal();
+		// TODO: else, close popup banner
+		} else if (activeMenu.id) {
+			toggleMenu({stopPropagation:()=>{}}, activeMenu.container, activeMenu.id); // stub evt to prevent errors
+		}
+		// prio order:
+			// tutorial
+			// modal
+			// popup notification
+			// options menu
+	}
+});
+
+
 
 // lexicon search
 let search = {
@@ -565,15 +645,11 @@ const init = () => {
 		const t0_init_deferred = performance.now();
 		// project tab
 		tabContent[TAB_PROJECT] = document.getElementById('tpl-project-page').content.firstElementChild.cloneNode(true);
-		tabContent[TAB_PROJECT].querySelector('#lang-name').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-name');
-		tabContent[TAB_PROJECT].querySelector('#lang-abbr').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
-		tabContent[TAB_PROJECT].querySelector('#lang-alph').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#lang-alph');
-		tabContent[TAB_PROJECT].querySelector('#project-authors').onfocus = () => activeInput = tabContent[TAB_PROJECT].querySelector('#project-authors');
 		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markModified();
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
-		tabContent[TAB_LEXICON].style.padding = '0';
-		tabContent[TAB_LEXICON].querySelector('#lexicon-search').onfocus = () => activeInput = tabContent[TAB_LEXICON].querySelector('#lexicon-search');
+		// tabContent[TAB_LEXICON].style.padding = '0';
+		registerInput(tabContent[TAB_LEXICON], '#lexicon-search');
 		tabContent[TAB_LEXICON].querySelector('#lexicon-search').addEventListener('keyup', evt => {
 			// TODO: convert to debounce timer so input isn't blocked on slower machines
 				// keep global(?) timeout that is cleared on keydown, restarted on keyup, and triggers filterLexicon() on completion
@@ -594,8 +670,8 @@ const init = () => {
 		tabContent[TAB_LEXICON].querySelector('#entry-editor .window-status p').textContent = 'Load an entry to get started';
 		// search tab
 		tabContent[TAB_SEARCH] = document.getElementById('tpl-search-page').content.firstElementChild.cloneNode(true);
-		tabContent[TAB_SEARCH].style.padding = '0';
-		tabContent[TAB_SEARCH].querySelector('#search-query').onfocus = () => activeInput = tabContent[TAB_SEARCH].querySelector('#search-query');
+		// tabContent[TAB_SEARCH].style.padding = '0';
+		registerInput(tabContent[TAB_SEARCH], '#search-query');
 		tabContent[TAB_SEARCH].querySelector('#search-query').addEventListener('keyup', evt => {
 			// TODO: try parse searchSettings.fromString(input.value) in case user manually typed tag
 			renderSearchFilters();
@@ -721,9 +797,11 @@ const populateQuickCopyBar = () => {
 	eStatbarLeft.innerHTML = `<p id="quick-copy-tooltip" class="no-wrap">Click to copy:</p>`;
 	let englishAlphabet = lexicon.L1.alph.split(' ');
 	let alphabet = lexicon.L2.alph.split(' ');
+	let addedLetter = false;
 	for (let i = 0; i < alphabet.length; i++) {
 		const letter = alphabet[i];
-		if (englishAlphabet.indexOf(letter) !== -1) continue;
+		if (letter === '' || englishAlphabet.indexOf(letter) !== -1) continue;
+		addedLetter = true;
 		eStatbarLeft.appendChild( Object.assign(document.createElement('button'), {
 			id : `quick-copy-${i}`,
 			className : 'quick-copy-letter',
@@ -731,6 +809,10 @@ const populateQuickCopyBar = () => {
 			onclick : () => copyOrInsert(letter)
 		}) );
 	}
+	if (!addedLetter) eStatbarLeft.appendChild( Object.assign(document.createElement('p'), {
+		// className : 'subtitle',
+		textContent : '[no letters added to quick-copy bar]'
+	}) );
 };
 const updateQuickCopyBar = () => {
 	// if (!file.isOpen) return;
@@ -740,38 +822,49 @@ const updateQuickCopyBar = () => {
 		if (e) e.textContent = (shiftDown) ? capitalize(alphabet[i]) : alphabet[i];
 	}
 };
+
+const registerInput = (container,id,onUpdate=()=>{}) => {
+	// registering input allows quick-copy bar to paste characters into it, and allows optional onUpdate()
+	// passing (container,id) allows fetching element even after original has been replaced
+	// will need to rerun if container gets replaced
+	// TODO: optimization pass, check if mem leak occurs if container is rebuilt
+	container.querySelector(id).onfocus = () => activeInput = container.querySelector(id); // TODO: clear activeInput whenever an input is removed/replaced; esp check for e.innerHTML=''
+	container.querySelector(id).onblur = onUpdate;
+	// console.log(`Registered input "${id}"`);
+};
 const populateProjectTab = () => {
 	// language data
-	renderProjectInfo();
-	tabContent[TAB_PROJECT].querySelector('#lang-name').onblur = () => {
+	registerInput(tabContent[TAB_PROJECT], '#lang-name', () => {
 		const e = tabContent[TAB_PROJECT].querySelector('#lang-name');
 		if (lexicon.L2.name === e.value) return;
 		console.log(`Lang name changed from "${lexicon.L2.name}" to "${e.value}".`);
 		lexicon.L2.name = e.value;
 		markModified();
-	};
-	tabContent[TAB_PROJECT].querySelector('#lang-abbr').onblur = () => {
+	});
+	registerInput(tabContent[TAB_PROJECT], '#lang-abbr', () => {
 		const e = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
 		if (lexicon.L2.abbr === e.value) return;
 		console.log(`Lang abbr changed from "${lexicon.L2.abbr}" to "${e.value}".`);
 		lexicon.L2.abbr = e.value;
 		markModified();
-	};
-	tabContent[TAB_PROJECT].querySelector('#lang-alph').onblur = () => {
+		tryLoadEntry(project.activeEntry, true); // TODO: only need refresh sentences; renderAllSentences()/etc need to check if entry loaded
+	});
+	registerInput(tabContent[TAB_PROJECT], '#lang-alph', () => {
 		const e = tabContent[TAB_PROJECT].querySelector('#lang-alph');
 		if (lexicon.L2.alph === e.value) return;
 		console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${e.value}".`);
 		lexicon.L2.alph = e.value;
 		markModified();
 		populateQuickCopyBar();
-	};
-	tabContent[TAB_PROJECT].querySelector('#project-authors').onblur = () => {
+	});
+	registerInput(tabContent[TAB_PROJECT], '#project-authors', () => {
 		const e = tabContent[TAB_PROJECT].querySelector('#project-authors');
 		if (project.authorship === e.value) return;
 		console.log(`Authorship info changed from "${project.authorship}" to "${e.value}".`);
 		project.authorship = e.value;
 		markModified();
-	};
+	});
+	renderProjectInfo();
 	// project statistics
 	renderProjectStats();
 	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1').onclick = () => searchTag('has:L1');
@@ -780,6 +873,8 @@ const populateProjectTab = () => {
 	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count').onclick = () => searchTag('has:note');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count').onclick = () => searchTag('has:audio');
 	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count').onclick = () => searchTag('has:image');
+	// project catgs
+	populateProjectCatgs();
 };
 
 // clear search tab, then run search for specified tag
@@ -832,6 +927,204 @@ const renderProjectStats = () => {
 		e.querySelector('.catg-bubble-count').textContent = stats.catgMiscCount
 	eStatsCatgs.appendChild(e);
 };
+const renderProjectCatgForm = (catg,formNum) => {
+	let eCatgSection = tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}`);
+	if (!eCatgSection) { console.error(`No catg form section on page for catg ${catg}. You must run renderProjectCatgs() before renderProjectCatgForm().`); return; }
+	let eForm = document.getElementById('tpl-project-catg-form').content.firstElementChild.cloneNode(true);
+	// element content
+	eForm.querySelector('.catg-form-id').textContent = `Form ${formNum}`;
+	eForm.querySelector('.catg-form-name').id = `project-catg-${catg}-form-${formNum}-content`;
+	eForm.querySelector('.catg-form-name').value = lexicon.L2.forms[catg][formNum]; // TODO: str ?? '', once we don't need to look for errors visually
+	eForm.querySelector('.options-menu').id = `project-catg-${catg}-form-${formNum}-menu`;
+	eForm.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${formNum}-menu`);
+	eForm.querySelector('.options-menu > .menu-option-caution').onclick = () => openModalDeleteCatgForm(catg,formNum);
+	eCatgSection.querySelector('.project-catg-forms').appendChild(eForm);
+	// element events
+	// cannot register input here since parent may not be in DOM yet
+	// registerInput(tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${formNum}-content`, () => {
+	// 	console.log(`Catg "${catg}" form ${formNum} modified from "${project.catgs[catg][formNum]}" to "${tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${formNum}-content`).value}"`);
+	// });
+};
+
+const populateProjectCatgs = () => {
+	// TODO: move precomp to centralized index
+	// let numCatgs = 0;
+	// let numForms = {};
+	// let numFormsTotal = 0;
+	// for (let catg in project.catgs) {
+	// 	numCatgs++;
+	// 	numForms[catg] = 0;
+	// 	for (let form of project.catgs[catg]) {
+	// 		if (form || form === '') {
+	// 			numForms[catg]++;
+	// 			numFormsTotal++;
+	// 		}
+	// 	}
+	// }
+	// console.log(`${numCatgs} catgs recorded (${numFormsTotal} total forms)`);
+
+	// header
+	tabContent[TAB_PROJECT].querySelector('#project-new-catg').onclick = () => {
+		// open modal
+		console.log('Creating new catg...');
+		openModalCreateCatg();
+	};
+	// alphabetize catgs
+	let orderedCatgs = [];
+	for (let catg in project.catgs) orderedCatgs.push(catg);
+	orderedCatgs.sort();
+	// build catg sections
+	const eProjectForms = tabContent[TAB_PROJECT].querySelector('#project-forms');
+	if (orderedCatgs.length > 0) eProjectForms.innerHTML = '';
+	for (let catg of orderedCatgs) {
+		let eCatgSection = document.getElementById('tpl-project-catg').content.firstElementChild.cloneNode(true);
+		eCatgSection.id = `project-catg-${catg}`;
+		eCatgSection.querySelector('.icon-plus').title = `Add new form for catg "${catg}"`;
+		eCatgSection.querySelector('.icon-plus').onclick = () => {
+			console.log(`Add new form for catg "${catg}"`);
+			lexicon.L2.forms[catg].push('');
+			renderProjectCatgsHeader();
+			renderProjectCatg(catg);
+		};
+		eCatgSection.querySelector('.options-menu').id = `project-catg-${catg}-menu`;
+		eCatgSection.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_PROJECT], `#project-catg-${catg}-menu`);
+		eCatgSection.querySelector('.options-menu > .menu-option-standard').onclick = () => openModalEditCatg(catg);
+		eCatgSection.querySelector('.options-menu > .menu-option-caution').onclick = () => openModalDeleteCatg(catg);
+		eProjectForms.appendChild(eCatgSection);
+	}
+	// auto-render
+	renderProjectCatgs();
+};
+const renderProjectCatgsHeader = () => {
+	let numCatgs = 0;
+	let numFormsTotal = 0;
+	for (let catg in project.catgs) {
+		numCatgs++;
+		for (let form of lexicon.L2.forms[catg]) {
+			if (form !== undefined) numFormsTotal++;
+			// console.log(`CATG HEADER: catg ${catg}, form ${form}`);
+		}
+	}
+	tabContent[TAB_PROJECT].querySelector('#project-forms-header > p').textContent = `${numCatgs} catgs defined (${numFormsTotal} total forms)`;
+};
+const renderProjectCatgs = () => {
+	// alphabetize catgs
+	let orderedCatgs = [];
+	for (let catg in project.catgs) orderedCatgs.push(catg);
+	orderedCatgs.sort();
+	// render
+	renderProjectCatgsHeader();
+	// TODO: this prob doesn't need to use ordered catgs
+	for (let catg of orderedCatgs) {
+		// console.log(`Rendering project catg section for "${catg}"`);
+		renderProjectCatg(catg);
+	}
+};
+const renderProjectCatg = (catg) => {
+	const eCatgSection = tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}`);
+	if (!eCatgSection) { console.error(`Section for catg "${catg}" not instantiated. Must call populateProjectCatgs() before rendering catg sections.`); return; }
+	let numForms = 0;
+	for (let form of lexicon.L2.forms[catg]) {
+		if (form !== undefined) numForms++;
+	}
+	// section header
+	eCatgSection.querySelector('.project-catg-name').textContent = capitalize(project.catgs[catg] || catg || '---');
+	eCatgSection.querySelector('.project-catg-abbr').textContent = `${catg}.`;
+	eCatgSection.querySelector('.project-catg-formcount').textContent = `(${numForms} form${(numForms===1)?'':'s'})`;
+	// section forms
+	if (numForms > 0) eCatgSection.querySelector('.project-catg-forms').innerHTML = '';
+	else if (numForms === 0) eCatgSection.querySelector('.project-catg-forms').innerHTML = `<div class='flex-row'><p class='project-catg-no-forms'>[no forms]</p></div>`;
+	for (let formNum = 0; formNum < lexicon.L2.forms[catg].length; formNum++) {
+		if (lexicon.L2.forms[catg][formNum] !== undefined) renderProjectCatgForm(catg,formNum);
+	}
+};
+// const renderProjectCatgs = () => {
+// 	// header
+// 	let numFormsTotal = 0;
+// 	let numCatgs = 0;
+// 	for (let catg in lexicon.L2.forms) {
+// 		numCatgs++;
+// 		for (let form of lexicon.L2.forms[catg]) {
+// 			if (form) numFormsTotal++;
+// 		}
+// 	}
+// 	tabContent[TAB_PROJECT].querySelector('#project-forms-header > p').textContent = `${numCatgs} catgs recorded (${numFormsTotal} total forms)`;
+// 	// forms
+// 	const eProjectForms = tabContent[TAB_PROJECT].querySelector('#project-forms');
+// 	eProjectForms.innerHTML = '';
+// 	for (let catg in lexicon.L2.forms) {
+// 		let numForms = 0;
+// 		for (let form of lexicon.L2.forms[catg]) {
+// 			if (form) numForms++;
+// 		}
+// 		// catg header
+// 		let eCatgSection = document.getElementById('tpl-project-catg').content.firstElementChild.cloneNode(true);
+// 		eCatgSection.id = `project-catg-${catg}`;
+// 		eCatgSection.querySelector('.project-catg-name').textContent = capitalize(project.catgs[catg] || catg || '---');
+// 		eCatgSection.querySelector('.project-catg-abbr').textContent = `${catg}.`;
+// 		eCatgSection.querySelector('.project-catg-formcount').textContent = `(${numForms} form${(numForms===1)?'':'s'})`;
+// 		eCatgSection.querySelector('.icon-plus').title = `Create new form, for catg "${catg}"`;
+// 		eCatgSection.querySelector('.icon-plus').onclick = () => console.log(`Create new form for catg "${catg}"`);
+// 		eCatgSection.querySelector('.options-menu').id = `project-catg-${catg}-menu`;
+// 		eCatgSection.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_PROJECT], `#project-catg-${catg}-menu`);
+// 		eCatgSection.querySelector('.options-menu > .menu-option-standard').onclick = () => openModalEditCatg(catg);
+// 		eCatgSection.querySelector('.options-menu > .menu-option-caution').onclick = () => openModalDeleteCatg(catg);
+// 		// // catg forms
+// 		// if (numForms > 0) {
+// 		// 	eCatgSection.querySelector('.project-catg-forms').innerHTML = '';
+// 		// 	for (let formNum = 0; formNum < lexicon.L2.forms[catg].length; formNum++) {
+// 		// 		if (!lexicon.L2.forms[catg][formNum]) continue;
+// 		// 		// renderProjectCatgForm(catg,formNum);
+// 		// 		// let eForm = document.getElementById('tpl-project-catg-form').content.firstElementChild.cloneNode(true);
+// 		// 		// eForm.querySelector('.catg-form-id').textContent = `Form ${i}`;
+// 		// 		// eForm.querySelector('.catg-form-name').id = `project-catg-${catg}-form-${i}-content`;
+// 		// 		// // registerInput(tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${i}-content`, () => {
+// 		// 		// // 	console.log(`Catg "${catg}" form ${i} modified from "${project.catgs[catg][i]}" to "${tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${i}-content`).value}"`);
+// 		// 		// // });
+// 		// 		// eForm.querySelector('.catg-form-name').value = lexicon.L2.forms[catg][i];
+// 		// 		// eForm.querySelector('.options-menu').id = `project-catg-${catg}-form-${i}-menu`;
+// 		// 		// eForm.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${i}-menu`);
+// 		// 		// eForm.querySelector('.options-menu > .menu-option-caution').onclick = () => openModalDeleteCatgForm(catg,i);
+// 		// 		// eCatgSection.querySelector('.project-catg-forms').appendChild(eForm);
+// 		// 	}
+// 		// }
+// 		eProjectForms.appendChild(eCatgSection);
+// 	}
+// 	//
+// 	for (let catg in lexicon.L2.forms) {
+// 		let numForms = 0;
+// 		for (let form of lexicon.L2.forms[catg]) {
+// 			if (form) numForms++;
+// 		}
+// 		if (numForms > 0) {
+// 			for (let formNum = 0; formNum < lexicon.L2.forms[catg].length; formNum++) {
+// 				if (!lexicon.L2.forms[catg][formNum]) continue;
+// 				renderProjectCatgForm(catg,formNum);
+// 			}
+// 		}
+// 	}
+// 	// now that elements exist in DOM, register inputs
+// 	for (let catg in lexicon.L2.forms) {
+// 		let numForms = 0;
+// 		for (let form of lexicon.L2.forms[catg]) {
+// 			if (form) numForms++;
+// 		}
+// 		if (numForms > 0) {
+// 			for (let i = 0; i < lexicon.L2.forms[catg].length; i++) {
+// 				if (!lexicon.L2.forms[catg][i]) continue;
+// 				// registerInput(tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${i}-content`, () => {
+// 				// 	console.log(`Catg "${catg}" form ${i} modified from "${lexicon.L2.forms[catg][i]}" to "${tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${i}-content`).value}"`);
+// 				// 	lexicon.L2.forms[catg][i] = tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${i}-content`).value;
+// 				// 	console.log(project.activeEntry);
+// 				// 	if (project.activeEntry >= 0) {
+// 				// 		console.log('Entry currently active; forcing reload');
+// 				// 		tryLoadEntry(project.activeEntry, true);
+// 				// 	}
+// 				// });
+// 			}
+// 		}
+// 	}
+// };
 
 // lexicon tab
 const setLexiconSearchPattern = (pattern) => {
@@ -949,13 +1242,11 @@ const filterLexicon = () => {
 
 const renderEditorHeader = () => {
 	console.log(activeEntry.L1);
-	Object.assign(tabContent[TAB_LEXICON].querySelector('#entry-L1'), {
-		value : activeEntry.L1,
-		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector('#entry-L1'),
-		onblur : () => {
-			activeEntry.L1 = tabContent[TAB_LEXICON].querySelector('#entry-L1').value.split(RE_SYNONYM_SPLITTER).join('; ');
-			console.log(activeEntry.L1);
-		}
+	tabContent[TAB_LEXICON].querySelector('#entry-L1-label').textContent = `${lexicon.L1.name || 'L1'} Word(s)`;
+	tabContent[TAB_LEXICON].querySelector('#entry-L1').value = activeEntry.L1;
+	registerInput(tabContent[TAB_LEXICON], '#entry-L1', () => {
+		activeEntry.L1 = tabContent[TAB_LEXICON].querySelector('#entry-L1').value.split(RE_SYNONYM_SPLITTER).join('; ');
+		console.log(activeEntry.L1);
 	});
 	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? capitalize(activeEntry.catg);
 	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(project.activeEntry);
@@ -969,6 +1260,7 @@ const renderEditorHeader = () => {
 	}
 };
 const renderAllWordforms = () => {
+	// TODO: make sure an entry is active before executing
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
 	if (activeEntry.L2.length === 0) {
 		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = `<div class='entry-section-no-content'>No Wordforms</div>`;
@@ -978,6 +1270,7 @@ const renderAllWordforms = () => {
 	}
 };
 const renderAllSentences = () => {
+	// TODO: make sure an entry is active before executing
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sents.length})`;
 	if (activeEntry.sents.length === 0) {
 		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = `<div class='entry-section-no-content'>No Sentences</div>`;
@@ -987,6 +1280,7 @@ const renderAllSentences = () => {
 	}
 };
 const renderAllNotes = () => {
+	// TODO: make sure an entry is active before executing
 	tabContent[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
 	if (activeEntry.notes.length === 0) {
 		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = `<div class='entry-section-no-content'>No Notes</div>`;
@@ -997,6 +1291,7 @@ const renderAllNotes = () => {
 };
 
 const renderWordform = i => {
+	// TODO: make sure an entry is active before executing
 	let e = document.getElementById('tpl-entry-wordform').content.cloneNode(true);
 	// form select
 	e.querySelector('select').replaceWith( document.querySelector('#tpl-form-select').content.cloneNode(true) );
@@ -1018,12 +1313,7 @@ const renderWordform = i => {
 	// word input
 	Object.assign(e.querySelector('input'), {
 		id : `entry-form-${i}-content`,
-		value : activeEntry.L2[i].L2 ?? '',
-		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-form-${i}-content`),
-		onblur : () => {
-			activeEntry.L2[i].L2 = document.getElementById(`entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER).join('; ');
-			console.log(activeEntry.L2[i]);
-		}
+		value : activeEntry.L2[i].L2 ?? ''
 	});
 	// audio
 	if (activeEntry.L2[i].audio?.length > 0) {
@@ -1050,7 +1340,7 @@ const renderWordform = i => {
 	};
 	// menu
 	e.querySelector('.options-menu').id = `entry-form-${i}-menu`;
-	e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt,`#entry-form-${i}-menu`);
+	e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_LEXICON], `#entry-form-${i}-menu`);
 	e.querySelector('.options-menu > .menu-option-standard').onclick = () => {
 		console.log(`Trigger modal: manage audio for wordform ${i}`);
 		openModalManageAudio(activeEntry.L2[i]);
@@ -1062,8 +1352,13 @@ const renderWordform = i => {
 
 	// events
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').appendChild(e);
+	registerInput(tabContent[TAB_LEXICON], `#entry-form-${i}-content`, () => {
+		activeEntry.L2[i].L2 = document.getElementById(`entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER).join('; ');
+		console.log(activeEntry.L2[i]);
+	});
 };
 const renderSentence = i => {
+	// TODO: make sure an entry is active before executing
 	let e = document.getElementById('tpl-entry-sentence').content.cloneNode(true);
 	// form select
 	e.querySelector('select').replaceWith( document.querySelector('#tpl-form-select').content.cloneNode(true) );
@@ -1110,25 +1405,15 @@ const renderSentence = i => {
 	e.querySelector('.entry-sentence-label-L2').textContent = capitalize(lexicon.L2.abbr || 'L2');
 	Object.assign(e.querySelector('.entry-sentence-L1'), {
 		id : `entry-sentence-${i}-L1`,
-		value : activeEntry.sents[i].L1,
-		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-sentence-${i}-L1`),
-		onblur : () => {
-			activeEntry.sents[i].L1 = document.getElementById(`entry-sentence-${i}-L1`).value;
-			console.log(activeEntry.sents[i]);
-		}
+		value : activeEntry.sents[i].L1
 	});
 	Object.assign(e.querySelector('.entry-sentence-L2'), {
 		id : `entry-sentence-${i}-L2`,
-		value : activeEntry.sents[i].L2,
-		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-sentence-${i}-L2`),
-		onblur : () => {
-			activeEntry.sents[i].L2 = document.getElementById(`entry-sentence-${i}-L2`).value;
-			console.log(activeEntry.sents[i]);
-		}
+		value : activeEntry.sents[i].L2
 	});
 	// menu
 	e.querySelector('.options-menu').id = `entry-sentence-${i}-menu`;
-	e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt,`#entry-sentence-${i}-menu`);
+	e.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_LEXICON], `#entry-sentence-${i}-menu`);
 	e.querySelector('.options-menu > .menu-option-standard').onclick = () => {
 		console.log(`Trigger modal: manage audio for sentence ${i}`);
 		openModalManageAudio(activeEntry.sents[i]);
@@ -1138,9 +1423,19 @@ const renderSentence = i => {
 		openModalDeleteSentence(i);
 	};
 
+	// events
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').appendChild(e);
+	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L1`, () => {
+		activeEntry.sents[i].L1 = document.getElementById(`entry-sentence-${i}-L1`).value;
+		console.log(activeEntry.sents[i]);
+	});
+	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L2`, () => {
+		activeEntry.sents[i].L2 = document.getElementById(`entry-sentence-${i}-L2`).value;
+		console.log(activeEntry.sents[i]);
+	});
 };
 const renderNote = i => {
+	// TODO: make sure an entry is active before executing
 	let e = document.getElementById('tpl-entry-note').content.cloneNode(true);
 	e.querySelector('p').textContent = `Note #${i+1}`;
 	e.querySelector('.icon-x').onclick = () => {
@@ -1149,17 +1444,18 @@ const renderNote = i => {
 	};
 	Object.assign(e.querySelector('textarea'), {
 		id : `entry-note-${i}`,
-		value : activeEntry.notes[i].note,
-		onfocus : () => activeInput = tabContent[TAB_LEXICON].querySelector(`#entry-note-${i}`),
-		onblur : () => {
-			activeEntry.notes[i].note = document.getElementById(`entry-note-${i}`).value;
-			console.log(activeEntry.notes[i]);
-		}
+		value : activeEntry.notes[i].note
 	});
+	// events
 	tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').appendChild(e);
+	registerInput(tabContent[TAB_LEXICON], `#entry-note-${i}`, () => {
+		activeEntry.notes[i].note = document.getElementById(`entry-note-${i}`).value;
+		console.log(activeEntry.notes[i]);
+	});
 };
 
 const addWordform = () => {
+	// TODO: make sure an entry is active before executing
 	activeEntry.L2.push({ formId : -1, L2 : "" });
 	if (activeEntry.L2.length === 1) {
 		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
@@ -1169,6 +1465,7 @@ const addWordform = () => {
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
 };
 const addSentence = () => {
+	// TODO: make sure an entry is active before executing
 	activeEntry.sents.push({ formId : -1, L1 : "", L2 : "" });
 	if (activeEntry.sents.length === 1) {
 		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
@@ -1178,6 +1475,7 @@ const addSentence = () => {
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sents.length})`;
 };
 const addNote = () => {
+	// TODO: make sure an entry is active before executing
 	activeEntry.notes.push({ formId : -1, note : "" });
 	if (activeEntry.notes.length === 1) {
 		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = '';
@@ -1187,67 +1485,7 @@ const addNote = () => {
 	tabContent[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
 };
 
-const toggleMenu = (evt,menuId) => {
-	evt.stopPropagation(); // menu closes when user clicks outside it, so block that if user clicked explicit menu trigger
-	
-	// console.log(`Current menu is "${activeMenu}". Toggling menu "${menuId}"...`);
-	
-	if (!menuId) {
-		// no menu targetted -> close active menu, if any
-		if (activeMenu) {
-			// console.log(`No menu targetted. Closing prev menu...`);
-			tabContent[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
-			activeMenu = undefined;
-		} else {
-			console.log(`No menu targetted. No open menues need closing.`);
-		}
-	} else if (menuId === activeMenu) {
-		// this menu already open -> close it
-		// console.log(`Menu already open. Toggling closed...`);
-		tabContent[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
-		activeMenu = undefined;
-	} else {
-		// diff menu already open -> close it
-		if (activeMenu) {
-			// console.log(`Closing menu "${activeMenu}"...`);
-			tabContent[TAB_LEXICON].querySelector(activeMenu).style.visibility = 'hidden';
-		}
-		// open target menu
-		// console.log(`Opening menu "${menuId}"...`);
-		tabContent[TAB_LEXICON].querySelector(menuId).style.visibility = 'visible';
-		activeMenu = menuId;
-	}
 
-	// clicked inside menu -> do nothing
-	// clicked menu trigger
-		// if this menu already open -> close it
-		// if a diff menu open -> close that menu, then open this one
-		// if no menu is open -> open this menu
-	// clicked somewhere else -> close open menu, if any
-
-};
-window.addEventListener('click', e => {
-	if (activeMenu && !tabContent[TAB_LEXICON].querySelector(activeMenu).contains(e.target)) {
-		toggleMenu(e, undefined); // if a menu was open and we clicked something unrelated to menus, close it
-	}
-});
-window.addEventListener('keydown', e => {
-	if (e.key === 'Escape') {
-		if (isTutorialOpen) {
-			closeTutorial();
-		} else if (isModalOpen) {
-			closeModal();
-		// TODO: else, close popup banner
-		} else if (activeMenu) {
-			toggleMenu({stopPropagation:()=>{}}, activeMenu); // stub evt to prevent errors
-		}
-		// prio order:
-			// tutorial
-			// modal
-			// popup notification
-			// options menu
-	}
-});
 
 // search tab
 const populateSearchTab = () => {
@@ -1456,6 +1694,163 @@ const openModalCreateProject = () => {
 	activateModal(eModal);
 };
 
+// project tab modals
+const onRefreshCatgs = () => {
+	// refresh project tab
+	renderProjectStats(); // recalcs lexiconStats and catgCounts
+	populateProjectCatgs();
+	// refresh lexicon tab
+	// TODO: possibly defer this until user next accesses lexicon tab
+	lexicon.indexWords();
+	populateLexicon();
+	tryLoadEntry(project.activeEntry, true);
+	// refresh search tab
+	// TODO: possibly defer this until user next accesses lexicon tab
+	populateSearchTab();
+;}
+const openModalCreateCatg = () => {
+	const eModal = document.querySelector('#tpl-modal-create-catg').content.firstElementChild.cloneNode(true);
+	// modal content
+	// modal actions
+	eModal.querySelector('#modal-action-confirm').onclick = () => {
+		const catgName = eModal.querySelector('#modal-catg-name').value;
+		const catgAbbr = eModal.querySelector('#modal-catg-abbr').value;
+		if (catgName === '' || catgAbbr === '') {
+			console.warn('Cannot accept blank catg name or abbreviation. Nothing created.');
+			return;
+		}
+		if (Object.keys(project.catgs).indexOf(catgAbbr) !== -1) {
+			console.warn('A catg with this abbreviation already exists. Abbreviations must be unique.');
+			return;
+		}
+		if (!lexicon.createCatg(catgName, catgAbbr)) {
+			console.error(`Unable to create catg "${catgName}" with abbreviation "${catgAbbr}".`);
+		}
+
+		// // refresh project tab
+		// renderProjectStats(); // recalcs lexiconStats and catgCounts
+		// populateProjectCatgs();
+		// // refresh lexicon tab
+		// // TODO: possibly defer this until user next accesses lexicon tab
+		// lexicon.indexWords();
+		// populateLexicon();
+		// tryLoadEntry(project.activeEntry, true);
+		// // refresh search tab
+		// // TODO: possibly defer this until user next accesses lexicon tab
+		// populateSearchTab();
+		onRefreshCatgs();
+
+		closeModal();
+		console.log(project.catgs);
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalEditCatg = (prevCatg) => {
+	const eModal = document.querySelector('#tpl-modal-create-catg').content.firstElementChild.cloneNode(true);
+	// modal content
+	eModal.querySelector('.modal-title').textContent = 'Edit Catg';
+	eModal.querySelector('#modal-catg-name').value = project.catgs[prevCatg] || '';
+	eModal.querySelector('#modal-catg-abbr').value = prevCatg;
+	eModal.querySelector('#modal-action-confirm').textContent = 'Save Changes';
+	// modal actions
+	eModal.querySelector('#modal-action-confirm').onclick = () => {
+		const catgName = eModal.querySelector('#modal-catg-name').value;
+		const catgAbbr = eModal.querySelector('#modal-catg-abbr').value;
+		// const didNameChange = (catgName !== project.catgs[catgAbbr]);
+		// const didAbbrChange = (catgAbbr !== prevCatg);
+		if (catgName === '' || catgAbbr === '') {
+			console.warn('Cannot accept blank catg name or abbreviation. Nothing created.');
+			return;
+		}
+		if (catgAbbr !== prevCatg && Object.keys(project.catgs).indexOf(catgAbbr) !== -1) {
+			console.warn('Another catg with this abbreviation already exists. Abbreviations must be unique.');
+			return;
+		}
+		if (catgAbbr === prevCatg && catgName === project.catgs[catgAbbr]) {
+			console.log('No changes made to catg.');
+			closeModal();
+			return;
+		}
+		const prevCatgName = project.catgs[catgAbbr]; // store old name since it will be deleted if edit is successful
+		console.log(`Edit catg: Old name "${prevCatgName}" with abbreviation "${prevCatg}". New name "${catgName}" with abbreviation "${catgAbbr}".`);
+		if (!lexicon.editCatg(prevCatg,catgName,catgAbbr)) {
+			console.error(`ERROR Failed to edit catg. Old name was "${prevCatgName}" with abbreviation "${prevCatg}". New name was "${catgName}" with abbreviation "${catgAbbr}".`);
+		}
+		
+		// // refresh project tab
+		// renderProjectStats(); // recalcs lexiconStats and catgCounts
+		// populateProjectCatgs(); // TODO: only need to fully rebuild if alphabetized order would change
+		// // refresh lexicon tab
+		// // TODO: possibly defer this until user next accesses lexicon tab
+		// lexicon.indexWords();
+		// populateLexicon();
+		// tryLoadEntry(project.activeEntry, true);
+		// // refresh search tab
+		// // TODO: possibly defer this until user next accesses lexicon tab
+		// populateSearchTab();
+		onRefreshCatgs();
+
+		closeModal();
+		console.log(project.catgs);
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalDeleteCatg = (catgAbbr) => {
+	const eModal = document.querySelector('#tpl-modal-delete-catg').content.firstElementChild.cloneNode(true);
+	// modal content
+	eModal.querySelector('#modal-catg-name').textContent = project.catgs[catgAbbr];
+	eModal.querySelector('#modal-catg-abbr').textContent = catgAbbr;
+	// modal actions
+	eModal.querySelector('#modal-action-confirm').onclick = () => {
+		if (!lexicon.deleteCatg(catgAbbr)) {
+			console.error(`ERROR Failed to delete catg "${project.catgs[catgAbbr]}" with abbreviation "${catgAbbr}".`);
+		}
+
+		// // refresh project tab
+		// renderProjectStats(); // recalcs lexiconStats and catgCounts
+		// populateProjectCatgs();
+		// // refresh lexicon tab
+		// // TODO: possibly defer this until user next accesses lexicon tab
+		// lexicon.indexWords();
+		// populateLexicon();
+		// tryLoadEntry(project.activeEntry, true);
+		// // refresh search tab
+		// // TODO: possibly defer this until user next accesses lexicon tab
+		// populateSearchTab();
+		onRefreshCatgs();
+		
+		activeMenu.reset(); // TODO: hiding menu must be opened to access this popup, but deleting catg deletes that menu; is there a better way to handle this?
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+const openModalDeleteCatgForm = (catgAbbr,formNum) => {
+	const eModal = document.querySelector('#tpl-modal-delete-catg-form').content.firstElementChild.cloneNode(true);
+	// modal content
+	eModal.querySelector('#modal-catg-form-num').textContent = formNum;
+	eModal.querySelector('#modal-catg-form-name').textContent = lexicon.L2.forms[catgAbbr][formNum];
+	eModal.querySelector('#modal-catg-name').textContent = project.catgs[catgAbbr];
+	eModal.querySelector('#modal-catg-abbr').textContent = catgAbbr;
+	// modal actions
+	eModal.querySelector('#modal-action-confirm').onclick = () => {
+		if (!lexicon.deleteForm(catgAbbr,formNum)) {
+			console.error(`ERROR Failed to delete form ${formNum} of catg "${project.catgs[catgAbbr]}" (${catgAbbr}).`);
+			console.log(project.catgs);
+			console.log(lexicon.L2.forms);
+		}
+		renderProjectCatgsHeader();
+		renderProjectCatg(catgAbbr);
+		activeMenu.reset(); // TODO: hiding menu must be opened to access this popup, but deleting catg deletes that menu; is there a better way to handle this?
+		if (activeEntry.catg === catgAbbr) tryLoadEntry(project.activeEntry, true);
+		closeModal();
+	};
+	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
+	activateModal(eModal);
+};
+
 // lexicon tab modals
 const openModalCreateEntry = () => {
 	const eModal = document.querySelector('#tpl-modal-create-entry').content.firstElementChild.cloneNode(true);
@@ -1500,8 +1895,9 @@ const openModalCreateEntry = () => {
 		} else {
 			newEntryId = lexicon.createEntry(eSelect.value);
 		}
-		populateLexicon();
-		tryLoadEntry(newEntryId);
+		onRefreshCatgs();
+		// populateLexicon();
+		// tryLoadEntry(newEntryId);
 		console.log('Created new entry.');
 		closeModal();
 	};
@@ -1513,8 +1909,19 @@ const openModalDeleteEntry = (entryId) => {
 	// modal actions
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		lexicon.deleteEntry(entryId);
+
+		// TODO optimization: build a more targetted refresh to save time
+
+		// refresh project tab
+		renderProjectStats(); // recalcs lexiconStats and catgCounts
+		populateProjectCatgs();
+		// refresh lexicon tab
+		lexicon.indexWords();
+		populateLexicon();
 		tryLoadEntry(-1);
-		populateLexicon(); // TODO: perform targetted refresh if possible
+		// refresh search tab
+		populateSearchTab();
+
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
@@ -1625,7 +2032,8 @@ const openModalDeleteWordform = (formId) => {
 		console.log(activeEntry.L2);
 		console.log(activeEntry.L2[formId]);
 		activeEntry.L2.splice(formId,1); // delete data
-		activeMenu = null; // clear menu pointer (menu will be deleted)
+		activeMenu.container = null; // clear menu pointer (menu will be deleted)
+		activeMenu.id = null;
 		renderAllWordforms();
 		closeModal();
 	};
@@ -1643,7 +2051,8 @@ const openModalDeleteSentence = (sentId) => {
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.sents[sentId]);
 		activeEntry.sents.splice(sentId,1); // delete data
-		activeMenu = null; // clear menu pointer (menu will be deleted)
+		activeMenu.container = null; // clear menu pointer (menu will be deleted)
+		activeMenu.id = null;
 		renderAllSentences();
 		closeModal();
 	};
@@ -1658,7 +2067,8 @@ const openModalDeleteNote = (noteId) => {
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.notes[noteId]);
 		activeEntry.notes.splice(noteId,1); // delete data
-		activeMenu = null; // clear menu pointer (menu will be deleted)
+		activeMenu.container = null; // clear menu pointer (menu will be deleted)
+		activeMenu.id = null;
 		renderAllNotes();
 		closeModal();
 	};
@@ -1682,8 +2092,10 @@ const openModalCreateForm = (catg,parent) => {
 			lexicon.L2.forms[catg].push(formName);
 			console.log(lexicon.L2.forms);
 			parent.form = lexicon.L2.forms[catg].length - 1;
+			populateProjectCatgs(); // refresh project tab
 		}
 		console.log(parent);
+
 		// need to refresh interface, whether we created form or not
 		buildFormSelect(catg);
 		renderAllWordforms();

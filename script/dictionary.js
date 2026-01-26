@@ -88,6 +88,86 @@ let orderedL1 = []; // sorted list of {word,catg,entryId,hasAudio,hasImage} (sor
 let orderedL2 = []; // sorted list of {word,catg,entryId,hasAudio,hasImage} (sorted alphabetically by obj.word)
 let media = {}; // hash table of referenced media s.t. media[fileName] = [...array of entryId that reference filename]
 
+let indexing = {
+	// indexed data
+
+	orderedL1 : [], // array of {wordL1,catg,entryId,hasAudio,hasImage} sorted alphabetically by obj.word
+	orderedL2 : [], // array of {wordL2,catg,entryId,hasAudio,hasImage} sorted alphabetically by obj.word
+	mediaAvailable : [], // array of media found in the project's /assets folder (requested from main)
+	mediaReferenced : {}, // hash table media[fileName] = [...array of entryId that reference filename]
+	catgs : {
+		numCatgs : 0, // total number of defined catgs in project
+		numFormsTotal : 0, // sum total number of forms across all catgs
+		ordered : [], // alphabetized list of catgs
+		numEntries : {}, // hash table catgs.numEntries[catg] = number of entries of that catg
+		numForms : {}, // hash table catgs.numForms[catg] = number of defined forms for that catg
+	},
+
+	// direct indexing
+	indexOrderedCatgs : () => {
+		indexing.catgs.numCatgs = 0;
+		indexing.catgs.numForms = {};
+		indexing.catgs.numFormsTotal = 0;
+		for (let catg in project.catgs) {
+			indexing.catgs.numCatgs++;
+			indexing.catgs.numForms[catg] = 0;
+			for (let form of project.catgs[catg]) {
+				if (form || form === '') {
+					indexing.catgs.numForms[catg]++;
+					indexing.catgs.numFormsTotal++;
+				}
+			}
+		}
+	},
+
+	// updates
+
+	// catg manipulation
+	onCreateCatg : (catg) => {
+		// recount catgs
+	},
+	onEditCatg : (oldCatg,newCatg) => {
+		// if (newCatg !== oldCatg)
+			// loop through orderedL1 and replace
+			// loop through orderedL2 and replace
+			// recount catgs
+	},
+	onDeleteCatg : (catg) => {
+		// loop through orderedL1 and unset
+		// loop through orderedL2 and unset
+		// recount catgs
+	},
+	// entry manipulation
+	onCreateEntry : (entryId,catg) => {
+		// orderedL1.push({ word:'', catg:catg, entryId:entryId, hasAudio:false, hasImage:false } );
+		// orderedL2.push({ word:'', catg:catg, entryId:entryId, hasAudio:false, hasImage:false } );
+		// if (!catgCounts[catg]) catgCounts[catg] = 0;
+		// catgCounts[catg]++;
+	},
+	onDeleteEntry : (entryId) => {
+		// for (indexCard of orderedL1)
+			// if (indexCard.entryId === entryId) delete indexCard
+		// for (indexCard of orderedL2)
+			// if (indexCard.entryId === entryId) delete indexCard
+		// for (wordform,sentence  in entry)
+			// for (audio in wordform,sentence)
+				// remove entryId from mediaReferenced[audio]
+		// catgCounts[entry.catg]--;
+	},
+};
+const indexWords = () => {
+	orderedL1 = []; // TODO: check if anything more than this is req'd to GC previously-open project
+	orderedL2 = [];
+	for (let i = 0; i < data.length; i++) {
+		// console.log(data[i]);
+		const hasImage = data[i].images?.length > 0;
+		const hasAudio = data[i].L2?.some(form => form.audio?.length > 0) || data[i].sents?.some(sentence => sentence.audio?.length > 0);
+		orderedL1.push(...data[i].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
+		for (let form of data[i].L2) orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
+	}
+	orderedL1.sort(alphabetizeIndex);
+	orderedL2.sort(alphabetizeIndex);
+};
 
 
 //// FILE MANAGEMENT ////
@@ -98,12 +178,135 @@ const createProject = () => {
 };
 
 const createCatg = (catgName,catgAbbr) => {
-	if (!catgName || !catgAbbr) { console.error(`Cannot create catg "${catgName}" with abbreviation "${catgAbbr}". One or both values were falsey.`); return false; }
+	if (!catgName || !catgAbbr) { console.error(`Cannot create catg "${catgName}" (${catgAbbr}). Name or abbreviation were missing.`); return false; }
 	catgAbbr = catgAbbr.toLowerCase();
+	if (project.catgs[catgAbbr]) { console.error(`Catg with abbreviation "${catgAbbr}" already exists. Abbreviations must be unique.`); return false; }
+	// record in project.catgs (catg name/abbr)
 	project.catgs[catgAbbr] = catgName;
-	L2.forms[catgAbbr] = [];
 	console.log(project);
+	// record in lexicon.L2.forms (catg forms)
+	L2.forms[catgAbbr] = [];
 	console.log(L2);
+	return true;
+};
+const editCatg = (prevAbbr,catgName,catgAbbr) => {
+	if (!prevAbbr) { console.error(`"${prevAbbr}" is invalid catg abbreviation.`); return false; }
+	if (!catgName || !catgAbbr) { console.error(`Cannot edit catg "${project.catgs[prevAbbr]}" (${prevAbbr}) to values "${catgName}" (${catgAbbr}). New name or abbreviation were missing.`); return false; }
+	if (catgAbbr === prevAbbr && catgName === project.catgs[prevAbbr]) { console.warn(`No changes made to catg name or abbreviation.`); return true; }
+	if (catgAbbr !== prevAbbr && Object.keys(project.catgs).indexOf(catgAbbr) !== -1) { console.error(`Another catg with abbreviation "${catgAbbr}" exists. Abbreviations must be unique.`); return false; }
+
+	// edit is valid, so update catgs
+	if (catgAbbr !== prevAbbr) delete project.catgs[prevAbbr];
+	project.catgs[catgAbbr] = catgName;
+	console.log(project);
+	if (catgAbbr === prevAbbr) {
+		console.log(`Abbr did not change. Exiting early, no further changes necessary.`);
+		return true;
+	}
+
+	console.log(`Catg abbr changed from "${prevAbbr}" to "${catgAbbr}". Updating forms and entries.`);
+	// if abbr changed, update forms
+	L2.forms[catgAbbr] = L2.forms[prevAbbr].map(x => x); // deep copy forms
+	delete L2.forms[prevAbbr];
+	console.log(L2);
+	// if abbr changed, update all lexicon entries
+	let numEntriesUpdated = 0;
+	for (let entry of data) {
+		if (entry.catg === prevAbbr) {
+			entry.catg = catgAbbr;
+			numEntriesUpdated++;
+		}
+	}
+	console.log(`${numEntriesUpdated} entries of catg "${prevAbbr}" have been updated to "${catgAbbr}".`);
+	return true;
+
+	// TODO: unit test all three catg funcs
+};
+const deleteCatg = (catgAbbr,entriesKeepFormNum) => {
+	if (!catgAbbr) { console.error(`Cannot delete catg "${catgAbbr}". No such catg exists.`); return false; }
+	// delete catg name
+	delete project.catgs[catgAbbr]; // TODO: is there any way these delete ops can fail?
+	// delete catg form
+	delete L2.forms[catgAbbr];
+	// unset catg of entries
+	let numEntriesUpdated = 0;
+	for (let entry of data) {
+		if (entry.catg === catgAbbr) {
+			entry.catg = '';
+			if (!entriesKeepFormNum) {
+				for (let form of entry.L2) form.form = -1;
+				for (let sent of entry.sents) sent.form = -1;
+				for (let note of entry.notes) note.form = -1;
+			}
+			numEntriesUpdated++;
+		}
+	}
+	console.log(`${numEntriesUpdated} entries of catg "${catgAbbr}" have been unset.`);
+	return true;
+};
+
+// catg unit tests
+	// create
+		// missing/invalid input => error
+		// valid input, abbr already exists => error
+		// valid input, abbr doesn't exist => create it
+	// edit
+		// missing/invalid input => error
+		// valid input, no changes => exit early
+		// valid input, catg already exists => error
+		// valid input, only name changed => minor update
+		// valid input, abbr changed (name may or may not change) => major update
+	// delete
+		// missing/invalid input => error
+		// valid input, keepFormNum => delete catg, unset entries
+		// valid input, !keepFormNum => delete catg, unset entries, unset entry forms/sentences/notes
+
+const createForm = (catg,formName='') => {
+	if (!catg) { console.error(`Cannot edit form ${formNum} of catg "${catg}". No such catg exists.`); return -1; }
+	L2.forms[catg].push(formName);
+	return L2.forms[catg].length - 1;
+};
+const editForm = (catg,formNum,formName) => {
+	if (!catg) { console.error(`Cannot edit form ${formNum} of catg "${catg}". No such catg exists.`); return false; }
+	if (isNaN(formNum) || formNum < 0) { console.error(`Cannot edit form ${formNum} of catg "${catg}". Form number out of bounds.`); return false; }
+	L2.forms[catg][formNum] = String(formName); // cast to string
+	return true;
+};
+const deleteForm = (catg,formNum) => {
+	if (!catg) { console.error(`Cannot delete form ${formNum} of catg "${catg}". No such catg exists.`); return false; }
+	if (L2.forms[catg][formNum] === undefined) { console.error(`Form ${formNum} of catg "${catg}" does not exist. Nothing to delete.`); return false; }
+	// delete form
+	L2.forms[catg][formNum] = undefined;
+	// unset form assignments
+	let numEntriesUpdated = 0;
+	for (let entry of data) {
+		if (entry.catg === catg) {
+			let didEntryUpdate = false;
+			for (let form of entry.L2) {
+				if (form.form === formNum) {
+					form.form = -1;
+					didEntryUpdate = true;
+				}
+			}
+			for (let sent of entry.sents) {
+				console.log(`formnum is ${formNum}, sent has form ${sent.form}, equal? ${sent.form == formNum}`); // TODO: setting sentence form from dropdown wrongly stores it as string, not number
+				console.log(`typof formnum ${typeof formNum}, typeof sent form ${typeof sent.form}`);
+				if (sent.form === formNum) {
+					sent.form = -1;
+					didEntryUpdate = true;
+					console.log('sent form unset');
+				}
+			}
+			for (let note of entry.notes) {
+				if (note.form === formNum) {
+					note.form = -1;
+					didEntryUpdate = true;
+				}
+			}
+			if (didEntryUpdate) numEntriesUpdated++;
+		}
+	}
+	console.log(`${numEntriesUpdated} entries of catg "${catg}" have been unset.`);
 	return true;
 };
 
@@ -166,17 +369,18 @@ const fromJSON = (jsonRaw) => {
 	// TODO: load active entry, if any
 
 	// index data
-	orderedL1 = []; // TODO: check if anything more than this is req'd to GC previously-open project
-	orderedL2 = [];
-	for (let i = 0; i < data.length; i++) {
-		// console.log(data[i]);
-		const hasImage = data[i].images?.length > 0;
-		const hasAudio = data[i].L2?.some(form => form.audio?.length > 0) || data[i].sents?.some(sentence => sentence.audio?.length > 0);
-		orderedL1.push(...data[i].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
-		for (let form of data[i].L2) orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
-	}
-	orderedL1.sort(alphabetizeIndex);
-	orderedL2.sort(alphabetizeIndex);
+	indexWords();
+	// orderedL1 = []; // TODO: check if anything more than this is req'd to GC previously-open project
+	// orderedL2 = [];
+	// for (let i = 0; i < data.length; i++) {
+	// 	// console.log(data[i]);
+	// 	const hasImage = data[i].images?.length > 0;
+	// 	const hasAudio = data[i].L2?.some(form => form.audio?.length > 0) || data[i].sents?.some(sentence => sentence.audio?.length > 0);
+	// 	orderedL1.push(...data[i].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
+	// 	for (let form of data[i].L2) orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
+	// }
+	// orderedL1.sort(alphabetizeIndex);
+	// orderedL2.sort(alphabetizeIndex);
 
 	// index media
 	media = {};
@@ -340,6 +544,10 @@ export {
 	// underlyingData, accessA, accessB, checkUnderlying, replaceA, rebindAccess,
 	// myObj, checkObj, replaceObj,
 	file, project,
-	createCatg, createEntry, deleteEntry, fromJSON, calculateStatistics,
+	indexWords,
+	createCatg, editCatg, deleteCatg,
+	createForm, editForm, deleteForm,
+	createEntry, deleteEntry,
+	fromJSON, calculateStatistics,
 	L1, L2, data, orderedL1, orderedL2, media
 };

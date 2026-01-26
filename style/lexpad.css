@@ -56,13 +56,13 @@ select:focus-visible {
 }
 
 .hover-white:hover {
-    background-color: white;
+    background-color: white !important;
 }
 .hover-grey:hover {
-    background-color: var(--bg-offwhite);
+    background-color: var(--bg-offwhite) !important;
 }
 .hover-dark:hover {
-    background-color: var(--primary-selection);
+    background-color: var(--primary-selection) !important;
 }
 
 .icon-audio {
@@ -425,15 +425,16 @@ select:focus-visible {
 
 #r-content {
     background-color: var(--bg-grey);
-    /* border: thin solid green; */
-    padding: 1em;
     font-size: 0.8em;
     align-items: center;
     gap: 1em;
 
-    overflow: scroll;
+    overflow: overlay;
     min-height: 0;
     flex-grow: 1;
+}
+#r-content.padded {
+    padding: 1em;
 }
 
 .separator-line {
@@ -686,6 +687,71 @@ select:focus-visible {
 }
 
 
+#project-forms {
+    gap: 1em;
+}
+#project-forms-header {
+    justify-content: space-between;
+    gap: 0.25em;
+}
+#project-forms-header > p {
+    font-size: 1.2em;
+}
+.project-catg-header {
+    background-color: var(--bg-offwhite);
+    border-radius: 4px;
+    position: relative; /* anchor for menu */
+    padding: 0.2em;
+    justify-content: space-between;
+    gap: 0.25em;
+}
+.project-catg-header > .flex-row:nth-child(1) {
+    gap: 0.5em;
+}
+.project-catg-forms {
+    margin: 0 1em;
+    padding: 0.15em;
+}
+.project-catg-forms .icon {
+    font-size: 0.8em;
+}
+.project-catg-form {
+    position: relative; /* anchor for menu */
+}
+.catg-form-id {
+    width: 4em;
+    text-align: center;
+}
+
+.project-catg-header .row-actions {
+    font-size: 0.8em;
+    gap: 0.25em;
+}
+
+.project-catg-forms > .flex-row {
+    padding: 0.1em;
+    gap: 0.25em;
+}
+.project-catg-forms input {
+    flex-grow: 1;
+}
+.project-catg-forms > .flex-row > .row-actions {
+    /* opacity: 0; */
+}
+.project-catg-forms > .flex-row:hover > .row-actions {
+    opacity: 1;
+}
+
+.project-catg-no-forms {
+    color: var(--text-subtitle);
+}
+
+.actions {
+    justify-content: end;
+    gap: 0.5em;
+}
+
+
 
 
 /**** LEXICON TAB ****/
@@ -718,6 +784,7 @@ select:focus-visible {
     /* gap: 0.25em; */
 }
 #lexicon-search {
+    padding-right: 6em;
     flex-grow: 1;
 }
 #lexicon-searchbar-actions {
