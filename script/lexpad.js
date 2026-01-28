@@ -4,12 +4,6 @@ console.log(`Inline JS running successfully.`);
 import * as lexicon from "./dictionary.js";
 import { file, project } from "./dictionary.js";
 
-// lexicon.checkObj(); // initial val 7
-// lexicon.myObj.x = 99;
-// lexicon.checkObj(); // modded property 99
-// lexicon.replaceObj(); // sets to 111
-// lexicon.checkObj(); // complete obj replacement 111
-
 // TODO: IPC/security is adding too much complexity for early stages
 	// pipe entire JSON object to dictionary.js
 	// do all indexing/sorting/etc there
@@ -42,11 +36,6 @@ const trim = (text,maxLen=null) => (maxLen === null || text.length <= maxLen) ? 
 
 
 //// media.js ////
-
-// loadable media
-let mediaMissing = []; // media that was referenced but not found
-let mediaUnused = []; // media that was found but never used
-// lexicon.media contains all media files referenced in 
 
 let audioPlayer = {
 	player : document.createElement('audio'),
@@ -899,32 +888,32 @@ const renderProjectInfo = () => {
 	tabContent[TAB_PROJECT].querySelector('#project-authors').value = project.authorship ?? '';
 };
 const renderProjectStats = () => {
-	const stats = lexicon.calculateStatistics(); // guaranteed complete, doesn't req checks for props
-	console.log(stats);
+	lexicon.calculateStatistics();
+	console.log(lexicon.stats);
 	// entry contents
-	tabContent[TAB_PROJECT].querySelector('#project-stats-num-entries > span').textContent = stats.numEntries ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1 > span').textContent = stats.wordCounts?.L1 ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2 > span').textContent = stats.wordCounts?.L2 ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count > span').textContent = stats.numSentences ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count > span').textContent = stats.numNotes ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count > span').textContent = stats.mediaCounts.audioEntries ?? '??';
-	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count > span').textContent = stats.mediaCounts.imageEntries ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-num-entries > span').textContent = lexicon.stats.numEntries ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L1 > span').textContent = lexicon.stats.numWordsL1 ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-wordcount-L2 > span').textContent = lexicon.stats.numWordsL2 ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-sentence-count > span').textContent = lexicon.stats.numSentences ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-notes-count > span').textContent = lexicon.stats.numNotes ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-audio-count > span').textContent = lexicon.stats.numEntriesWithAudio ?? '??';
+	tabContent[TAB_PROJECT].querySelector('#project-stats-image-count > span').textContent = lexicon.stats.numEntriesWithImage ?? '??';
 	// catgs
 	const eStatsCatgs = tabContent[TAB_PROJECT].querySelector('#project-stats-catgs');
 	eStatsCatgs.innerHTML = '';
-	for (let catg in stats.catgCounts) {
+	for (let catg in lexicon.stats.catgCounts) {
 		let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
 			e.title = `Click to search catg:${catg}`;
 			e.onclick = () => searchTag(`catg:${catg}`);
-			e.querySelector('.catg-bubble-label').textContent = project.catgs[catg] ?? catg;
-			e.querySelector('.catg-bubble-count').textContent = stats.catgCounts[catg];
+			e.querySelector('.catg-bubble-label').textContent = project.catgs[catg] ?? capitalize(catg);
+			e.querySelector('.catg-bubble-count').textContent = lexicon.stats.catgCounts[catg] ?? '??';
 		eStatsCatgs.appendChild(e);
 	}
 	let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
 		e.title = `Click to search catg:misc`;	
 		e.onclick = () => searchTag(`catg:misc`);
 		e.querySelector('.catg-bubble-label').textContent = 'MISC';
-		e.querySelector('.catg-bubble-count').textContent = stats.catgMiscCount
+		e.querySelector('.catg-bubble-count').textContent = lexicon.stats.catgCountMisc;
 	eStatsCatgs.appendChild(e);
 };
 const renderProjectCatgForm = (catg,formNum) => {
@@ -947,22 +936,6 @@ const renderProjectCatgForm = (catg,formNum) => {
 };
 
 const populateProjectCatgs = () => {
-	// TODO: move precomp to centralized index
-	// let numCatgs = 0;
-	// let numForms = {};
-	// let numFormsTotal = 0;
-	// for (let catg in project.catgs) {
-	// 	numCatgs++;
-	// 	numForms[catg] = 0;
-	// 	for (let form of project.catgs[catg]) {
-	// 		if (form || form === '') {
-	// 			numForms[catg]++;
-	// 			numFormsTotal++;
-	// 		}
-	// 	}
-	// }
-	// console.log(`${numCatgs} catgs recorded (${numFormsTotal} total forms)`);
-
 	// header
 	tabContent[TAB_PROJECT].querySelector('#project-new-catg').onclick = () => {
 		// open modal
@@ -1606,8 +1579,7 @@ const closeModal = () => {
 	document.querySelector('#popup-wrapper').inert = true; // make uninteractive
 	document.querySelector('#popup-wrapper').classList.add('hidden'); // hide
 	document.querySelector('#modal').innerHTML = '[no modal content]'; // reset contents
-	// TODO: make main content interactible
-	document.querySelector('#main').inert = false;
+	document.querySelector('#main').inert = false; // disable focus trap
 	// TODO: focus management should return to active tab
 	isModalOpen = false;
 };
@@ -1617,8 +1589,7 @@ const activateModal = (modal) => {
 	document.querySelector('#popup-wrapper').appendChild(modal); // add modal to DOM
 	document.querySelector('#popup-wrapper').inert = false; // make interactible
 	document.querySelector('#popup-wrapper').classList.remove('hidden'); // make visible
-	// TODO: make main content uninteractible (focus trap)
-	document.querySelector('#main').inert = true;
+	document.querySelector('#main').inert = true; // trap focus
 	modal.focus();
 	isModalOpen = true;
 };
@@ -1626,8 +1597,7 @@ const closeTutorial = () => {
 	document.querySelector('#tutorial-wrapper').inert = true; // make uninteractive
 	document.querySelector('#tutorial-wrapper').classList.add('hidden'); // hide
 	document.querySelector('#tutorial').innerHTML = '[no tutorial content]'; // reset contents
-	// TODO: make main content interactible
-	document.querySelector('#main').inert = false;
+	document.querySelector('#main').inert = false; // disable focus trap
 	// TODO: focus management should return to active tab
 	isTutorialOpen = false;
 };
@@ -1637,8 +1607,7 @@ const activateTutorial = (modal) => {
 	document.querySelector('#tutorial-wrapper').appendChild(modal); // add modal to DOM
 	document.querySelector('#tutorial-wrapper').inert = false; // make interactible
 	document.querySelector('#tutorial-wrapper').classList.remove('hidden'); // make visible
-	// TODO: make main content uninteractible (focus trap)
-	document.querySelector('#main').inert = true;
+	document.querySelector('#main').inert = true; // trap focus
 	modal.focus();
 	isTutorialOpen = true;
 };
@@ -1701,7 +1670,7 @@ const onRefreshCatgs = () => {
 	populateProjectCatgs();
 	// refresh lexicon tab
 	// TODO: possibly defer this until user next accesses lexicon tab
-	lexicon.indexWords();
+	lexicon.indexLexicon();
 	populateLexicon();
 	tryLoadEntry(project.activeEntry, true);
 	// refresh search tab
@@ -1726,20 +1695,7 @@ const openModalCreateCatg = () => {
 		if (!lexicon.createCatg(catgName, catgAbbr)) {
 			console.error(`Unable to create catg "${catgName}" with abbreviation "${catgAbbr}".`);
 		}
-
-		// // refresh project tab
-		// renderProjectStats(); // recalcs lexiconStats and catgCounts
-		// populateProjectCatgs();
-		// // refresh lexicon tab
-		// // TODO: possibly defer this until user next accesses lexicon tab
-		// lexicon.indexWords();
-		// populateLexicon();
-		// tryLoadEntry(project.activeEntry, true);
-		// // refresh search tab
-		// // TODO: possibly defer this until user next accesses lexicon tab
-		// populateSearchTab();
-		onRefreshCatgs();
-
+		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
 		closeModal();
 		console.log(project.catgs);
 	};
@@ -1777,20 +1733,7 @@ const openModalEditCatg = (prevCatg) => {
 		if (!lexicon.editCatg(prevCatg,catgName,catgAbbr)) {
 			console.error(`ERROR Failed to edit catg. Old name was "${prevCatgName}" with abbreviation "${prevCatg}". New name was "${catgName}" with abbreviation "${catgAbbr}".`);
 		}
-		
-		// // refresh project tab
-		// renderProjectStats(); // recalcs lexiconStats and catgCounts
-		// populateProjectCatgs(); // TODO: only need to fully rebuild if alphabetized order would change
-		// // refresh lexicon tab
-		// // TODO: possibly defer this until user next accesses lexicon tab
-		// lexicon.indexWords();
-		// populateLexicon();
-		// tryLoadEntry(project.activeEntry, true);
-		// // refresh search tab
-		// // TODO: possibly defer this until user next accesses lexicon tab
-		// populateSearchTab();
-		onRefreshCatgs();
-
+		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
 		closeModal();
 		console.log(project.catgs);
 	};
@@ -1807,20 +1750,7 @@ const openModalDeleteCatg = (catgAbbr) => {
 		if (!lexicon.deleteCatg(catgAbbr)) {
 			console.error(`ERROR Failed to delete catg "${project.catgs[catgAbbr]}" with abbreviation "${catgAbbr}".`);
 		}
-
-		// // refresh project tab
-		// renderProjectStats(); // recalcs lexiconStats and catgCounts
-		// populateProjectCatgs();
-		// // refresh lexicon tab
-		// // TODO: possibly defer this until user next accesses lexicon tab
-		// lexicon.indexWords();
-		// populateLexicon();
-		// tryLoadEntry(project.activeEntry, true);
-		// // refresh search tab
-		// // TODO: possibly defer this until user next accesses lexicon tab
-		// populateSearchTab();
-		onRefreshCatgs();
-		
+		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
 		activeMenu.reset(); // TODO: hiding menu must be opened to access this popup, but deleting catg deletes that menu; is there a better way to handle this?
 		closeModal();
 	};
@@ -1916,7 +1846,7 @@ const openModalDeleteEntry = (entryId) => {
 		renderProjectStats(); // recalcs lexiconStats and catgCounts
 		populateProjectCatgs();
 		// refresh lexicon tab
-		lexicon.indexWords();
+		lexicon.indexLexicon();
 		populateLexicon();
 		tryLoadEntry(-1);
 		// refresh search tab
@@ -2136,29 +2066,15 @@ const addAudioTo = async (parent) => {
 
 //// IPC INCOMING ////
 
-
-
-
-
 const tryListMedia = async (path) => {
+	const t0_listMedia = performance.now();
 	// request list of files in %PROJDIR%/assets
 	const res = await window.electronAPI.listMedia(path);
 	console.log(res);
 	if (res.error) { console.error(res.message); return; }
-	// TODO: sort into audio/video buckets
-		// need complete list of supported filetypes for chromium
-		// https://www.chromium.org/audio-video/ => video/audio[mp4,mp3,wav,ogg,webm]
-		// may need to self-test this one
-	// scan for missing or unused files
-	console.log( Object.keys(lexicon.media) );
-	for (let file of res.media) {
-		if (!lexicon.media[file]) mediaUnused.push(file);
-	}
-	console.log('Unused media:',mediaUnused);
-	for (let file in lexicon.media) {
-		if (res.media.indexOf(file) === -1) mediaMissing.push(file);
-	}
-	console.log('Missing media',mediaMissing);
+	// index files
+	lexicon.indexAvailableMedia(res.media);
+	console.log(`Scanned ${res.media.length} files in \\assets folder in ${Math.round(performance.now()-t0_listMedia)} ms.`);
 };
 const tryLoadEntry = (i,forceLoad) => {
 	if (i < 0) {
@@ -2357,6 +2273,7 @@ const tryLoadProject = async (path) => {
 
 	// scan for media in project directory
 	await tryListMedia(path);
+	lexicon.indexMediaUsage();
 
 	const t2_loadProject = performance.now();
 	console.log(`Media scanned in ${Math.round(t2_loadProject-t1_loadProject)} ms.`);
@@ -2435,6 +2352,15 @@ init();
 
 // openModalCreateProject();
 
+
+
+// // set ops
+// // a.diff(b) => in a but not in b
+// let s1 = new Set([4,5,6]);
+// let s2 = new Set([5,6,7]);
+// console.log(s1.difference(s2)); // 4
+// console.log(s2.difference(s1)); // 7
+
 // lexicon.checkUnderlying(); // 7,99
 // lexicon.accessA.x = 88; // mods original obj
 // lexicon.checkUnderlying(); // 88,99
@@ -2446,17 +2372,13 @@ init();
 // lexicon.accessA.x = 88; // works again
 // lexicon.checkUnderlying(); // 88,99
 
-
-
-
-
-
-// // (async () => {
-// //     // test confirms objects get deep copied when piped from main to renderer
-// //     // changes here will not mutate data on main
-// //     let res = await window.electronAPI.requestObject();
-// //     console.log(res);
-// //     res.v = 9;
-// //     console.log(res);
-// //     window.electronAPI.checkObject();
-// // })();
+// // test IPC file transfer mutability
+// (async () => {
+//     // test confirms objects get deep copied when piped from main to renderer
+//     // changes here will not mutate data on main
+//     let res = await window.electronAPI.requestObject();
+//     console.log(res);
+//     res.v = 9;
+//     console.log(res);
+//     window.electronAPI.checkObject();
+// })();

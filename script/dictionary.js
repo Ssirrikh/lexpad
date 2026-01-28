@@ -6,13 +6,42 @@ const RE_SYNONYM_SPLITTER = /;\s*/;
 const SYNONYM_SPLITTER = '; ';
 const ALPHABET_SPLITTER = ' ';
 
+const MEDIA_TYPE_INVALID = -1;
+const MEDIA_TYPE_AUDIO = 0;
+const MEDIA_TYPE_IMAGE = 1;
+
+
+
 //// global helpers ////
+
+// file selection
+	// https://en.wikipedia.org/wiki/Comparison_of_web_browsers#Image_format_support
+	// Chromium Images: jpeg, webp, gif, png, apng, <canvas>/blob, bmp, ico
+	// https://www.chromium.org/audio-video/
+	// Chromium Audio Codecs: flac, mp3, opus, pcm, vorbis
+	// => mp3, wav, ogg + mpeg, 3gp + mp4, adts, flac, webm
+// TODO: test supported file types exhaustively
+const SUPPORTED_IMAGES = ['bmp','jpeg','jpg','png','webp'];
+const SUPPORTED_AUDIO = ['mp3','mpeg','ogg','wav'];
+// const RE_SUPPORTED_IMAGES = /^.*\.(bmp|jpe?g|png|webp)$/i;
+const RE_SUPPORTED_IMAGES = new RegExp(`^.+\\.(${SUPPORTED_IMAGES.join('|')})$`, 'i');
+const RE_SUPPORTED_AUDIO = new RegExp(`^.+\\.(${SUPPORTED_AUDIO.join('|')})$`, 'i');
+const mediaType  = (filepath = '') => {
+	if (RE_SUPPORTED_AUDIO.test(filepath)) return MEDIA_TYPE_AUDIO;
+	if (RE_SUPPORTED_IMAGES.test(filepath)) return MEDIA_TYPE_IMAGE;
+	return MEDIA_TYPE_INVALID;
+};
+
+// console.log(`mediaType('boop.png') = ${mediaType('boop.png')}`);
+// console.log(`mediaType('boop.PNG') = ${mediaType('boop.PNG')}`);
+// console.log(`mediaType('bap.wav') = ${mediaType('bap.wav')}`);
+// console.log(`mediaType('lazerz.txt') = ${mediaType('lazerz.txt')}`);
+// console.log(`mediaType('') = ${mediaType('')}`);
+// console.log(`mediaType(69) = ${mediaType(69)}`);
+// console.log(`mediaType('file/.mp3/trick.pdf') = ${mediaType('file/.mp3/trick.pdf')}`);
 
 const RE_ESCAPE = /[&<>"']/g;
 const RE_MAP_ESCAPE = { "&" : "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }; // all contexts support &#39; but not all support &apos;, so ignore it
-// function escapeHTML (s) {
-// 	return String(s).replace(RE_ESCAPE, c => RE_MAP_ESCAPE[c]);
-// }
 const escapeHTML = (s) => String(s).replace(RE_ESCAPE, c => RE_MAP_ESCAPE[c]);
 
 const alphabetizeIndex = (a,b) => a.word.toLowerCase().localeCompare(b.word.toLowerCase());
@@ -30,97 +59,109 @@ const tryParseJSON = (jsonStr) => {
 
 
 
-//// DEFAULTS / PRESETS ////
+//// DEFAULTS AND PRESETS /////////////////////////////////////////////////////////////
 
 const L1 = Object.freeze({
 	"name" : "English",
 	"abbr" : "eng",
-	"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
+	"alph" : "a b c d e f g h entryId j k l m n o p q r s t u v w x y z",
 	"usesForms" : false
 });
 
-// const TPL_NEW_PROJECT = `{
-// 	"_WARNING" : "Save a backup of this project before mucking around in here! It will be annoying for everyone involved if you break something and have to call IT about it because you didn't save a backup.",
-// 	"project" : {
-// 		"lexpadVersion" : "${VERSION}",
-// 		"activeEntry" : -1,
-// 		"catgs" : {}
-// 	},
-// 	"language" : {
-// 		"name" : "",
-// 		"abbr" : "",
-// 		"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
-// 		"usesForms" : true,
-// 		"forms" : {}
-// 	},
-// 	"lexicon" : []
-// }`;
 
 
+//// DATA /////////////////////////////////////////////////////////////////////
 
 //// PROGRAM STATE ////
 
-// program state; should always mirror copy in main process
+// active project file (should always mirror copy in main process)
 let file = {
 	isOpen : false,
 	path : ``,
 	filename : ``,
 	modified : false
 };
-
-// file access
-let fileContents = { // gets replaced by JSON.parse(rawFile)
+// active file's parsed contents
+let fileContents = { // replaced by JSON.parse(rawFile)
 	project : {},
 	language : {},
 	lexicon : []
 };
-let project, L2, data; // named access points for module export
-const rebindAccess = () => {
-	// access points must be rebound whenever file is loaded, so they point to new file
+
+//// ACCESS POINTS ////
+
+// exporting a module-scoped object allows both modification+replacement w/o breaking link (let target = {})
+// exporting an object which is a property of a module-scoped object does not (let obj = {target : {}})
+	// access points serve as named pointers to object properties
+	// must be rebound whenever the property is set (else will point to old obj)
+	// let obj = {prop:...}; let propAccess = obj.prop; obj.prop = ...; propAccess = obj.prop;
+	// export { propAccess };
+
+// access points for project file
+let project, L2, data; // access points project/L2/data correspond to proj obj project/language/lexicon
+// access points for indexing
+let orderedL1, orderedL2;
+// let mediaAvailable, mediaReferenced, mediaUnused, mediaMissing;
+let media;
+let stats;
+
+// access points must be rebound whenever object property is redeclared, so they point to new object
+const rebindProjectAccess = () => {
+	// TODO: use memory snapshot to make sure old objects successfully GC'd
 	project = fileContents.project;
 	L2 = fileContents.language;
 	data = fileContents.lexicon;
-	// TODO: use memory snapshot to make sure old file successfully GC'd
+};
+const rebindIndexAccess = () => {
+	// TODO: use memory snapshot to make sure old objects successfully GC'd
+	orderedL1 = indexing.orderedL1;
+	orderedL2 = indexing.orderedL2;
+	media = indexing.media;
+	stats = indexing.stats;
 };
 
-// indexing
-let orderedL1 = []; // sorted list of {word,catg,entryId,hasAudio,hasImage} (sorted alphabetically by obj.word)
-let orderedL2 = []; // sorted list of {word,catg,entryId,hasAudio,hasImage} (sorted alphabetically by obj.word)
-let media = {}; // hash table of referenced media s.t. media[fileName] = [...array of entryId that reference filename]
+//// DATA INDEXING ////
 
 let indexing = {
 	// indexed data
-
 	orderedL1 : [], // array of {wordL1,catg,entryId,hasAudio,hasImage} sorted alphabetically by obj.word
 	orderedL2 : [], // array of {wordL2,catg,entryId,hasAudio,hasImage} sorted alphabetically by obj.word
-	mediaAvailable : [], // array of media found in the project's /assets folder (requested from main)
-	mediaReferenced : {}, // hash table media[fileName] = [...array of entryId that reference filename]
-	catgs : {
-		numCatgs : 0, // total number of defined catgs in project
-		numFormsTotal : 0, // sum total number of forms across all catgs
-		ordered : [], // alphabetized list of catgs
-		numEntries : {}, // hash table catgs.numEntries[catg] = number of entries of that catg
-		numForms : {}, // hash table catgs.numForms[catg] = number of defined forms for that catg
+	// orderedCatgs : [], // array of catg abbreviations sorted alphabetically
+	media : {
+		// available => file exists in /project/assets
+		// referenced => file referenced by at least one lexicon entry
+		// invalid => file type unrecognized (may or may not be unsupported)
+		imagesAvailable : new Set(), // set of unique filenames in /assets directory
+		imagesReferenced : {}, // hash table referenced[filename] = [...array of entryId where file is referenced]
+		audioAvailable : new Set(),
+		audioReferenced : {},
+		invalidAvailable : new Set(),
+		invalidReferenced : {},
+		// missing => referenced but not available
+		// unused => available but not referenced
+		imagesMissing : new Set(),
+		imagesUnused : new Set(),
+		audioMissing : new Set(),
+		audioUnused : new Set(),
+		invalidMissing : new Set(),
+		invalidUnused : new Set(),
 	},
-
-	// direct indexing
-	indexOrderedCatgs : () => {
-		indexing.catgs.numCatgs = 0;
-		indexing.catgs.numForms = {};
-		indexing.catgs.numFormsTotal = 0;
-		for (let catg in project.catgs) {
-			indexing.catgs.numCatgs++;
-			indexing.catgs.numForms[catg] = 0;
-			for (let form of project.catgs[catg]) {
-				if (form || form === '') {
-					indexing.catgs.numForms[catg]++;
-					indexing.catgs.numFormsTotal++;
-				}
-			}
-		}
+	stats : {
+		numEntries : 0,
+		numWordsL1 : 0,
+		numWordsL2 : 0,
+		numSentences : 0,
+		numNotes : 0,
+		numEntriesWithAudio : 0,
+		numEntriesWithImage : 0,
+		numAudioReferenced : 0, // number of references to any audio by any datafield (NOT the number of uniq audio files which were referenced!)
+		numImagesReferenced : 0, // number of references to any image by any datafield (NOT the number of uniq image files which were referenced!)
+		catgCounts : {},
+		catgCountMisc : 0,
+		// blank and unregistered catgs will be treated as misc
+		// unregistered catgs shouldn't be possible unless JSON is edited outside LexPad
+		catgFormCounts : {}, // catgFormCounts[catg][form] = 0
 	},
-
-	// updates
 
 	// catg manipulation
 	onCreateCatg : (catg) => {
@@ -155,27 +196,185 @@ let indexing = {
 		// catgCounts[entry.catg]--;
 	},
 };
-const indexWords = () => {
-	orderedL1 = []; // TODO: check if anything more than this is req'd to GC previously-open project
-	orderedL2 = [];
-	for (let i = 0; i < data.length; i++) {
-		// console.log(data[i]);
-		const hasImage = data[i].images?.length > 0;
-		const hasAudio = data[i].L2?.some(form => form.audio?.length > 0) || data[i].sents?.some(sentence => sentence.audio?.length > 0);
-		orderedL1.push(...data[i].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
-		for (let form of data[i].L2) orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
+const indexLexicon = () => {
+	// TODO: use mem snapshot to check if wholesale replacement properly GCs prev contents
+	const t0_indexLexicon = performance.now();
+	indexing.orderedL1 = [];
+	indexing.orderedL2 = [];
+	for (let entryId = 0; entryId < data.length; entryId++) {
+		// console.log(data[entryId]);
+		const hasImage = data[entryId].images?.length > 0;
+		const hasAudio = data[entryId].L2?.some(form => form.audio?.length > 0) || data[entryId].sents?.some(sentence => sentence.audio?.length > 0);
+		indexing.orderedL1.push(...data[entryId].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[entryId].catg,entryId:entryId,hasAudio:hasAudio,hasImage:hasImage}}));
+		for (let form of data[entryId].L2) indexing.orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[entryId].catg,entryId:entryId,hasAudio:hasAudio,hasImage:hasImage}}));
+		// TODO: add Set() of forms to index cards
 	}
-	orderedL1.sort(alphabetizeIndex);
-	orderedL2.sort(alphabetizeIndex);
+	indexing.orderedL1.sort(alphabetizeIndex);
+	indexing.orderedL2.sort(alphabetizeIndex);
+	console.log(`Indexed ${data.length} lexicon entries in ${Math.round(performance.now()-t0_indexLexicon)} ms.`);
+};
+// const indexOrderedCatgs = () => {
+// 	// TODO: decide if this is worth indexing; operation is cheap and not used often
+// };
+const indexAvailableMedia = (mediaList) => {
+	console.log(mediaList);
+	indexing.media.audioAvailable = new Set();
+	indexing.media.imagesAvailable = new Set();
+	indexing.media.invalidAvailable = new Set();
+	for (let filename of mediaList ?? []) {
+		// console.log(mediaType(filename));
+		switch (mediaType(filename)) {
+			// node.js lists files as "dir/file.ext", but chromium accesses files as "dir\file.ext"
+			case MEDIA_TYPE_AUDIO: indexing.media.audioAvailable.add(filename.replace('/','\\')); break;
+			case MEDIA_TYPE_IMAGE: indexing.media.imagesAvailable.add(filename.replace('/','\\')); break;
+			case MEDIA_TYPE_INVALID:
+			default:
+				indexing.media.invalidAvailable.add(filename.replace('/','\\')); break;
+		}
+	}
+	console.log(indexing.media.audioAvailable);
+	console.log(indexing.media.imagesAvailable);
+	console.log(indexing.media.invalidAvailable);
+};
+const indexReferencedMedia = () => {
+	const t0_indexMedia = performance.now();
+	indexing.media.audioReferenced = {};
+	indexing.media.imagesReferenced = {};
+	indexing.media.invalidReferenced = {};
+	for (let entryId = 0; entryId < data.length; entryId++) {
+		// index audio
+		for (let form of data[entryId].L2 ?? []) {
+			for (let audio of form.audio ?? []) {
+				if (!indexing.media.audioReferenced[audio]) indexing.media.audioReferenced[audio] = new Set();
+				indexing.media.audioReferenced[audio].add(entryId);
+			}
+		}
+		for (let sentence of data[entryId].sents ?? []) {
+			for (let audio of sentence.audio ?? []) {
+				if (!indexing.media.audioReferenced[audio]) indexing.media.audioReferenced[audio] = new Set();
+				indexing.media.audioReferenced[audio].add(entryId);
+			}
+		}
+		// index images
+		for (let image of data[entryId].images ?? []) {
+			if (!indexing.media.imagesReferenced[image]) indexing.media.imagesReferenced[image] = new Set();
+			indexing.media.imagesReferenced[image].add(entryId);
+		}
+	}
+	console.log(indexing.media.audioReferenced);
+	console.log(indexing.media.imagesReferenced);
+	console.log(`Indexed ${Object.keys(indexing.media.audioReferenced).length} referenced audio files and ${Object.keys(indexing.media.imagesReferenced).length} referenced image files in ${Math.round(performance.now()-t0_indexMedia)} ms.`);
+};
+const indexMediaUsage = () => {
+	const t0_indexMediaUsage = performance.now();
+	// convert hash tables to sets
+	const audioReferenced = new Set(Object.keys(indexing.media.audioReferenced));
+	const imagesReferenced = new Set(Object.keys(indexing.media.imagesReferenced));
+	const invalidReferenced = new Set(Object.keys(indexing.media.invalidReferenced));
+	// a.diff(b) => in a but not in b
+		// missing => referenced but not available
+		// unused => available but not referenced
+	indexing.media.audioMissing = audioReferenced.difference(indexing.media.audioAvailable);
+	indexing.media.imagesMissing = imagesReferenced.difference(indexing.media.imagesAvailable);
+	indexing.media.invalidMissing = invalidReferenced.difference(indexing.media.invalidAvailable);
+	indexing.media.audioUnused = indexing.media.audioAvailable.difference(audioReferenced);
+	indexing.media.imagesUnused = indexing.media.imagesAvailable.difference(imagesReferenced);
+	indexing.media.invalidUnused = indexing.media.invalidAvailable.difference(invalidReferenced);
+	console.log('audio missing', indexing.media.audioMissing);
+	console.log('audio unused', indexing.media.audioUnused);
+	console.log('images missing', indexing.media.imagesMissing);
+	console.log('images unused', indexing.media.imagesUnused);
+	console.log(`Media usage indexed in ${Math.round(performance.now()-t0_indexMediaUsage)} ms.`);
+};
+
+const calculateStatistics = () => {
+	const t0_stats = performance.now();
+
+	// reset stats
+	indexing.stats = {
+		numEntries : 0,
+		numWordsL1 : 0,
+		numWordsL2 : 0,
+		numSentences : 0,
+		numNotes : 0,
+		numEntriesWithAudio : 0,
+		numEntriesWithImage : 0,
+		numAudioReferenced : 0,
+		numImagesReferenced : 0,
+		catgCounts : {}, // stats.catgCounts[catg] = 0
+		catgCountMisc : 0,
+		// blank and unregistered catgs will be treated as misc
+		// unregistered catgs shouldn't be possible unless JSON is edited outside LexPad
+		catgFormCounts : {}, // stats.catgFormCounts[catg][form] = 0
+	};
+	for (let catg in project.catgs) {
+		indexing.stats.catgCounts[catg] = 0;
+		indexing.stats.catgFormCounts[catg] = {};
+		for (let form in L2.forms[catg] ?? []) {
+			// console.log(catg, form, L2.forms[catg][form]);
+			if (L2.forms[catg][form]) indexing.stats.catgFormCounts[catg][form] = 0;
+		}
+	}
+	// rebind access point
+	stats = indexing.stats;
+	
+	// count catgs,forms,L1,L2,sentences,notes,images,audio
+	indexing.stats.numEntries = data.length ?? 0;
+	for (let entry of data) {
+		// catgs
+		if (typeof indexing.stats.catgCounts[entry.catg] === 'number') {
+			indexing.stats.catgCounts[entry.catg]++; // catg is defined
+		} else {
+			indexing.stats.catgCountMisc++; // catg is not defined
+		}
+		// wordcount
+		if (entry.L1) {
+			indexing.stats.numWordsL1 += entry.L1.split(RE_SYNONYM_SPLITTER).length ?? 0; // doesn't count empty L1 as word
+		}
+		// indexing.stats.numWordsL1 += entry.L1?.split(RE_SYNONYM_SPLITTER).length ?? 0; // doesn't count empty L1 as word
+		for (let form of entry.L2 ?? []) {
+			// TODO: this does not account for L2 synonyms
+			if (form.L2) indexing.stats.numWordsL2++;
+			if (typeof form.form === 'number' && form.form !== -1) indexing.stats.catgFormCounts[entry.catg][form.form]++;
+		}
+		// sentences and notes
+		for (let sentence of entry.sents ?? []) {
+			if (sentence.L1 || sentence.L2) indexing.stats.numSentences++;
+		}
+		for (let note of entry.notes ?? []) {
+			if (typeof note.note === 'string') indexing.stats.numNotes++;
+		}
+		// images and audio
+		let hasImages = false;
+		for (let image of entry.images ?? []) {
+			if (!image) continue;
+			hasImages = true;
+			indexing.stats.numImagesReferenced++;
+		}
+		if (hasImages) indexing.stats.numEntriesWithImage++;
+		let hasAudio = false;
+		for (let form of entry.L2 ?? []) { // nullish coalesce as shorthand for "if (obj.arr) { for (elem of arr) { ... } }"
+			for (let audio of form.audio ?? []) {
+				if (!audio) continue;
+				hasAudio = true;
+				indexing.stats.numAudioReferenced++;
+			}
+		}
+		for (let sentence of entry.L2 ?? []) {
+			for (let audio of sentence.audio ?? []) {
+				if (!audio) continue;
+				hasAudio = true;
+				indexing.stats.numAudioReferenced++;
+			}
+		}
+		if (hasAudio) indexing.stats.numEntriesWithAudio++;
+	}
+	console.log(`Project statistics compiled in ${Math.round(performance.now()-t0_stats)} ms.`);
 };
 
 
-//// FILE MANAGEMENT ////
 
-const createProject = () => {
-	console.log(`dictionary.js instantiates new project from template.`);
-	// fromJSON(TPL_NEW_PROJECT);
-};
+//// BATCH OPERATIONS ///////////////////////////////////////////////////////////////////////
 
 const createCatg = (catgName,catgAbbr) => {
 	if (!catgName || !catgAbbr) { console.error(`Cannot create catg "${catgName}" (${catgAbbr}). Name or abbreviation were missing.`); return false; }
@@ -320,34 +519,39 @@ const createEntry = (catg) => {
 		"images" : [],
 		// "meta" : {}
 	});
-	orderedL1.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
-	orderedL2.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
+	indexing.orderedL1.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
+	indexing.orderedL2.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
 	return data.length - 1;
 };
 const deleteEntry = (entryId) => {
-	for (let i = 0; i < orderedL1.length; i++) {
-		console.log(`${i}, ${orderedL1[i].entryId} vs ${entryId}`);
-		if (orderedL1[i].entryId === entryId) {
-			orderedL1.splice(i,1); // if index card belongs to target entry, delete it
-			i--;
+	for (let entryId = 0; entryId < indexing.orderedL1.length; entryId++) {
+		console.log(`${entryId}, ${indexing.orderedL1[entryId].entryId} vs ${entryId}`);
+		if (indexing.orderedL1[entryId].entryId === entryId) {
+			indexing.orderedL1.splice(entryId,1); // if index card belongs to target entry, delete it
+			entryId--;
 		}
 	}
-	for (let i = 0; i < orderedL2.length; i++) {
-		console.log(`${i}, ${orderedL2[i].entryId} vs ${entryId}`);
-		if (orderedL2[i].entryId === entryId) {
-			orderedL2.splice(i,1); // if index card belongs to target entry, delete it
-			i--;
+	for (let entryId = 0; entryId < indexing.orderedL2.length; entryId++) {
+		console.log(`${entryId}, ${indexing.orderedL2[entryId].entryId} vs ${entryId}`);
+		if (indexing.orderedL2[entryId].entryId === entryId) {
+			indexing.orderedL2.splice(entryId,1); // if index card belongs to target entry, delete it
+			entryId--;
 		}
 	}
 };
 
+
+
+//// FILE OPERATIONS //////////////////////////////////////////////////////////////////////
+
 // deep copy and index json w/o storing refs, so it can be GC'd
 const fromJSON = (jsonRaw) => {
+	const verboseParse = false;
 	// raw filestring will be GC'd after function completion
 
 	// store json parse in temp var, so currently-open project can remain open in case of parsing error
 	let jsonParse = tryParseJSON(jsonRaw);
-	console.log(jsonParse);
+	if (verboseParse) console.log(jsonParse);
 	if (!jsonParse) return false; // report failure
 	// check validity of project file
 	if (
@@ -362,192 +566,41 @@ const fromJSON = (jsonRaw) => {
 	
 	// replace prev project with newly-opened project
 	fileContents = jsonParse;
-	rebindAccess();
+	rebindProjectAccess();
+	if (verboseParse) console.log(project);
+	if (verboseParse) console.log(L2);
+	if (verboseParse) console.log(data);
 
 	// TODO: patch missing pieces of project file; update version if necessary
 	// TODO: clean unsafe arbitrary text fields
-	// TODO: load active entry, if any
 
-	// index data
-	indexWords();
-	// orderedL1 = []; // TODO: check if anything more than this is req'd to GC previously-open project
-	// orderedL2 = [];
-	// for (let i = 0; i < data.length; i++) {
-	// 	// console.log(data[i]);
-	// 	const hasImage = data[i].images?.length > 0;
-	// 	const hasAudio = data[i].L2?.some(form => form.audio?.length > 0) || data[i].sents?.some(sentence => sentence.audio?.length > 0);
-	// 	orderedL1.push(...data[i].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
-	// 	for (let form of data[i].L2) orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[i].catg,entryId:i,hasAudio:hasAudio,hasImage:hasImage}}));
-	// }
-	// orderedL1.sort(alphabetizeIndex);
-	// orderedL2.sort(alphabetizeIndex);
-
-	// index media
-	media = {};
-	for (let i = 0; i < data.length; i++) {
-		if (data[i].L2) {
-			for (let form of data[i].L2) {
-				if (!form.audio) continue;
-				for (let audio of form.audio) {
-					if (!media[audio]) media[audio] = new Set();
-					media[audio].add(i);
-				}
-			}
-		}
-		if (data[i].sents) {
-			for (let sentence of data[i].sents) {
-				if (!sentence.audio) continue;
-				for (let audio of sentence.audio) {
-					if (!media[audio]) media[audio] = new Set();
-					media[audio].add(i);
-				}
-			}
-		}
-		if (data[i].images) {
-			for (let image of data[i].images) {
-				if (!media[image]) media[image] = new Set();
-				media[image].add(i);
-			}
-		}
+	// index lexicon and media
+	indexLexicon();
+	indexReferencedMedia();
+	rebindIndexAccess();
+	if (verboseParse) {
+		console.log(orderedL1);
+		console.log(media.audioReferenced);
+		console.log(media.imagesReferenced);
 	}
-	console.log(`Indexed ${Object.keys(media).length} media files.`);
-	console.log(media);
 
 	return true; // report success
 };
-
-const calculateStatistics = () => {
-	const t0_stats = performance.now();
-	let stats = {
-		numEntries : 0,
-		catgCounts : {}, // prepped below
-		catgMiscCount : 0,
-		wordCounts : { L1 : 0, L2 : 0 },
-		mediaCounts : { audioEntries : 0, audioTotal : 0, imageEntries : 0, imageTotal : 0 },
-		numSentences : 0,
-		numNotes : 0
-	};
-	// prep catg counts based on registered catgs
-	// blanks and unregistered catgs will be treated as misc
-		// unregistered catgs shouldn't be possible unless JSON directly edited outside LexPad
-	for (let catg in project.catgs) {
-		stats.catgCounts[catg] = 0;
-	}
-	// number of entries
-	stats.numEntries = data.length ?? 0;
-	for (let entry of data) {
-		// catgs
-		if (stats.catgCounts[entry.catg] !== undefined) {
-			stats.catgCounts[entry.catg]++;
-		} else {
-			stats.catgMiscCount++;
-		}
-		// wordcount
-		if (entry.L1) {
-			stats.wordCounts.L1 += entry.L1.split(RE_SYNONYM_SPLITTER).length;
-		}
-		if (entry.L2) {
-			for (let form of entry.L2) {
-				if (form.L2) stats.wordCounts.L2++;
-			}
-		}
-		// sentences and notes
-		if (entry.sents) {
-			for (let sentence of entry.sents) {
-				if (sentence.L1 || sentence.L2) stats.numSentences++;
-			}
-		}
-		if (entry.notes) {
-			for (let note of entry.notes) {
-				if (note.note) stats.numNotes++;
-			}
-		}
-		// media
-		if (entry.images?.length > 0) {
-			let hasImages = false;
-			for (let image of entry.images) {
-				if (image) {
-					hasImages = true;
-					stats.mediaCounts.imageTotal++;
-				}
-			}
-			if (hasImages) stats.mediaCounts.imageEntries++;
-		}
-		let hasAudio = false;
-		if (entry.L2?.length > 0) {
-			for (let form of entry.L2) {
-				if (form.audio?.length > 0) {
-					for (let audio of form.audio) {
-						if (audio) {
-							// if entry.L2 && entry.L2[i] && entry.L2[i].audio && entry.L2[i].audio[j], then increment stats
-							hasAudio = true;
-							stats.mediaCounts.audioTotal++;
-						}
-					}
-				}
-			}
-		}
-		if (entry.sents?.length > 0) {
-			for (let sentence of entry.sents) {
-				if (sentence.audio?.length > 0) {
-					for (let audio of sentence.audio) {
-						if (audio) {
-							// if entry.sents && entry.sents[i] && entry.sents[i].audio && entry.sents[i].audio[j], then increment stats
-							hasAudio = true;
-							stats.mediaCounts.audioTotal++;
-						}
-					}
-				}
-			}
-		}
-		if (hasAudio) stats.mediaCounts.audioEntries++;
-	}
-	// efficient + safe == ugly :P
-	console.log(`Project statistics compiled in ${Math.round(performance.now()-t0_stats)} ms.`);
-	return stats;
-};
-
-
-
-// // exporting an object allows direct modification of it
-// let myObj = {
-// 	a : {
-// 		x : 7,
-// 		y : 8
-// 	},
-// 	b : {
-// 		z : 'hello'
-// 	}
-// };
-// const checkObj = () => console.log(`OBJ a.x ${myObj.a.x}, a.y ${myObj.a.y}, b.z ${myObj.b.z}`);
-// const replaceObj = () => myObj.a = {x:111};
-
-// let underlyingData = {
-// 	a : { x:7 },
-// 	b : { y:99 }
-// };
-// let accessA = underlyingData.a;
-// let accessB = underlyingData.b;
-// const checkUnderlying = () => console.log(`OBJ a.x ${underlyingData.a.x}, b.y ${underlyingData.b.y}`);
-// const replaceA = () => underlyingData.a = { x:1000 };
-// const rebindAccess = () => {
-// 	accessA = underlyingData.a;
-// 	accessB = underlyingData.b;
-// };
 
 
 
 //// API ////
 
-// directly exporting object allows both modification and replacement w/o breaking link
 export {
-	// underlyingData, accessA, accessB, checkUnderlying, replaceA, rebindAccess,
-	// myObj, checkObj, replaceObj,
-	file, project,
-	indexWords,
+	// project components
+	file, fromJSON,
+	project, L1, L2, data,
+	// indexing
+	orderedL1, orderedL2, indexLexicon,
+	stats, calculateStatistics,
+	media, indexAvailableMedia, indexReferencedMedia, indexMediaUsage,
+	// batch ops
 	createCatg, editCatg, deleteCatg,
 	createForm, editForm, deleteForm,
-	createEntry, deleteEntry,
-	fromJSON, calculateStatistics,
-	L1, L2, data, orderedL1, orderedL2, media
+	createEntry, deleteEntry
 };

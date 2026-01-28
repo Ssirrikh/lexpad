@@ -78,14 +78,17 @@ let activeFile = {
 	// https://en.wikipedia.org/wiki/Comparison_of_web_browsers#Image_format_support
 	// Chromium Images: jpeg, webp, gif, png, apng, <canvas>/blob, bmp, ico
 	// https://www.chromium.org/audio-video/
-	// Chromium Audio Codecs: flac , mp3, opus, pcm, vorbis
+	// Chromium Audio Codecs: flac, mp3, opus, pcm, vorbis
 	// => mp3, wav, ogg + mpeg, 3gp + mp4, adts, flac, webm
+const SUPPORTED_IMAGES = ['bmp','jpeg','jpg','png','webp'];
+const SUPPORTED_AUDIO = ['mp3','mpeg','ogg','wav'];
 const onRendererSelectImages = async (evt) => {
 	console.log('Renderer selects image file(s).')
 	const { canceled, filePaths } = await dialog.showOpenDialog({
 		properties : ['openFile','multiSelections'],
 		filters : [
-			{ name: 'Supported Images', extensions: ['bmp','jpeg','jpg','png','webp'] },
+			{ name: 'Supported Images', extensions: SUPPORTED_IMAGES },
+			// { name: 'Supported Images', extensions: ['bmp','jpeg','jpg','png','webp'] },
 			{ name: 'All Files', extensions: ['*'] },
 		]
 	});
@@ -97,7 +100,8 @@ const onRendererSelectAudio = async (evt) => {
 	const { canceled, filePaths } = await dialog.showOpenDialog({
 		properties : ['openFile','multiSelections'],
 		filters : [
-			{ name: 'Supported Audio', extensions: ['mp3','mpeg','ogg','wav'] },
+			{ name: 'Supported Audio', extensions: SUPPORTED_AUDIO },
+			// { name: 'Supported Audio', extensions: ['mp3','mpeg','ogg','wav'] },
 			{ name: 'All Files', extensions: ['*'] },
 		]
 	});
