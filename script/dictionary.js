@@ -64,7 +64,7 @@ const tryParseJSON = (jsonStr) => {
 const L1 = Object.freeze({
 	"name" : "English",
 	"abbr" : "eng",
-	"alph" : "a b c d e f g h entryId j k l m n o p q r s t u v w x y z",
+	"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
 	"usesForms" : false
 });
 
@@ -392,23 +392,23 @@ const editCatg = (prevAbbr,catgName,catgAbbr) => {
 	if (!prevAbbr) { console.error(`"${prevAbbr}" is invalid catg abbreviation.`); return false; }
 	if (!catgName || !catgAbbr) { console.error(`Cannot edit catg "${project.catgs[prevAbbr]}" (${prevAbbr}) to values "${catgName}" (${catgAbbr}). New name or abbreviation were missing.`); return false; }
 	if (catgAbbr === prevAbbr && catgName === project.catgs[prevAbbr]) { console.warn(`No changes made to catg name or abbreviation.`); return true; }
-	if (catgAbbr !== prevAbbr && Object.keys(project.catgs).indexOf(catgAbbr) !== -1) { console.error(`Another catg with abbreviation "${catgAbbr}" exists. Abbreviations must be unique.`); return false; }
+	if (catgAbbr !== prevAbbr && Object.keys(project.catgs).indexOf(catgAbbr) !== -1) { console.error(`Another catg with abbreviation "${catgAbbr}" already exists. Abbreviations must be unique.`); return false; }
 
-	// edit is valid, so update catgs
+	// edit is valid, so update catg name
 	if (catgAbbr !== prevAbbr) delete project.catgs[prevAbbr];
 	project.catgs[catgAbbr] = catgName;
 	console.log(project);
+	// exit early if abbr didn't change
 	if (catgAbbr === prevAbbr) {
 		console.log(`Abbr did not change. Exiting early, no further changes necessary.`);
 		return true;
 	}
-
 	console.log(`Catg abbr changed from "${prevAbbr}" to "${catgAbbr}". Updating forms and entries.`);
-	// if abbr changed, update forms
-	L2.forms[catgAbbr] = L2.forms[prevAbbr].map(x => x); // deep copy forms
+	// update forms
+	L2.forms[catgAbbr] = L2.forms[prevAbbr].map(x => x); // deep copy forms off of prev abbr
 	delete L2.forms[prevAbbr];
 	console.log(L2);
-	// if abbr changed, update all lexicon entries
+	// update lexicon entries
 	let numEntriesUpdated = 0;
 	for (let entry of data) {
 		if (entry.catg === prevAbbr) {
@@ -417,6 +417,9 @@ const editCatg = (prevAbbr,catgName,catgAbbr) => {
 		}
 	}
 	console.log(`${numEntriesUpdated} entries of catg "${prevAbbr}" have been updated to "${catgAbbr}".`);
+	// update index
+	indexLexicon();
+	calculateStatistics();
 	return true;
 
 	// TODO: unit test all three catg funcs
@@ -544,7 +547,6 @@ const deleteEntry = (entryId) => {
 
 //// FILE OPERATIONS //////////////////////////////////////////////////////////////////////
 
-// deep copy and index json w/o storing refs, so it can be GC'd
 const fromJSON = (jsonRaw) => {
 	const verboseParse = false;
 	// raw filestring will be GC'd after function completion
@@ -570,6 +572,7 @@ const fromJSON = (jsonRaw) => {
 	if (verboseParse) console.log(project);
 	if (verboseParse) console.log(L2);
 	if (verboseParse) console.log(data);
+	// TODO: check that old project is GC'd correctly
 
 	// TODO: patch missing pieces of project file; update version if necessary
 	// TODO: clean unsafe arbitrary text fields
@@ -584,8 +587,11 @@ const fromJSON = (jsonRaw) => {
 		console.log(media.imagesReferenced);
 	}
 
-	return true; // report success
+	return true;
 };
+const toJSON = () => {
+	return JSON.stringify(fileContents);
+}
 
 
 
@@ -593,7 +599,7 @@ const fromJSON = (jsonRaw) => {
 
 export {
 	// project components
-	file, fromJSON,
+	file, fromJSON, toJSON,
 	project, L1, L2, data,
 	// indexing
 	orderedL1, orderedL2, indexLexicon,

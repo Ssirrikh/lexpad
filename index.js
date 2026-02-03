@@ -14,9 +14,12 @@ const TAB_LEXICON = 1;
 const TAB_SEARCH = 2;
 
 const TPL_NEW_PROJECT = `{
-	"_WARNING" : "Save a backup of this project before mucking around in here! It will be annoying for everyone involved if you break something and have to call IT about it because you didn't save a backup.",
+	"_WARNING" : "Before mucking around in here, SAVE A BACKUP. It will be annoying for everyone involved if you break something and lose data because you didn't backup your project.",
 	"project" : {
 		"lexpadVersion" : "${VERSION}",
+		"authorship" : "",
+		"lastEdited" : -1,
+		"togglePrimary" : false,
 		"activeEntry" : -1,
 		"catgs" : {}
 	},
@@ -74,6 +77,26 @@ let activeFile = {
 	modified : false,
 };
 
+// file detection
+const doesFileExist = async (filepath) => {
+	try {
+		await fs.access(filepath, fs.constants.R_OK);
+		return true; // file exists
+	} catch (err) {
+		return false; // file does not exist
+	}
+};
+const listDir = async (e,dirpath) => {
+	console.log(`Scanning files in "${dirpath}"...`);
+	try {
+		const files = await fs.readdir(dirpath, {recursive:true});
+		console.log(`Discovered ${files.length} files in "${dirpath}".`);
+		console.log(files);
+		return { path: dirpath, files: files };
+	} catch (err) {
+		return { error: 'cannot_read_directory', message: String(err), path: dirpath };
+	}
+};
 // file selection
 	// https://en.wikipedia.org/wiki/Comparison_of_web_browsers#Image_format_support
 	// Chromium Images: jpeg, webp, gif, png, apng, <canvas>/blob, bmp, ico
@@ -142,11 +165,18 @@ const markModified = (win) => {
 
 // save project
 const onRendererSaveProject = async (evt,contents) => {
-	console.log('Renderer saves project. Received contents:');
+	console.log('Renderer saves project.');
 	console.log(contents);
-	// TODO: try write file to disk
-	activeFile.modified = false;
-	return { message : 'Project saved successfully.' }
+	const filePath = activeFile.path;
+	try {
+		await fs.writeFile(filePath,contents);
+		console.log('Success');
+		activeFile.modified = false;
+		activeFile.path = filePath;
+		return { message : 'Project saved successfully.', path: filePath };
+	} catch (err) {
+		return { error: 'cannot_save_file', message: String(err), path: filePath };
+	}
 };
 const saveProject = (win) => {
 	console.log('Main requests save project.');
@@ -155,15 +185,63 @@ const saveProject = (win) => {
 	if (!activeFile.modified) { console.warn('No changes to save.'); return; }
 	win.webContents.send('main-save-project');
 };
+const onRendererSaveProjectAs = async (evt,contents) => {
+	console.log('Renderer saves project to new file.');
+	console.log(contents);
+	// const dirPath = path.dirname(activeFile.path);
+	const { canceled, filePath } = await dialog.showSaveDialog({
+	// const res = await dialog.showSaveDialog({
+		title: 'Save As',
+		defaultPath: activeFile.path,
+		filters: [
+			{ name: 'JSON Database', extensions: ['json'] },
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	// console.log(res);
+	if (canceled || !filePath) return { canceled: true };
+	try {
+		await fs.writeFile(filePath,contents);
+		console.log('Success');
+		activeFile.modified = false;
+		activeFile.path = filePath;
+		return { message : 'Project saved successfully.', path: filePath };
+	} catch (err) {
+		return { error: 'cannot_save_file', message: String(err), path: filePath };
+	}
+};
+const saveProjectAs = (win) => {
+	console.log('Main requests save project to new file.');
+	if (!win) { console.warn('Did not specify window to send signal to. Cannot save project.'); return; };
+	win.webContents.send('main-save-project-as');
+};
 
 // create project
-const onRendererCreateProject = async (evt,filepath,filename) => {
-	// TODO: check validity of path
-	// TODO: create relevant files/directories
-	console.log(`Renderer creates project in "${filepath}".`);
-	console.log(`Created project file "${filepath}\\${filename}.json".`);
-	console.log(`Created assets folder "${filepath}\\assets".`);
-	return { message : 'Project created successfully.' };
+const onRendererCreateProject = async (evt,dirpath,filename) => {
+	console.log(`Renderer creates project in "${dirpath}".`);
+	// if project folder doesn't exist yet, recursive mkdir will create it for free
+	const assetpath = `${dirpath}\\assets`;
+	console.log(`Creating assets folder "${assetpath}"...`);
+	try {
+		await fs.mkdir(assetpath, {recursive:true});
+	} catch (err) {
+		return { error: 'cannot_create_directory', message: String(err), path: assetpath };
+	}
+	console.log('Success');
+	// create project file from template once project folder is guaranteed to exist
+	const filepath = `${dirpath}\\${filename}.json`;
+	console.log(`Creating project file "${filepath}"...`);
+	if (await doesFileExist(filepath)) console.log(`Overwriting existing file...`);
+	try {
+		await fs.writeFile(filepath,TPL_NEW_PROJECT); // if file exists, overwrite it; renderer already warned user
+		// await fs.writeFile(filepath,TPL_NEW_PROJECT,{ flag: 'wx' }); // if file already exists, abort
+	} catch (err) {
+		// throw new Error(`Error creating project file: ${err.message}`);
+		return { error: 'cannot_create_file', message: String(err), path: filepath };
+	}
+	console.log('Success');
+	// don't need to update file state tracking since renderer will immediately load new project
+	return { message : 'Project created successfully.', path: filepath };
 };
 const createProject = (win) => {
 	console.log('Main requests create new project.');
@@ -311,14 +389,7 @@ const createWindow = () => {
 				{
 					label : 'Save As',
 					accelerator : 'CmdOrCtrl+Shift+S',
-					click : () => {
-						console.log('Trigger save copy of project...');
-						if (activeFile.isOpen) {
-							// save project as
-							activeFile.modified = false;
-							console.log('PROMPT Save As');
-						}
-					}
+					click : () => saveProjectAs(win)
 				},
 				{
 					label : 'DBG Mark Modified',
@@ -490,6 +561,7 @@ app.whenReady().then(() => {
 	//
 	ipcMain.on('renderer-mark-modified', onRendererMarkModified);
 	ipcMain.handle('renderer-save-project', onRendererSaveProject);
+	ipcMain.handle('renderer-save-project-as', onRendererSaveProjectAs);
 	ipcMain.handle('renderer-create-project', onRendererCreateProject);
 	ipcMain.handle('renderer-open-project', onRendererOpenProject);
 	ipcMain.handle('renderer-load-project', onRendererLoadProject);

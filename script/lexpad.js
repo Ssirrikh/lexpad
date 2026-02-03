@@ -1631,16 +1631,16 @@ const openModalUnsavedChanges = (takeAction=(choice)=>{}) => {
 const openModalCreateProject = () => {
 	const eModal = document.querySelector('#tpl-modal-create-project').content.firstElementChild.cloneNode(true);
 	// project creation logic
-	let filepath = '';
+	let dirpath = '';
 	let filename = 'database';
-	const updateFilepath = (newFilepath) => {
-		filepath = newFilepath.replace(/\\+$/,''); // clear trailing slashes
-		const lastdir = /\\/.test(filepath) ? `...\\${filepath.replace(/^.+\\/,'')}` : filepath; // (not empty or root) ? "...\projectDir" : raw filepath
+	const updateFilepath = (newpath) => {
+		dirpath = newpath.replace(/\\+$/,''); // clear trailing slashes
+		const lastdir = /\\/.test(dirpath) ? `...\\${dirpath.replace(/^.+\\/,'')}` : dirpath; // (not empty or root) ? "...\projectDir" : raw dirpath
 		eModal.querySelector('#modal-create-project-assets').textContent = `${lastdir}\\assets`;
 		eModal.querySelector('#modal-create-project-database').textContent = `${lastdir}\\${filename}.json`;
 	};
 	const submitModal = async () => {
-		const res = await tryCreateProject(filepath, filename);
+		const res = await tryCreateProject(dirpath, filename);
 	};
 	// select directory
 	eModal.querySelector('#modal-create-project-directory').onblur = () => {
@@ -2140,16 +2140,38 @@ window.electronAPI.onMainSaveProject(() => {
 const trySaveProject = async () => {
 	if (!file.isOpen) { console.error('No project currently open. No changes to save.'); return false; }
 	if (!file.modified) { console.warn('No changes to save.'); return false; }
-	console.log('Renderer saves project STUB.');
-	const stubObject = {
-		x : 7,
-		y : 9
-	};
-	const res = await window.electronAPI.rendererSaveProject( JSON.stringify(stubObject) );
+	// console.log('Renderer saves project STUB.');
+	// const stubObject = {
+	// 	x : 7,
+	// 	y : 9
+	// };
+	// const res = await window.electronAPI.rendererSaveProject( JSON.stringify(stubObject) );
+	console.log('Renderer saves project.');
+	const res = await window.electronAPI.rendererSaveProject( lexicon.toJSON() );
 	console.log(res);
 	if (res.error) { console.error(res.message); return false; }
 	console.log('Main confirms project is saved.');
 	file.modified = false;
+	return true;
+};
+window.electronAPI.onMainSaveProjectAs(() => {
+	console.log('Main requests save project to new file.');
+	trySaveProjectAs();
+});
+const trySaveProjectAs = async () => {
+	if (!file.isOpen) { console.error('No project currently open. No changes to save.'); return false; }
+	console.log('Renderer saves project to new file.');
+	const res = await window.electronAPI.rendererSaveProjectAs( lexicon.toJSON() );
+	console.log(res);
+	if (res.canceled) return false;
+	if (res.error) { console.error(res.message); return false; }
+	console.log('Main confirms project is saved.');
+	Object.assign(file, {
+		isOpen : true,
+		path : res.path.replace(/\\[^\\]+?$/,''),
+		filename : res.path.replace(/^.+\\/,''),
+		modified : false
+	});
 	return true;
 };
 // create new project
@@ -2159,12 +2181,12 @@ const tryBeginCreateProject = () => {
 		openModalUnsavedChanges(choice => {
 			switch (choice) {
 				case 0: if (trySaveProject()) openModalCreateProject(); break;
-				case 1: console.log('Modal choice: Don\'t save'); openModalCreateProject(); break;
+				case 1: console.log('Discarding changes'); openModalCreateProject(); break;
 				case 2: closeModal(); break;
 			}
 		});
 	} else {
-		console.log('Open create project modal.');
+		console.log('No changes to save. Creating new project.');
 		openModalCreateProject();
 	}
 };
@@ -2183,8 +2205,8 @@ const tryCreateProject = async (filepath,filename) => {
 	if (res.error) { console.error(res.message); return; }
 	// if success, close modal and open project
 	console.log(`Project successfully created. Opening project "${filepath}\\${filename}.json"...`);
+	await tryLoadProject(`${filepath}\\${filename}.json`);
 	closeModal();
-	// await tryLoadProject(`${filepath}\\${filename}.json`);
 };
 // open project (choose project -> load project)
 const tryBeginOpenProject = () => {
@@ -2250,10 +2272,16 @@ const tryLoadProject = async (path) => {
 		console.error('Renderer failed to load project file. Aborting open project.');
 		return;
 	}
-	file.isOpen = true;
-	file.path = res.path.replace(/\\[^\\]+?$/,'');
-	file.filename = res.path.replace(/^.+\\/,'');
-	file.modified = false;
+	// file.isOpen = true;
+	// file.path = res.path.replace(/\\[^\\]+?$/,'');
+	// file.filename = res.path.replace(/^.+\\/,'');
+	// file.modified = false;
+	Object.assign(file, {
+		isOpen : true,
+		path : res.path.replace(/\\[^\\]+?$/,''),
+		filename : res.path.replace(/^.+\\/,''),
+		modified : false
+	});
 	console.log(file);
 
 	// build/render app UI (just quick-copy bar at the moment)
