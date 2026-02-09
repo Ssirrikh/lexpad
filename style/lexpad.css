@@ -54,6 +54,11 @@ select:focus-visible {
 .icon:focus-visible {
     outline: medium solid var(--primary-dark);
 }
+.icon.large {
+    border-radius: 0.5em;
+    width: 2.5em;
+    height: 2.5em;
+}
 
 .hover-white:hover {
     background-color: white !important;
@@ -367,17 +372,17 @@ select:focus-visible {
 }
 
 /* lexicon tab modals */
-#modal-image-manager {
+/* #modal-image-manager {
     gap: 0.5em;
     flex-wrap: wrap;
-}
-#modal-add-image, .modal-image-tile {
+} */
+/* #modal-add-image, .modal-image-tile {
     border-radius: 0.5em;
     position: relative;
     width: 4em;
     height: 4em;
-}
-.modal-image-tile {
+} */
+/* .modal-image-tile {
     background: var(--bg-offwhite) var(--thumbnail-position);
 }
 .modal-delete-image {
@@ -389,13 +394,33 @@ select:focus-visible {
     right: 0;
     width: 1em;
     height: 1em;
+} */
+#modal-image-manager, #modal-audio-manager {
+    max-height: 12em;
+    overflow-y: overlay;
 }
-.modal-audio-tile {
-    gap: 0.25em;
-}
-#modal-add-audio {
+#modal-add-image, #modal-add-audio {
     width: fit-content;
 }
+.modal-image-tile, .modal-audio-tile {
+    gap: 0.25em;
+}
+.modal-image-thumbnail {
+    background: var(--primary-selection) var(--thumbnail-position);
+    filter: drop-shadow(0 0 4px #00000022);
+    border-radius: 0.5em;
+    width: 2em;
+    height: 2em;
+}
+
+/* #entry-image {
+    color: white;
+    background: var(--primary-selection) var(--thumbnail-position);
+    border: thin solid white;
+    border-radius: 0.5em;
+    width: 5em;
+    height: 5em;
+} */
 
 
 

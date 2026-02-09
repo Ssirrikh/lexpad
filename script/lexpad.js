@@ -812,13 +812,19 @@ const updateQuickCopyBar = () => {
 	}
 };
 
-const registerInput = (container,id,onUpdate=()=>{}) => {
+const registerInput = (container,id,onUpdate) => {
 	// registering input allows quick-copy bar to paste characters into it, and allows optional onUpdate()
-	// passing (container,id) allows fetching element even after original has been replaced
+	// passing (container,id) allows fetching target element even if original has been replaced
 	// will need to rerun if container gets replaced
 	// TODO: optimization pass, check if mem leak occurs if container is rebuilt
 	container.querySelector(id).onfocus = () => activeInput = container.querySelector(id); // TODO: clear activeInput whenever an input is removed/replaced; esp check for e.innerHTML=''
-	container.querySelector(id).onblur = onUpdate;
+	if (onUpdate) {
+		container.querySelector(id).onblur = onUpdate;
+		container.querySelector(id).onkeydown = (evt) => {
+			if (evt.key === 'Enter') container.querySelector(id).blur(); // allow [Enter] to submit textbox as if it's a form
+			// TODO: possibly allow arrow keys to navigate from here
+		};
+	}
 	// console.log(`Registered input "${id}"`);
 };
 const populateProjectTab = () => {
@@ -928,11 +934,15 @@ const renderProjectCatgForm = (catg,formNum) => {
 	eForm.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${formNum}-menu`);
 	eForm.querySelector('.options-menu > .menu-option-caution').onclick = () => openModalDeleteCatgForm(catg,formNum);
 	eCatgSection.querySelector('.project-catg-forms').appendChild(eForm);
-	// element events
-	// cannot register input here since parent may not be in DOM yet
-	// registerInput(tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${formNum}-content`, () => {
-	// 	console.log(`Catg "${catg}" form ${formNum} modified from "${project.catgs[catg][formNum]}" to "${tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${formNum}-content`).value}"`);
-	// });
+	// register events once element is in the DOM
+	registerInput(tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${formNum}-content`, () => {
+		const e = tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${formNum}-content`);
+		if (e.value === lexicon.L2.forms[catg][formNum]) return; // exit early if no changes
+		console.log(`Catg "${catg}" form ${formNum} modified from "${lexicon.L2.forms[catg][formNum]}" to "${e.value}"`);
+		lexicon.L2.forms[catg][formNum] = e.value;
+		markModified();
+		tryLoadEntry(project.activeEntry, true); // force reload active entry so that form selectors are rebuilt
+	});
 };
 
 const populateProjectCatgs = () => {
@@ -955,6 +965,7 @@ const populateProjectCatgs = () => {
 		eCatgSection.querySelector('.icon-plus').title = `Add new form for catg "${catg}"`;
 		eCatgSection.querySelector('.icon-plus').onclick = () => {
 			console.log(`Add new form for catg "${catg}"`);
+			markModified();
 			lexicon.L2.forms[catg].push('');
 			renderProjectCatgsHeader();
 			renderProjectCatg(catg);
@@ -1005,99 +1016,13 @@ const renderProjectCatg = (catg) => {
 	eCatgSection.querySelector('.project-catg-abbr').textContent = `${catg}.`;
 	eCatgSection.querySelector('.project-catg-formcount').textContent = `(${numForms} form${(numForms===1)?'':'s'})`;
 	// section forms
-	if (numForms > 0) eCatgSection.querySelector('.project-catg-forms').innerHTML = '';
-	else if (numForms === 0) eCatgSection.querySelector('.project-catg-forms').innerHTML = `<div class='flex-row'><p class='project-catg-no-forms'>[no forms]</p></div>`;
+	eCatgSection.querySelector('.project-catg-forms').innerHTML = (numForms > 0)
+		? '' // if we have forms to render, clear prev contents
+		: `<div class='flex-row'><p class='project-catg-no-forms'>[no forms]</p></div>`; // if we have no forms to render, say so
 	for (let formNum = 0; formNum < lexicon.L2.forms[catg].length; formNum++) {
 		if (lexicon.L2.forms[catg][formNum] !== undefined) renderProjectCatgForm(catg,formNum);
 	}
 };
-// const renderProjectCatgs = () => {
-// 	// header
-// 	let numFormsTotal = 0;
-// 	let numCatgs = 0;
-// 	for (let catg in lexicon.L2.forms) {
-// 		numCatgs++;
-// 		for (let form of lexicon.L2.forms[catg]) {
-// 			if (form) numFormsTotal++;
-// 		}
-// 	}
-// 	tabContent[TAB_PROJECT].querySelector('#project-forms-header > p').textContent = `${numCatgs} catgs recorded (${numFormsTotal} total forms)`;
-// 	// forms
-// 	const eProjectForms = tabContent[TAB_PROJECT].querySelector('#project-forms');
-// 	eProjectForms.innerHTML = '';
-// 	for (let catg in lexicon.L2.forms) {
-// 		let numForms = 0;
-// 		for (let form of lexicon.L2.forms[catg]) {
-// 			if (form) numForms++;
-// 		}
-// 		// catg header
-// 		let eCatgSection = document.getElementById('tpl-project-catg').content.firstElementChild.cloneNode(true);
-// 		eCatgSection.id = `project-catg-${catg}`;
-// 		eCatgSection.querySelector('.project-catg-name').textContent = capitalize(project.catgs[catg] || catg || '---');
-// 		eCatgSection.querySelector('.project-catg-abbr').textContent = `${catg}.`;
-// 		eCatgSection.querySelector('.project-catg-formcount').textContent = `(${numForms} form${(numForms===1)?'':'s'})`;
-// 		eCatgSection.querySelector('.icon-plus').title = `Create new form, for catg "${catg}"`;
-// 		eCatgSection.querySelector('.icon-plus').onclick = () => console.log(`Create new form for catg "${catg}"`);
-// 		eCatgSection.querySelector('.options-menu').id = `project-catg-${catg}-menu`;
-// 		eCatgSection.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_PROJECT], `#project-catg-${catg}-menu`);
-// 		eCatgSection.querySelector('.options-menu > .menu-option-standard').onclick = () => openModalEditCatg(catg);
-// 		eCatgSection.querySelector('.options-menu > .menu-option-caution').onclick = () => openModalDeleteCatg(catg);
-// 		// // catg forms
-// 		// if (numForms > 0) {
-// 		// 	eCatgSection.querySelector('.project-catg-forms').innerHTML = '';
-// 		// 	for (let formNum = 0; formNum < lexicon.L2.forms[catg].length; formNum++) {
-// 		// 		if (!lexicon.L2.forms[catg][formNum]) continue;
-// 		// 		// renderProjectCatgForm(catg,formNum);
-// 		// 		// let eForm = document.getElementById('tpl-project-catg-form').content.firstElementChild.cloneNode(true);
-// 		// 		// eForm.querySelector('.catg-form-id').textContent = `Form ${i}`;
-// 		// 		// eForm.querySelector('.catg-form-name').id = `project-catg-${catg}-form-${i}-content`;
-// 		// 		// // registerInput(tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${i}-content`, () => {
-// 		// 		// // 	console.log(`Catg "${catg}" form ${i} modified from "${project.catgs[catg][i]}" to "${tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${i}-content`).value}"`);
-// 		// 		// // });
-// 		// 		// eForm.querySelector('.catg-form-name').value = lexicon.L2.forms[catg][i];
-// 		// 		// eForm.querySelector('.options-menu').id = `project-catg-${catg}-form-${i}-menu`;
-// 		// 		// eForm.querySelector('.icon-tridot').onclick = (evt) => toggleMenu(evt, tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${i}-menu`);
-// 		// 		// eForm.querySelector('.options-menu > .menu-option-caution').onclick = () => openModalDeleteCatgForm(catg,i);
-// 		// 		// eCatgSection.querySelector('.project-catg-forms').appendChild(eForm);
-// 		// 	}
-// 		// }
-// 		eProjectForms.appendChild(eCatgSection);
-// 	}
-// 	//
-// 	for (let catg in lexicon.L2.forms) {
-// 		let numForms = 0;
-// 		for (let form of lexicon.L2.forms[catg]) {
-// 			if (form) numForms++;
-// 		}
-// 		if (numForms > 0) {
-// 			for (let formNum = 0; formNum < lexicon.L2.forms[catg].length; formNum++) {
-// 				if (!lexicon.L2.forms[catg][formNum]) continue;
-// 				renderProjectCatgForm(catg,formNum);
-// 			}
-// 		}
-// 	}
-// 	// now that elements exist in DOM, register inputs
-// 	for (let catg in lexicon.L2.forms) {
-// 		let numForms = 0;
-// 		for (let form of lexicon.L2.forms[catg]) {
-// 			if (form) numForms++;
-// 		}
-// 		if (numForms > 0) {
-// 			for (let i = 0; i < lexicon.L2.forms[catg].length; i++) {
-// 				if (!lexicon.L2.forms[catg][i]) continue;
-// 				// registerInput(tabContent[TAB_PROJECT], `#project-catg-${catg}-form-${i}-content`, () => {
-// 				// 	console.log(`Catg "${catg}" form ${i} modified from "${lexicon.L2.forms[catg][i]}" to "${tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${i}-content`).value}"`);
-// 				// 	lexicon.L2.forms[catg][i] = tabContent[TAB_PROJECT].querySelector(`#project-catg-${catg}-form-${i}-content`).value;
-// 				// 	console.log(project.activeEntry);
-// 				// 	if (project.activeEntry >= 0) {
-// 				// 		console.log('Entry currently active; forcing reload');
-// 				// 		tryLoadEntry(project.activeEntry, true);
-// 				// 	}
-// 				// });
-// 			}
-// 		}
-// 	}
-// };
 
 // lexicon tab
 const setLexiconSearchPattern = (pattern) => {
@@ -1222,7 +1147,7 @@ const renderEditorHeader = () => {
 		console.log(activeEntry.L1);
 	});
 	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? capitalize(activeEntry.catg);
-	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(project.activeEntry);
+	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(lexicon.data[project.activeEntry]);
 	if (activeEntry.images?.length > 0) {
 		// const url = RegExp.escape(`${file.path}\\${activeEntry.images[0]}`);
 		// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
@@ -1230,6 +1155,9 @@ const renderEditorHeader = () => {
 		console.log(`Loading entry image "${url}"`);
 		tabContent[TAB_LEXICON].querySelector('#entry-image').style.backgroundImage = `url("${url}")`;
 		tabContent[TAB_LEXICON].querySelector('#entry-image').textContent = ''; // remove "No Image" text
+	} else {
+		tabContent[TAB_LEXICON].querySelector('#entry-image').style.backgroundImage = ``;
+		tabContent[TAB_LEXICON].querySelector('#entry-image').textContent = 'No Image';
 	}
 };
 const renderAllWordforms = () => {
@@ -1272,12 +1200,11 @@ const renderWordform = i => {
 		id : `entry-form-${i}-selector`,
 		value : activeEntry.L2[i].form ?? -1,
 		onchange : () => {
+			// NOTE: changes made here should also be applied to form select onchange() in renderSentence()
 			if (document.getElementById(`entry-form-${i}-selector`).value === '+') {
 				console.log(`Add New Form, triggered by wordform ${i}`);
-				// console.log(activeEntry.catg);
-				// console.log(activeEntry.L2[i]);
-				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]);
 				// document.getElementById(`entry-form-${i}-selector`).value = activeEntry.L2[i].form;
+				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]);
 			} else {
 				activeEntry.L2[i].formId = document.getElementById(`entry-form-${i}-selector`).value;
 			}
@@ -1305,11 +1232,17 @@ const renderWordform = i => {
 		}
 	}
 	e.querySelector('.audio-gallery-wrapper > .icon-plus').onclick = async () => {
+		const hadNoAudio = (!Array.isArray(activeEntry.L2[i].audio) || activeEntry.L2[i].audio.length === 0);
 		console.log(activeEntry.L2[i].audio);
-		if (!(await addAudioTo(activeEntry.L2[i]))) return; // force reload active entry to refresh audio display
+		if (!(await addAudioTo(activeEntry.L2[i]))) return; // addAudioTo() marks project modified if at least one file was added
 		console.log(activeEntry.L2[i].audio);
-		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
-		for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
+		renderAllWordforms(); // refresh entire section for simplicity
+		// only rebuild lexicon if we just added the first audio
+		if (hadNoAudio) {
+			// TODO: should be a targetted refresh once that's available
+			lexicon.indexLexicon(true);
+			populateLexicon();
+		}
 	};
 	// menu
 	e.querySelector('.options-menu').id = `entry-form-${i}-menu`;
@@ -1327,6 +1260,7 @@ const renderWordform = i => {
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').appendChild(e);
 	registerInput(tabContent[TAB_LEXICON], `#entry-form-${i}-content`, () => {
 		activeEntry.L2[i].L2 = document.getElementById(`entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER).join('; ');
+		markModified();
 		console.log(activeEntry.L2[i]);
 	});
 };
@@ -1339,9 +1273,11 @@ const renderSentence = i => {
 		id : `entry-sentence-${i}-selector`,
 		value : activeEntry.sents[i].form ?? -1,
 		onchange : () => {
+			// NOTE: changes made here should also be applied to form select onchange() in renderWordform()
 			if (document.getElementById(`entry-sentence-${i}-selector`).value === '+') {
 				console.log(`Add New Form, triggered by sentence ${i}`);
-				document.getElementById(`entry-sentence-${i}-selector`).value = activeEntry.sents[i].form;
+				// document.getElementById(`entry-sentence-${i}-selector`).value = activeEntry.sents[i].form;
+				openModalCreateForm(activeEntry.catg,activeEntry.sents[i]);
 			} else {
 				activeEntry.sents[i].form = document.getElementById(`entry-sentence-${i}-selector`).value;
 			}
@@ -1367,11 +1303,17 @@ const renderSentence = i => {
 		}
 	}
 	e.querySelector('.audio-gallery-wrapper > .icon-plus').onclick = async () => {
+		const hadNoAudio = (!Array.isArray(activeEntry.sents[i].audio) || activeEntry.sents[i].audio.length === 0);
 		console.log(activeEntry.sents[i].audio);
-		if (!(await addAudioTo(activeEntry.sents[i]))) return; // force reload active entry to refresh audio display
+		if (!(await addAudioTo(activeEntry.sents[i]))) return; // addAudioTo() marks project modified if at least one file was added
 		console.log(activeEntry.sents[i].audio);
-		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
-		for (let i = 0; i < activeEntry.sents.length; i++) renderSentence(i);
+		renderAllSentences(); // refresh entire section for simplicity
+		// only rebuild lexicon if we just added the first audio
+		if (hadNoAudio) {
+			// TODO: should be a targetted refresh once that's available
+			lexicon.indexLexicon(true);
+			populateLexicon();
+		}
 	};
 	// sentences
 	e.querySelector('.entry-sentence-label-L1').textContent = capitalize(lexicon.L1.abbr || 'L1');
@@ -1400,10 +1342,12 @@ const renderSentence = i => {
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').appendChild(e);
 	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L1`, () => {
 		activeEntry.sents[i].L1 = document.getElementById(`entry-sentence-${i}-L1`).value;
+		markModified();
 		console.log(activeEntry.sents[i]);
 	});
 	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L2`, () => {
 		activeEntry.sents[i].L2 = document.getElementById(`entry-sentence-${i}-L2`).value;
+		markModified();
 		console.log(activeEntry.sents[i]);
 	});
 };
@@ -1570,6 +1514,28 @@ const renderSearchFilters = () => {
 
 ////////////////////////////////////////////////////////////////////////
 
+//// REFRESH EVENTS ////
+
+const refreshLexicon = (needRebuildIndex) => {
+	if (needRebuildIndex) lexicon.indexLexicon();
+	populateLexicon();
+};
+const onRefreshCatgs = () => {
+	// refresh project tab
+	renderProjectStats(); // recalcs lexiconStats and catgCounts
+	populateProjectCatgs();
+	// refresh lexicon tab
+	// TODO: possibly defer this until user next accesses lexicon tab
+	lexicon.indexLexicon();
+	populateLexicon();
+	tryLoadEntry(project.activeEntry, true);
+	// refresh search tab
+	// TODO: possibly defer this until user next accesses lexicon tab
+	populateSearchTab();
+};
+
+////////////////////////////////////////////////////////////////////////
+
 //// MODALS ////
 
 let isModalOpen = false; // allow [Esc] to close open modal
@@ -1664,22 +1630,10 @@ const openModalCreateProject = () => {
 };
 
 // project tab modals
-const onRefreshCatgs = () => {
-	// refresh project tab
-	renderProjectStats(); // recalcs lexiconStats and catgCounts
-	populateProjectCatgs();
-	// refresh lexicon tab
-	// TODO: possibly defer this until user next accesses lexicon tab
-	lexicon.indexLexicon();
-	populateLexicon();
-	tryLoadEntry(project.activeEntry, true);
-	// refresh search tab
-	// TODO: possibly defer this until user next accesses lexicon tab
-	populateSearchTab();
-;}
 const openModalCreateCatg = () => {
 	const eModal = document.querySelector('#tpl-modal-create-catg').content.firstElementChild.cloneNode(true);
 	// modal content
+		//
 	// modal actions
 	eModal.querySelector('#modal-action-confirm').onclick = () => {
 		const catgName = eModal.querySelector('#modal-catg-name').value;
@@ -1694,7 +1648,10 @@ const openModalCreateCatg = () => {
 		}
 		if (!lexicon.createCatg(catgName, catgAbbr)) {
 			console.error(`Unable to create catg "${catgName}" with abbreviation "${catgAbbr}".`);
+		} else {
+			markModified(); // only mark project modified if we actually succeeded at creating catg
 		}
+		// refresh UI whether or not catg creation was successful
 		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
 		closeModal();
 		console.log(project.catgs);
@@ -1732,7 +1689,10 @@ const openModalEditCatg = (prevCatg) => {
 		console.log(`Edit catg: Old name "${prevCatgName}" with abbreviation "${prevCatg}". New name "${catgName}" with abbreviation "${catgAbbr}".`);
 		if (!lexicon.editCatg(prevCatg,catgName,catgAbbr)) {
 			console.error(`ERROR Failed to edit catg. Old name was "${prevCatgName}" with abbreviation "${prevCatg}". New name was "${catgName}" with abbreviation "${catgAbbr}".`);
+		} else {
+			markModified(); // only mark project modified if we actually succeeded at editing catg
 		}
+		// refresh UI whether or not edit was successful
 		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
 		closeModal();
 		console.log(project.catgs);
@@ -1749,9 +1709,12 @@ const openModalDeleteCatg = (catgAbbr) => {
 	eModal.querySelector('#modal-action-confirm').onclick = () => {
 		if (!lexicon.deleteCatg(catgAbbr)) {
 			console.error(`ERROR Failed to delete catg "${project.catgs[catgAbbr]}" with abbreviation "${catgAbbr}".`);
+		} else {
+			markModified(); // only mark project modified if we actually succeeded at deleting catg
 		}
+		// refresh UI whether or not deletion was successful
 		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
-		activeMenu.reset(); // TODO: hiding menu must be opened to access this popup, but deleting catg deletes that menu; is there a better way to handle this?
+		activeMenu.reset(); // need to clear pointer to previously-active menu which just got deleted by refresh
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
@@ -1770,10 +1733,13 @@ const openModalDeleteCatgForm = (catgAbbr,formNum) => {
 			console.error(`ERROR Failed to delete form ${formNum} of catg "${project.catgs[catgAbbr]}" (${catgAbbr}).`);
 			console.log(project.catgs);
 			console.log(lexicon.L2.forms);
+		} else {
+			markModified(); // only mark project modified if we actually succeeded at deleting catg
 		}
+		// refresh UI whether or not deletion was successful
 		renderProjectCatgsHeader();
 		renderProjectCatg(catgAbbr);
-		activeMenu.reset(); // TODO: hiding menu must be opened to access this popup, but deleting catg deletes that menu; is there a better way to handle this?
+		activeMenu.reset(); // need to clear pointer to previously-active menu which just got deleted by refresh
 		if (activeEntry.catg === catgAbbr) tryLoadEntry(project.activeEntry, true);
 		closeModal();
 	};
@@ -1857,47 +1823,66 @@ const openModalDeleteEntry = (entryId) => {
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
 	activateModal(eModal);
 };
-const openModalManageImages = (entryId) => {
+const openModalManageImages = (imageParent) => {
+	// const imageParent = lexicon.data[entryId];
 	const eModal = document.querySelector('#tpl-modal-manage-images').content.firstElementChild.cloneNode(true);
+	// TODO: need to re-scan media in case files have gone missing
 	// modal content
-	if (lexicon.data[entryId].images) {
-		for (let image of lexicon.data[entryId].images) {
-			let eImage = Object.assign(document.createElement('div'), {
-				title : image || "[no image source]"
-			});
-			eImage.classList.add('modal-image-tile');
-			let eClose = document.createElement('div');
-			eClose.classList.add('modal-delete-image');
-			// TODO: impl remove image button
-			eImage.appendChild(eClose);
-			// TODO: check if more character escaping needed for bg image
-			// TODO: figure out how to use relative paths instead of constructing an absolute path
-			// TODO: check for broken image links
+	if (!Array.isArray(imageParent.images) || imageParent.images.length === 0) {
+		console.log('No images attached yet.');
+	} else {
+		console.log('Missing images:');
+		console.log(lexicon.media.imagesMissing);
+		imageParent.images = imageParent.images.filter(x => x).sort(); // scrub blank/deleted filenames since we're already touching datafield
+		eModal.querySelector('#modal-num-images').textContent = imageParent.images.length;
+		for (let i = 0; i < imageParent.images.length; i++) {
+			// TODO: switch url to relative paths instead of constructing absolute path
 			// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
-			const url = `${file.path}\\${image}`.replaceAll('\\','\\\\');
-			eImage.style.backgroundImage = `url("${url}")`;
-			eModal.querySelector('#modal-image-manager').insertBefore(eImage, eModal.querySelector('#modal-add-image'));
+			const url = `${file.path}\\${imageParent.images[i]}`.replaceAll('\\','\\\\');
+			const eImage = document.querySelector('#tpl-modal-image-tile').content.firstElementChild.cloneNode(true);
+			eImage.querySelector('.modal-image-thumbnail').title = imageParent.images[i]; // don't need fallback, since imageParent.images was just scrubbed
+			eImage.querySelector('.modal-image-thumbnail').style.backgroundImage = `url("${url}")`;
+			
+			if (lexicon.media.imagesMissing.has(imageParent.images[i])) {
+				console.log(`Image ${i} "${imageParent.images[i]}" is in the list of missing files`);
+				eImage.querySelector('p').textContent = `*${imageParent.images[i]}`;
+				eImage.querySelector('p').classList.add('warning');
+				eImage.querySelector('p').title = 'This file is missing. It was likely moved, deleted, or renamed.';
+			} else {
+				eImage.querySelector('p').textContent = imageParent.images[i];
+			}
+			eImage.querySelector('.icon-x').onclick = () => {
+				console.log(`Deleting image ${i}: "${imageParent.images[i]}"`);
+				imageParent.images.splice(i,1);
+				// refresh entry editor in case first image changed
+				renderEditorHeader();
+				// only rebuild lexicon if we just deleted the last image
+				if (imageParent.images.length === 0) {
+					// TODO: should be a targetted refresh once that's available
+					lexicon.indexLexicon(true);
+					populateLexicon();
+				}
+				// refresh this modal
+				openModalManageImages(imageParent);
+			}
+			eModal.querySelector('#modal-image-manager').appendChild(eImage);
 		}
 	}
 	eModal.querySelector('#modal-add-image').onclick = async () => {
-		console.log('Renderer selects image file(s).');
-		const needRefreshEntryEditor = !Array.isArray(lexicon.data[entryId].images) || lexicon.data[entryId].images.length < 1;
-		const res = await window.electronAPI.rendererSelectImages();
-		if (res.canceled) return;
-		const pathFrag = file.path + '\\';
-		const pathTest = new RegExp( RegExp.escape(pathFrag) );
-		if (!Array.isArray(lexicon.data[entryId].images)) lexicon.data[entryId].images = [];
-		for (let image of res.paths) {
-			// console.log(`${image} test "${pathFrag}" ${pathTest.test(image)}`);
-			if (pathTest.test(image)) {
-				console.log(`GOOD "${image.replace(pathFrag,'')}"`);
-				lexicon.data[entryId].images.push(image.replace(pathFrag,''));
-			} else {
-				console.log(`OUTSIDE PROJ "${image}"`);
-			}
+		const hadNoImages = (!Array.isArray(imageParent.images) || imageParent.images.length === 0);
+		console.log(imageParent.images);
+		if (!(await addImageTo(imageParent))) return; // skip refresh if selection cancelled; will mark project modified if at least one file successfully added
+		console.log(imageParent.images);
+		// refresh entry editor in case first image changed
+		renderEditorHeader();
+		// only rebuild lexicon if we just added the first image
+		if (hadNoImages) {
+			// TODO: should be a targetted refresh once that's available
+			lexicon.indexLexicon(true);
+			populateLexicon();
 		}
-		if (needRefreshEntryEditor) renderEditorHeader();
-		openModalManageImages(entryId);
+		// refresh this modal
+		openModalManageImages(imageParent);
 	};
 	// modal actions
 	eModal.querySelector('#modal-action-done').onclick = () => closeModal();
@@ -1905,41 +1890,66 @@ const openModalManageImages = (entryId) => {
 };
 const openModalManageAudio = (audioParent) => {
 	const eModal = document.querySelector('#tpl-modal-manage-audio').content.firstElementChild.cloneNode(true);
+	// TODO: need to re-scan media in case files have gone missing
 	// modal content
 	if (!Array.isArray(audioParent.audio) || audioParent.audio.length === 0) {
-		console.log('[no audio attached yet]');
-		const eNoAudio = Object.assign(document.createElement('p'), {
-			textContent : `No audio attached.`
-		});
-		eModal.querySelector('#modal-audio-manager').insertBefore(eNoAudio, eModal.querySelector('#modal-add-audio'));
-	}
-	if (Array.isArray(audioParent.audio)) {
-		console.log('Existing audio:');
-		for (let audio of audioParent.audio) {
-			console.log(audio);
-			// TODO: check character escaping
-			// TODO: use relative paths, check for broken links
+		console.log('No audio attached yet.');
+	} else {
+		console.log('Missing audio:');
+		console.log(lexicon.media.audioMissing);
+		audioParent.audio = audioParent.audio.filter(x => x).sort(); // scrub blank/deleted filenames since we're already touching datafield
+		eModal.querySelector('#modal-num-audio').textContent = audioParent.audio.length;
+		for (let i = 0; i < audioParent.audio.length; i++) {
+			// TODO: switch url to relative paths instead of constructing absolute path
 			// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
-			const url = `${file.path}\\${audio}`.replaceAll('\\','\\\\');
+			const url = `${file.path}\\${audioParent.audio[i]}`.replaceAll('\\','\\\\');
 			const eAudio = document.querySelector('#tpl-modal-audio-tile').content.firstElementChild.cloneNode(true);
-			eAudio.querySelector('.icon-audio').title = audio || '[no audio source]';
+			eAudio.querySelector('.icon-audio').title = audioParent.audio[i]; // don't need fallback, since audioParent.audio was just scrubbed
 			eAudio.querySelector('.icon-audio').onclick = () => {
 				console.log(`Modal playing audio "${url}".`);
 				audioPlayer.play(url);
 			};
-			eAudio.querySelector('p').textContent = audio || '[no audio source]';
-			// TODO: impl remove audio button
-			eModal.querySelector('#modal-audio-manager').insertBefore(eAudio, eModal.querySelector('#modal-add-audio'));
+			if (lexicon.media.audioMissing.has(audioParent.audio[i])) {
+				console.log(`Audio ${i} "${audioParent.audio[i]}" is in the list of missing files`);
+				eAudio.querySelector('p').textContent = `*${audioParent.audio[i]}`;
+				eAudio.querySelector('p').classList.add('warning');
+				eAudio.querySelector('p').title = 'This file is missing. It was likely moved, deleted, or renamed.';
+			} else {
+				eAudio.querySelector('p').textContent = audioParent.audio[i];
+			}
+			eAudio.querySelector('.icon-x').onclick = () => {
+				console.log(`Deleting audio ${i}: "${audioParent.audio[i]}"`);
+				audioParent.audio.splice(i,1);
+				// we don't know whether audio was added to wordform or section, so refresh both sections to be safe
+				renderAllWordforms();
+				renderAllSentences();
+				// only rebuild lexicon if we just deleted the last audio
+				if (audioParent.audio.length === 0) {
+					// TODO: should be a targetted refresh once that's available
+					lexicon.indexLexicon(true);
+					populateLexicon();
+				}
+				// refresh this modal
+				openModalManageAudio(audioParent);
+			}
+			eModal.querySelector('#modal-audio-manager').appendChild(eAudio);
 		}
 	}
 	eModal.querySelector('#modal-add-audio').onclick = async () => {
+		const hadNoAudio = (!Array.isArray(audioParent.audio) || audioParent.audio.length === 0);
 		console.log(audioParent.audio);
-		if (!(await addAudioTo(audioParent))) return; // skip refresh if selection cancelled
+		if (!(await addAudioTo(audioParent))) return; // skip refresh if selection cancelled; will mark project modified if at least one file successfully added
 		console.log(audioParent.audio);
-		// tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
-		// for (let i = 0; i < activeEntry.L2.length; i++) renderWordform(i);
-		tryLoadEntry(project.activeEntry, true); // force reload active entry to refresh audio display
-		// TODO: allow targetted reloading of forms vs sentences
+		// we don't know whether audio was added to wordform or section, so refresh both sections to be safe
+		renderAllWordforms();
+		renderAllSentences();
+		// only rebuild lexicon if we just added the first audio
+		if (hadNoAudio) {
+			// TODO: should be a targetted refresh once that's available
+			lexicon.indexLexicon(true);
+			populateLexicon();
+		}
+		// refresh this modal
 		openModalManageAudio(audioParent);
 	};
 	// modal actions
@@ -2041,25 +2051,6 @@ const openModalCreateForm = (catg,parent) => {
 	activateModal(eModal);
 };
 
-const addAudioTo = async (parent) => {
-	// given parent data[i].sents[j], will create data[i].sents[j].audio = [] if needed, then push to it
-	console.log('Renderer selects audio file(s).');
-	const res = await window.electronAPI.rendererSelectAudio();
-	if (res.canceled || !res.paths || res.paths.length === 0) return false;
-	const pathFrag = file.path + '\\';
-	const pathTest = new RegExp( RegExp.escape(pathFrag) );
-	if (!Array.isArray(parent.audio)) parent.audio = [];
-	for (let audio of res.paths) {
-		if (pathTest.test(audio)) {
-			console.log(`GOOD "${audio.replace(pathFrag,'')}"`);
-			parent.audio.push(audio.replace(pathFrag,''));
-		} else {
-			console.log(`ERR OUTSIDE PROJ "${audio}"`);
-		}
-	}
-	return true;
-};
-
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -2140,18 +2131,17 @@ window.electronAPI.onMainSaveProject(() => {
 const trySaveProject = async () => {
 	if (!file.isOpen) { console.error('No project currently open. No changes to save.'); return false; }
 	if (!file.modified) { console.warn('No changes to save.'); return false; }
-	// console.log('Renderer saves project STUB.');
-	// const stubObject = {
-	// 	x : 7,
-	// 	y : 9
-	// };
-	// const res = await window.electronAPI.rendererSaveProject( JSON.stringify(stubObject) );
 	console.log('Renderer saves project.');
 	const res = await window.electronAPI.rendererSaveProject( lexicon.toJSON() );
 	console.log(res);
 	if (res.error) { console.error(res.message); return false; }
 	console.log('Main confirms project is saved.');
 	file.modified = false;
+	// TODO: change window title to reflect save state on:
+		// save
+		// save as
+		// new project
+		// markModified()
 	return true;
 };
 window.electronAPI.onMainSaveProjectAs(() => {
@@ -2324,6 +2314,59 @@ const tryLoadProject = async (path) => {
 	console.log(`Search tab built in ${Math.round(performance.now()-t3_loadProject)} ms.`);
 	console.log(`All loading finished in ${Math.round(performance.now()-t0_loadProject)} ms.`);
 }
+
+//
+
+// media selection
+const addAudioTo = async (parent) => {
+	// parent should be lexicon obj that accepts audio, such as lexicon.data[i].sents[j] = {L2:'',audio:[]}
+	console.log('Renderer selects audio file(s).');
+	const res = await window.electronAPI.rendererSelectAudio();
+	if (res.canceled || !res.paths || res.paths.length === 0) return false;
+	if (!Array.isArray(parent.audio)) parent.audio = [];
+	// push selected file(s) to parent.audio[] iff files are in project folder (allows relative paths)
+	let hasAddedAudio = false;
+	const pathFrag = file.path + '\\';
+	const pathTest = new RegExp( RegExp.escape(pathFrag) );
+	for (let audio of res.paths) {
+		// TODO: make sure audio isn't already in parent.audio
+		if (pathTest.test(audio)) {
+			console.log(`GOOD "${audio.replace(pathFrag,'')}"`);
+			parent.audio.push(audio.replace(pathFrag,''));
+			hasAddedAudio = true;
+		} else {
+			console.warn(`ERR OUTSIDE PROJ "${audio}". Audio not added.`);
+		}
+	}
+	parent.audio.sort();
+	if (hasAddedAudio) markModified(); // only mark project modified if at least one file successfully added
+	return true;
+};
+const addImageTo = async (parent) => {
+	// parent should be lexicon obj that accepts images, such as lexicon.data[i] = {L1:'',images:[],...}
+	console.log('Renderer selects image file(s).');
+	const res = await window.electronAPI.rendererSelectImages();
+	if (res.canceled || !res.paths || res.paths.length === 0) return false;
+	if (!Array.isArray(parent.images)) parent.images = [];
+	// push selected file(s) to parent.images[] iff files are in project folder (allows relative paths)
+	let hasAddedImage = false;
+	const pathFrag = file.path + '\\';
+	const pathTest = new RegExp( RegExp.escape(pathFrag) );
+
+	for (let image of res.paths) {
+		// TODO: make sure image isn't already in parent.image
+		if (pathTest.test(image)) {
+			console.log(`GOOD "${image.replace(pathFrag,'')}"`);
+			parent.images.push(image.replace(pathFrag,''));
+			hasAddedImage = true;
+		} else {
+			console.warn(`ERR OUTSIDE PROJ "${image}". Image not added.`);
+		}
+	}
+	parent.images.sort();
+	if (hasAddedImage) markModified(); // only mark project modified if at least one file successfully added
+	return true;
+};
 
 
 // pattern for two-way comms where TX has authority:

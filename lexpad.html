@@ -27,6 +27,7 @@
 			<button id='navtab-0' class='navtab active-navtab'>Project</button>
 			<button id='navtab-1' class='navtab'>Lexicon</button>
 			<button id='navtab-2' class='navtab'>Search</button>
+			<button id='navtab-3' class='navtab'>Analysis</button>
 			<div class='flex-sep'></div>
 		</div>
 		<div id='statbar' class='flex-row'>
@@ -701,38 +702,47 @@
 		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Manage Images</p>
 			<div id='modal-content' class='flex-col'>
-				<div id='modal-image-manager' class='flex-row'>
-					<!-- <div class='modal-image-tile'>
-						<button class='modal-delete-image'></button>
-					</div> -->
-					<button id='modal-add-image' class='icon icon-plus' title='Attach new image(s)'></button>
+				<div class='flex-row flex-separated-row'>
+					<p><span id='modal-num-images'>0</span> Attached</p>
+					<button id='modal-add-image' class='button-highlight' title='Attach new image(s) to entry'>Attach Image(s)</button>
 				</div>
-				<p class='subtitle warning'>At least one image is outside your project directory. It may become inaccessible if your project is moved or accessed on another machine. It is recommended that all images be stored in ...\[project]\assets.</p>
+				<div class='menu-separator'></div>
+				<p id='modal-warning' class='subtitle'
+					title='Files outside the project directory require absolute paths, which may break if you move your project or host it as a website, and could also allow other people to see your username.'
+				>Only files inside your project directory can be attached.</p>
+				<div id='modal-image-manager' class='flex-col'>
+					<!-- <p>No images attached.</p> -->
+				</div>
+				<!-- <p class='subtitle warning'>At least one image is outside your project directory. It may become inaccessible if your project is moved or accessed on another machine. It is recommended that all images be stored in ...\[project]\assets.</p> -->
 			</div>
 			<div id='modal-actions' class='flex-row'>
 				<button id='modal-action-done' class='button-highlight'>Done</button>
 			</div>
 		</div>
 	</template>
+	<template id='tpl-modal-image-tile'>
+		<div class='flex-row modal-image-tile'>
+			<div class='modal-image-thumbnail'></div>
+			<p class='flex-fill'></p>
+			<button class='icon icon-x hover-white modal-delete-image' title='Remove image from entry. (This does not delete the file.)'></button>
+		</div>
+	</template>
 	<template id='tpl-modal-manage-audio'>
 		<div id='modal' class='flex-col modal' tabindex='0'>
 			<p class='modal-title'>Manage Audio</p>
 			<div id='modal-content' class='flex-col'>
-				<div id='modal-audio-manager' class='flex-col'>
-					<!-- <div class='flex-row modal-audio-tile'>
-						<button class='icon icon-audio hover-white' title='assets/randomAudio.mp3'></button>
-						<p class='flex-fill'>assets/randomAudio.mp3</p>
-						<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
-					</div>
-					<div class='flex-row modal-audio-tile'>
-						<button class='icon icon-audio hover-white' title='assets/randomAudio.mp3'></button>
-						<p class='flex-fill'>assets/randomAudio.mp3</p>
-						<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
-					</div> -->
-					<!-- <button id='modal-add-audio' class='icon icon-plus' title='Attach new audio'></button> -->
-					 <button id='modal-add-audio' class='button-highlight' title='Attach new audio'>Add Audio</button>
+				<div class='flex-row flex-separated-row'>
+					<p><span id='modal-num-audio'>0</span> Attached</p>
+					<button id='modal-add-audio' class='button-highlight' title='Attach new audio to entry'>Attach Audio</button>
 				</div>
-				<p class='subtitle warning'>At least one audio file is outside your project directory. It may become inaccessible if your project is moved or accessed on another machine. It is recommended that all audio be stored in ...\[project]\assets.</p>
+				<div class='menu-separator'></div>
+				<p id='modal-warning' class='subtitle'
+					title='Files outside the project directory require absolute paths, which may break if you move your project or host it as a website, and could also allow other people to see your username.'
+				>Only files inside your project directory can be attached.</p>
+				<!-- <p id='modal-explanation' class='subtitle'>Only files in the project directory can safely use relative paths, ie "/assets/file.wav". Files outside it would require absolute paths, which may break if you move your project or host it as a website, and could also allow other people to see your username.</p> -->
+				<div id='modal-audio-manager' class='flex-col'>
+					<!-- <p>No audio attached.</p> -->
+				</div>
 			</div>
 			<div id='modal-actions' class='flex-row'>
 				<button id='modal-action-done' class='button-highlight'>Done</button>
@@ -743,7 +753,7 @@
 		<div class='flex-row modal-audio-tile'>
 			<button class='icon icon-audio hover-white'></button>
 			<p class='flex-fill'></p>
-			<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio file'></button>
+			<button class='icon icon-x hover-white modal-delete-audio' title='Remove audio from datafield. (This does not delete the file.)'></button>
 		</div>
 	</template>
 	<!-- delete entry field -->

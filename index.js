@@ -168,11 +168,12 @@ const onRendererSaveProject = async (evt,contents) => {
 	console.log('Renderer saves project.');
 	console.log(contents);
 	const filePath = activeFile.path;
+	console.log(`Debug authority interrupts save to prevent mutation of input conditions. Save would succeed.`);
+	return { message : `Debug authority interrupts save to prevent mutation of input conditions. Save would succeed.`, path: filePath };
 	try {
 		await fs.writeFile(filePath,contents);
 		console.log('Success');
 		activeFile.modified = false;
-		activeFile.path = filePath;
 		return { message : 'Project saved successfully.', path: filePath };
 	} catch (err) {
 		return { error: 'cannot_save_file', message: String(err), path: filePath };

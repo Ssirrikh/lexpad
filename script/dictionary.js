@@ -196,7 +196,7 @@ let indexing = {
 		// catgCounts[entry.catg]--;
 	},
 };
-const indexLexicon = () => {
+const indexLexicon = (forceRebind) => {
 	// TODO: use mem snapshot to check if wholesale replacement properly GCs prev contents
 	const t0_indexLexicon = performance.now();
 	indexing.orderedL1 = [];
@@ -211,12 +211,14 @@ const indexLexicon = () => {
 	}
 	indexing.orderedL1.sort(alphabetizeIndex);
 	indexing.orderedL2.sort(alphabetizeIndex);
+	console.log(indexing.orderedL1);
+	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 	console.log(`Indexed ${data.length} lexicon entries in ${Math.round(performance.now()-t0_indexLexicon)} ms.`);
 };
 // const indexOrderedCatgs = () => {
 // 	// TODO: decide if this is worth indexing; operation is cheap and not used often
 // };
-const indexAvailableMedia = (mediaList) => {
+const indexAvailableMedia = (mediaList,forceRebind) => {
 	console.log(mediaList);
 	indexing.media.audioAvailable = new Set();
 	indexing.media.imagesAvailable = new Set();
@@ -235,8 +237,9 @@ const indexAvailableMedia = (mediaList) => {
 	console.log(indexing.media.audioAvailable);
 	console.log(indexing.media.imagesAvailable);
 	console.log(indexing.media.invalidAvailable);
+	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 };
-const indexReferencedMedia = () => {
+const indexReferencedMedia = (forceRebind) => {
 	const t0_indexMedia = performance.now();
 	indexing.media.audioReferenced = {};
 	indexing.media.imagesReferenced = {};
@@ -263,9 +266,10 @@ const indexReferencedMedia = () => {
 	}
 	console.log(indexing.media.audioReferenced);
 	console.log(indexing.media.imagesReferenced);
+	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 	console.log(`Indexed ${Object.keys(indexing.media.audioReferenced).length} referenced audio files and ${Object.keys(indexing.media.imagesReferenced).length} referenced image files in ${Math.round(performance.now()-t0_indexMedia)} ms.`);
 };
-const indexMediaUsage = () => {
+const indexMediaUsage = (forceRebind) => {
 	const t0_indexMediaUsage = performance.now();
 	// convert hash tables to sets
 	const audioReferenced = new Set(Object.keys(indexing.media.audioReferenced));
@@ -284,10 +288,11 @@ const indexMediaUsage = () => {
 	console.log('audio unused', indexing.media.audioUnused);
 	console.log('images missing', indexing.media.imagesMissing);
 	console.log('images unused', indexing.media.imagesUnused);
+	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 	console.log(`Media usage indexed in ${Math.round(performance.now()-t0_indexMediaUsage)} ms.`);
 };
 
-const calculateStatistics = () => {
+const calculateStatistics = (forceRebind) => {
 	const t0_stats = performance.now();
 
 	// reset stats
@@ -369,6 +374,7 @@ const calculateStatistics = () => {
 		}
 		if (hasAudio) indexing.stats.numEntriesWithAudio++;
 	}
+	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 	console.log(`Project statistics compiled in ${Math.round(performance.now()-t0_stats)} ms.`);
 };
 
