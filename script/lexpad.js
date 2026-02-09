@@ -15,6 +15,7 @@ import { file, project } from "./dictionary.js";
 // https://www.electronjs.org/docs/latest/tutorial/application-menu
 
 const RE_SYNONYM_SPLITTER = /;\s*/;
+const SYNONYM_JOIN = '; ';
 
 const TAB_PROJECT = 0;
 const TAB_LEXICON = 1;
@@ -117,7 +118,7 @@ const renderModifierKeys = () => {
 let activeInput;
 
 // active entry
-let activeEntry = {};
+let activeEntry = null; // pointer to active entry, ie lexicon.data[i]
 
 
 
@@ -140,8 +141,7 @@ const toggleMenu = (evt,menuContainer,menuId) => {
 		if (activeMenu.id) {
 			// console.log(`No menu targetted. Closing prev menu...`);
 			activeMenu.container.querySelector(activeMenu.id).style.visibility = 'hidden';
-			activeMenu.container = null;
-			activeMenu.id = null;
+			activeMenu.reset();
 		} else {
 			console.log(`No menu targetted. No open menues need closing.`);
 		}
@@ -149,8 +149,7 @@ const toggleMenu = (evt,menuContainer,menuId) => {
 		// this menu already open -> close it
 		// console.log(`Menu already open. Toggling closed...`);
 		activeMenu.container.querySelector(activeMenu.id).style.visibility = 'hidden';
-		activeMenu.container = null;
-		activeMenu.id = null;
+		activeMenu.reset();
 	} else {
 		// diff menu already open -> close it
 		if (activeMenu.id) {
@@ -625,16 +624,19 @@ const init = () => {
 	const t0_init = performance.now();
 	// construct welcome page
 	nWelcomePage = document.getElementById('tpl-welcome-page').content.firstElementChild.cloneNode(true);
-	nWelcomePage.querySelector('#btn-open-project').onclick = () => tryBeginOpenProject(); // needs to be lambda, so function can be hoisted properly
+	nWelcomePage.querySelector('#btn-open-project').onclick = () => tryBeginOpenProject(); // all onclick must be lambdas, so functions can be hoisted properly
 	nWelcomePage.querySelector('#btn-create-project').onclick = () => tryBeginCreateProject();
-	// allow page to render, then build content skeletons off-DOM
-		// closeModal();
+	closeModal();
+	closeTutorial();
+	setWindowTitle();
 	renderWelcomePage();
+	// allow page to render, then build content skeletons off-DOM
 	requestAnimationFrame(() => {
 		const t0_init_deferred = performance.now();
 		// project tab
 		tabContent[TAB_PROJECT] = document.getElementById('tpl-project-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markModified();
+		tabContent[TAB_PROJECT].querySelector('#dbg-trigger').onclick = () => document.title = `Cool New Title`;
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
 		// tabContent[TAB_LEXICON].style.padding = '0';
@@ -821,7 +823,12 @@ const registerInput = (container,id,onUpdate) => {
 	if (onUpdate) {
 		container.querySelector(id).onblur = onUpdate;
 		container.querySelector(id).onkeydown = (evt) => {
-			if (evt.key === 'Enter') container.querySelector(id).blur(); // allow [Enter] to submit textbox as if it's a form
+			switch (evt.key) {
+				case 'Enter': // allow [Enter] to submit textbox as if it's a form
+				// case 'Escape':
+					container.querySelector(id).blur();
+					break;
+			}
 			// TODO: possibly allow arrow keys to navigate from here
 		};
 	}
@@ -1143,8 +1150,14 @@ const renderEditorHeader = () => {
 	tabContent[TAB_LEXICON].querySelector('#entry-L1-label').textContent = `${lexicon.L1.name || 'L1'} Word(s)`;
 	tabContent[TAB_LEXICON].querySelector('#entry-L1').value = activeEntry.L1;
 	registerInput(tabContent[TAB_LEXICON], '#entry-L1', () => {
-		activeEntry.L1 = tabContent[TAB_LEXICON].querySelector('#entry-L1').value.split(RE_SYNONYM_SPLITTER).join('; ');
-		console.log(activeEntry.L1);
+		const newL1 = tabContent[TAB_LEXICON].querySelector('#entry-L1').value.split(RE_SYNONYM_SPLITTER).join(SYNONYM_JOIN);
+		console.log(`Entry L1 modified from "${activeEntry.L1}" to "${newL1}".`);
+		if (newL1 !== activeEntry.L1) {
+			activeEntry.L1 = newL1;
+			markModified();
+			lexicon.indexLexicon(true);
+			populateLexicon();
+		}
 	});
 	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? capitalize(activeEntry.catg);
 	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(lexicon.data[project.activeEntry]);
@@ -1203,10 +1216,10 @@ const renderWordform = i => {
 			// NOTE: changes made here should also be applied to form select onchange() in renderSentence()
 			if (document.getElementById(`entry-form-${i}-selector`).value === '+') {
 				console.log(`Add New Form, triggered by wordform ${i}`);
-				// document.getElementById(`entry-form-${i}-selector`).value = activeEntry.L2[i].form;
-				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]);
+				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]); // marks modified is successful
 			} else {
 				activeEntry.L2[i].formId = document.getElementById(`entry-form-${i}-selector`).value;
+				markModified();
 			}
 		}
 	});
@@ -1259,9 +1272,14 @@ const renderWordform = i => {
 	// events
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').appendChild(e);
 	registerInput(tabContent[TAB_LEXICON], `#entry-form-${i}-content`, () => {
-		activeEntry.L2[i].L2 = document.getElementById(`entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER).join('; ');
-		markModified();
-		console.log(activeEntry.L2[i]);
+		const newL2 = tabContent[TAB_LEXICON].querySelector(`#entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER).join(SYNONYM_JOIN);
+		console.log(`Entry L2 modified from "${activeEntry.L2[i].L2}" to "${newL2}".`);
+		if (newL2 !== activeEntry.L2[i].L2) {
+			activeEntry.L2[i].L2 = newL2;
+			markModified();
+			lexicon.indexLexicon(true);
+			populateLexicon();
+		}
 	});
 };
 const renderSentence = i => {
@@ -1276,10 +1294,10 @@ const renderSentence = i => {
 			// NOTE: changes made here should also be applied to form select onchange() in renderWordform()
 			if (document.getElementById(`entry-sentence-${i}-selector`).value === '+') {
 				console.log(`Add New Form, triggered by sentence ${i}`);
-				// document.getElementById(`entry-sentence-${i}-selector`).value = activeEntry.sents[i].form;
 				openModalCreateForm(activeEntry.catg,activeEntry.sents[i]);
 			} else {
 				activeEntry.sents[i].form = document.getElementById(`entry-sentence-${i}-selector`).value;
+				markModified();
 			}
 		}
 	});
@@ -1367,39 +1385,58 @@ const renderNote = i => {
 	tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').appendChild(e);
 	registerInput(tabContent[TAB_LEXICON], `#entry-note-${i}`, () => {
 		activeEntry.notes[i].note = document.getElementById(`entry-note-${i}`).value;
+		markModified();
 		console.log(activeEntry.notes[i]);
 	});
 };
 
 const addWordform = () => {
-	// TODO: make sure an entry is active before executing
+	if (!activeEntry) return false;
+	// add wordform
+	if (!Array.isArray(activeEntry.L2)) activeEntry.L2 = [];
 	activeEntry.L2.push({ formId : -1, L2 : "" });
+	markModified();
+	// refresh UI
 	if (activeEntry.L2.length === 1) {
+		// if this is the first wordform, remove the "No Wordforms" message
 		tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').innerHTML = '';
 	}
 	renderWordform(activeEntry.L2.length - 1);
 	tabContent[TAB_LEXICON].querySelector(`#entry-form-${activeEntry.L2.length - 1}-content`).focus();
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-count').textContent = `(${activeEntry.L2.length})`;
+	return true;
 };
 const addSentence = () => {
-	// TODO: make sure an entry is active before executing
+	if (!activeEntry) return false;
+	// add sentence
+	if (!Array.isArray(activeEntry.sents)) activeEntry.sents = [];
 	activeEntry.sents.push({ formId : -1, L1 : "", L2 : "" });
+	markModified();
+	// refresh UI
 	if (activeEntry.sents.length === 1) {
+		// if this is the first sentence, remove the "No Sentences" message
 		tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').innerHTML = '';
 	}
 	renderSentence(activeEntry.sents.length - 1);
 	tabContent[TAB_LEXICON].querySelector(`#entry-sentence-${activeEntry.sents.length - 1}-L2`).focus();
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-count').textContent = `(${activeEntry.sents.length})`;
+	return true;
 };
 const addNote = () => {
-	// TODO: make sure an entry is active before executing
+	if (!activeEntry) return false;
+	// add note
+	if (!Array.isArray(activeEntry.notes)) activeEntry.notes = [];
 	activeEntry.notes.push({ formId : -1, note : "" });
+	markModified();
+	// refresh UI
 	if (activeEntry.notes.length === 1) {
+		// if this is the first note, remove the "No Notes" message
 		tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').innerHTML = '';
 	}
 	renderNote(activeEntry.notes.length - 1);
 	tabContent[TAB_LEXICON].querySelector(`#entry-note-${activeEntry.notes.length - 1}`).focus();
 	tabContent[TAB_LEXICON].querySelector('#entry-notes-count').textContent = `(${activeEntry.notes.length})`;
+	return true;
 };
 
 
@@ -1526,12 +1563,25 @@ const onRefreshCatgs = () => {
 	populateProjectCatgs();
 	// refresh lexicon tab
 	// TODO: possibly defer this until user next accesses lexicon tab
-	lexicon.indexLexicon();
+	lexicon.indexLexicon(true);
 	populateLexicon();
 	tryLoadEntry(project.activeEntry, true);
 	// refresh search tab
 	// TODO: possibly defer this until user next accesses lexicon tab
 	populateSearchTab();
+};
+const onAddOrDeleteEntry = (needRefreshCatgs) => {
+	// TODO optimization: build a more targetted refresh to save time
+
+	// refresh project tab
+	renderProjectStats(); // recalcs lexiconStats and catgCounts
+	populateProjectCatgs(); // fully rebuild catg bubbles in case this was the first or last entry of its catg
+	// refresh lexicon tab
+	lexicon.indexLexicon(true);
+	populateLexicon();
+	tryLoadEntry(project.activeEntry,true); // should have been set to new entry id if creating, or -1 if deleting
+	// refresh search tab
+	if (needRefreshCatgs) populateSearchTab();
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -1777,25 +1827,27 @@ const openModalCreateEntry = () => {
 	};
 	// modal actions
 	eModal.querySelector('#modal-action-create').onclick = () => {
-		let newEntryId;
+		// create entry and mark project modified
+		console.log('Creating new entry...');
+		let createdNewCatg = false;
 		if (eSelect.value === '+') {
-			if (!eModal.querySelector('#modal-create-entry-new-catg-name').value || !eModal.querySelector('#modal-create-entry-new-catg-abbr').value) {
-				console.warn('Cannot create catg. Both the full name and the abbreviation must be specified.');
-				return;
-			}
-			if (eModal.querySelector('#modal-create-entry-new-catg-name').value !== '' && eModal.querySelector('#modal-create-entry-new-catg-abbr').value !== '') {
-				console.warn('Creating new catg...');
-				lexicon.createCatg(eModal.querySelector('#modal-create-entry-new-catg-name').value, eModal.querySelector('#modal-create-entry-new-catg-abbr').value);
-			}
-			newEntryId = lexicon.createEntry(eModal.querySelector('#modal-create-entry-new-catg-abbr').value);
+			const catgName = eModal.querySelector('#modal-create-entry-new-catg-name').value;
+			const catgAbbr = eModal.querySelector('#modal-create-entry-new-catg-abbr').value.toLowerCase();
+			console.log('Creating new catg...');
+			if (!lexicon.createCatg(catgName,catgAbbr)) return;
+			createdNewCatg = true;
+			project.activeEntry = lexicon.createEntry(catgAbbr);
+			console.log(`Created entry #${project.activeEntry}`);
 		} else {
-			newEntryId = lexicon.createEntry(eSelect.value);
+			project.activeEntry = lexicon.createEntry(eSelect.value);
+			console.log(`Created entry #${project.activeEntry}`);
 		}
-		onRefreshCatgs();
-		// populateLexicon();
-		// tryLoadEntry(newEntryId);
-		console.log('Created new entry.');
+		markModified();
+		// refresh UI
+		onAddOrDeleteEntry(createdNewCatg); // runs tryLoadEntry(-1);
 		closeModal();
+		// focus management
+		tabContent[TAB_LEXICON].querySelector('#entry-L1').focus();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
 	activateModal(eModal);
@@ -1804,20 +1856,11 @@ const openModalDeleteEntry = (entryId) => {
 	const eModal = document.querySelector('#tpl-modal-delete-entry').content.firstElementChild.cloneNode(true);
 	// modal actions
 	eModal.querySelector('#modal-action-delete').onclick = () => {
-		lexicon.deleteEntry(entryId);
-
-		// TODO optimization: build a more targetted refresh to save time
-
-		// refresh project tab
-		renderProjectStats(); // recalcs lexiconStats and catgCounts
-		populateProjectCatgs();
-		// refresh lexicon tab
-		lexicon.indexLexicon();
-		populateLexicon();
-		tryLoadEntry(-1);
-		// refresh search tab
-		populateSearchTab();
-
+		if (!lexicon.deleteEntry(entryId)) return;
+		activeEntry = null; // clear pointer to deleted entry so it can be garbage collected properly
+		// project.activeEntry = -1; // redundant; this gets unset by lexicon.deleteEntry()
+		markModified();
+		onAddOrDeleteEntry(false); // needRefreshCatgs = false; deletion doesn't create catg => only partial refresh
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
@@ -1854,6 +1897,7 @@ const openModalManageImages = (imageParent) => {
 			eImage.querySelector('.icon-x').onclick = () => {
 				console.log(`Deleting image ${i}: "${imageParent.images[i]}"`);
 				imageParent.images.splice(i,1);
+				markModified();
 				// refresh entry editor in case first image changed
 				renderEditorHeader();
 				// only rebuild lexicon if we just deleted the last image
@@ -1920,6 +1964,7 @@ const openModalManageAudio = (audioParent) => {
 			eAudio.querySelector('.icon-x').onclick = () => {
 				console.log(`Deleting audio ${i}: "${audioParent.audio[i]}"`);
 				audioParent.audio.splice(i,1);
+				markModified();
 				// we don't know whether audio was added to wordform or section, so refresh both sections to be safe
 				renderAllWordforms();
 				renderAllSentences();
@@ -1972,9 +2017,9 @@ const openModalDeleteWordform = (formId) => {
 		console.log(activeEntry.L2);
 		console.log(activeEntry.L2[formId]);
 		activeEntry.L2.splice(formId,1); // delete data
-		activeMenu.container = null; // clear menu pointer (menu will be deleted)
-		activeMenu.id = null;
+		markModified();
 		renderAllWordforms();
+		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
@@ -1991,9 +2036,9 @@ const openModalDeleteSentence = (sentId) => {
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.sents[sentId]);
 		activeEntry.sents.splice(sentId,1); // delete data
-		activeMenu.container = null; // clear menu pointer (menu will be deleted)
-		activeMenu.id = null;
+		markModified();
 		renderAllSentences();
+		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
@@ -2007,9 +2052,9 @@ const openModalDeleteNote = (noteId) => {
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.notes[noteId]);
 		activeEntry.notes.splice(noteId,1); // delete data
-		activeMenu.container = null; // clear menu pointer (menu will be deleted)
-		activeMenu.id = null;
+		markModified();
 		renderAllNotes();
+		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
 		closeModal();
 	};
 	eModal.querySelector('#modal-action-cancel').onclick = () => closeModal();
@@ -2024,7 +2069,7 @@ const openModalCreateForm = (catg,parent) => {
 	eModal.querySelector('#modal-action-create').onclick = () => {
 		const formName = eModal.querySelector('#modal-form-name').value;
 		if (!formName) { console.warn('No form name specified. Nothing to create.'); return; }
-		if (!lexicon.L2.forms[catg]) lexicon.L2.forms[catg] = [];
+		if (!lexicon.L2.forms[catg]) lexicon.L2.forms[catg] = []; // TODO: convert to Array.isArray() check
 		if (lexicon.L2.forms[catg].indexOf(formName) !== -1) {
 			console.warn('A form with that name already exists. Nothing to create.');
 			parent.form = lexicon.L2.forms[catg].indexOf(formName);
@@ -2034,6 +2079,7 @@ const openModalCreateForm = (catg,parent) => {
 			parent.form = lexicon.L2.forms[catg].length - 1;
 			populateProjectCatgs(); // refresh project tab
 		}
+		markModified();
 		console.log(parent);
 
 		// need to refresh interface, whether we created form or not
@@ -2107,19 +2153,32 @@ const tryLoadEntry = (i,forceLoad) => {
 
 //// RENDERER-TO-MAIN IPC TRIGGERS ////
 
+const setWindowTitle = () => {
+	if (!file.isOpen) {
+		document.title = `LexPad`;
+		return;
+	}
+	if (file.modified) {
+		document.title = `*${file.filename} - LexPad`;
+	} else {
+		document.title = `${file.filename} - LexPad`;
+	}
+};
+
 // project state
 
 // mark modified
 window.electronAPI.onMainMarkModified(() => {
-	if (!file.isOpen) { console.error('Main tries to mark project modified, but no project currently open.'); return; }
-	file.modified = true;
-	console.log('Main marks project as modified.');
+	if (!file.isOpen) { console.error('Main requests mark project modified, but no project currently open.'); return; }
+	console.log('Main requests mark project modified.');
+	markModified(); // renderer has authority over save state
 });
 const markModified = () => {
 	if (!file.isOpen) { console.warn('No project currently open. Nothing to mark as modified.'); return; }
 	if (!file.modified) {
 		console.log('Renderer marks project as modified.');
 		file.modified = true;
+		setWindowTitle();
 		window.electronAPI.rendererMarkModified();
 	}
 };
@@ -2137,11 +2196,8 @@ const trySaveProject = async () => {
 	if (res.error) { console.error(res.message); return false; }
 	console.log('Main confirms project is saved.');
 	file.modified = false;
-	// TODO: change window title to reflect save state on:
-		// save
-		// save as
-		// new project
-		// markModified()
+	setWindowTitle();
+	project.lastEdited = performance.now();
 	return true;
 };
 window.electronAPI.onMainSaveProjectAs(() => {
@@ -2162,6 +2218,8 @@ const trySaveProjectAs = async () => {
 		filename : res.path.replace(/^.+\\/,''),
 		modified : false
 	});
+	setWindowTitle();
+	project.lastEdited = performance.now();
 	return true;
 };
 // create new project
@@ -2273,6 +2331,10 @@ const tryLoadProject = async (path) => {
 		modified : false
 	});
 	console.log(file);
+	// reset UI elements in case a previous project was open
+	closeModal();
+	closeTutorial();
+	setWindowTitle();
 
 	// build/render app UI (just quick-copy bar at the moment)
 	populateQuickCopyBar();

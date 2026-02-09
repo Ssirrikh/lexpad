@@ -533,20 +533,24 @@ const createEntry = (catg) => {
 	return data.length - 1;
 };
 const deleteEntry = (entryId) => {
-	for (let entryId = 0; entryId < indexing.orderedL1.length; entryId++) {
-		console.log(`${entryId}, ${indexing.orderedL1[entryId].entryId} vs ${entryId}`);
-		if (indexing.orderedL1[entryId].entryId === entryId) {
-			indexing.orderedL1.splice(entryId,1); // if index card belongs to target entry, delete it
-			entryId--;
-		}
-	}
-	for (let entryId = 0; entryId < indexing.orderedL2.length; entryId++) {
-		console.log(`${entryId}, ${indexing.orderedL2[entryId].entryId} vs ${entryId}`);
-		if (indexing.orderedL2[entryId].entryId === entryId) {
-			indexing.orderedL2.splice(entryId,1); // if index card belongs to target entry, delete it
-			entryId--;
-		}
-	}
+	if (entryId < 0 || entryId >= data.length) { console.error(`Cannot delete entry ${entryId}, out of bounds [0,${data.length}).`); return false; }
+	data.splice(entryId,1);
+	if (project.activeEntry === entryId) project.activeEntry = -1; // if the active entry just got deleted, unset reference to it
+	return true;
+	// for (let entryId = 0; entryId < indexing.orderedL1.length; entryId++) {
+	// 	console.log(`${entryId}, ${indexing.orderedL1[entryId].entryId} vs ${entryId}`);
+	// 	if (indexing.orderedL1[entryId].entryId === entryId) {
+	// 		indexing.orderedL1.splice(entryId,1); // if index card belongs to target entry, delete it
+	// 		entryId--;
+	// 	}
+	// }
+	// for (let entryId = 0; entryId < indexing.orderedL2.length; entryId++) {
+	// 	console.log(`${entryId}, ${indexing.orderedL2[entryId].entryId} vs ${entryId}`);
+	// 	if (indexing.orderedL2[entryId].entryId === entryId) {
+	// 		indexing.orderedL2.splice(entryId,1); // if index card belongs to target entry, delete it
+	// 		entryId--;
+	// 	}
+	// }
 };
 
 
