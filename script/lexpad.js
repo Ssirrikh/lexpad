@@ -483,9 +483,7 @@ let searchSettings = {
 			} else {
 				e.querySelector('.search-result-L1').textContent = lexicon.data[i].L1 || '---';
 			}
-			// if (hasImage) e.querySelector('.search-result-header .icon:nth-child(1)').classList.add('icon-audio');
-			
-			if (hasImage) e.querySelector('.search-result-header .icon:nth-child(1)').textContent = 'i';
+			if (hasImage) e.querySelector('.search-result-header .icon:nth-child(1)').classList.add('icon-image');
 			if (hasAudio) e.querySelector('.search-result-header .icon:nth-child(2)').classList.add('icon-audio');
 			// wordforms
 			const eWordformContainer = e.querySelector('.search-result-section-L2');
@@ -1089,8 +1087,7 @@ const populateLexicon = () => {
 		e.querySelector('.lexicon-entry-catg').textContent = capitalize(lexicon[searchIndex][i].catg) || '---';
 		e.querySelector('.lexicon-entry-word').textContent = lexicon[searchIndex][i].word || '---';
 		if (lexicon[searchIndex][i].hasImage) {
-			// e.querySelector('.flex-row .icon:nth-child(1)').classList.add('icon-audio');
-			e.querySelector('.flex-row .icon:nth-child(1)').textContent = 'i';
+			e.querySelector('.flex-row .icon:nth-child(1)').classList.add('icon-image');
 			e.querySelector('.flex-row .icon:nth-child(1)').title = 'Has image';
 		}
 		if (lexicon[searchIndex][i].hasAudio) {
@@ -1162,9 +1159,9 @@ const renderEditorHeader = () => {
 	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? capitalize(activeEntry.catg);
 	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(lexicon.data[project.activeEntry]);
 	if (activeEntry.images?.length > 0) {
-		// const url = RegExp.escape(`${file.path}\\${activeEntry.images[0]}`);
+		// use absolute path for bg img, since we don't know where project folder is relative to lexpad folder
 		// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
-		const url = `${file.path}\\${activeEntry.images[0]}`.replaceAll('\\','\\\\');
+		const url = `${file.path}\\${activeEntry.images[0]}`.replaceAll('\\','\\\\'); // need double escape for CSS parser
 		console.log(`Loading entry image "${url}"`);
 		tabContent[TAB_LEXICON].querySelector('#entry-image').style.backgroundImage = `url("${url}")`;
 		tabContent[TAB_LEXICON].querySelector('#entry-image').textContent = ''; // remove "No Image" text
@@ -1879,13 +1876,12 @@ const openModalManageImages = (imageParent) => {
 		imageParent.images = imageParent.images.filter(x => x).sort(); // scrub blank/deleted filenames since we're already touching datafield
 		eModal.querySelector('#modal-num-images').textContent = imageParent.images.length;
 		for (let i = 0; i < imageParent.images.length; i++) {
-			// TODO: switch url to relative paths instead of constructing absolute path
-			// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
-			const url = `${file.path}\\${imageParent.images[i]}`.replaceAll('\\','\\\\');
 			const eImage = document.querySelector('#tpl-modal-image-tile').content.firstElementChild.cloneNode(true);
+			// use absolute path for bg img, since we don't know where project folder is relative to lexpad folder
+			// can't use RegExp.escape() cuz it's too aggro and CSS doesn't un-escape all the chars
+			const url = `${file.path}\\${imageParent.images[i]}`.replaceAll('\\','\\\\'); // double escape for CSS parser
 			eImage.querySelector('.modal-image-thumbnail').title = imageParent.images[i]; // don't need fallback, since imageParent.images was just scrubbed
 			eImage.querySelector('.modal-image-thumbnail').style.backgroundImage = `url("${url}")`;
-			
 			if (lexicon.media.imagesMissing.has(imageParent.images[i])) {
 				console.log(`Image ${i} "${imageParent.images[i]}" is in the list of missing files`);
 				eImage.querySelector('p').textContent = `*${imageParent.images[i]}`;
