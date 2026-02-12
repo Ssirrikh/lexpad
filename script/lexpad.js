@@ -20,6 +20,7 @@ const SYNONYM_JOIN = '; ';
 const TAB_PROJECT = 0;
 const TAB_LEXICON = 1;
 const TAB_SEARCH = 2;
+const TAB_ANALYSIS = 3;
 
 const SEARCH_PATTERN_BEGINS = 0;
 const SEARCH_PATTERN_CONTAINS = 1;
@@ -573,7 +574,8 @@ let searchSettings = {
 const eNavTabs = [
 	document.getElementById('navtab-0'),
 	document.getElementById('navtab-1'),
-	document.getElementById('navtab-2')
+	document.getElementById('navtab-2'),
+	document.getElementById('navtab-3'),
 ];
 const eStatbarLeft = document.getElementById('statbar-left');
 const eStatbarRight = document.getElementById('statbar-right');
@@ -585,6 +587,7 @@ let tabContent = [
 	// project tab
 	// lexicon tab
 	// search tab
+	// analysis tab
 ];
 
 
@@ -634,7 +637,8 @@ const init = () => {
 		// project tab
 		tabContent[TAB_PROJECT] = document.getElementById('tpl-project-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markModified();
-		tabContent[TAB_PROJECT].querySelector('#dbg-trigger').onclick = () => document.title = `Cool New Title`;
+		// tabContent[TAB_PROJECT].querySelector('#dbg-trigger').onclick = () => document.title = `Cool New Title`;
+		tabContent[TAB_PROJECT].querySelector('#dbg-trigger').onclick = () => exportTextFile('Hewwo wordle');
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
 		// tabContent[TAB_LEXICON].style.padding = '0';
@@ -695,11 +699,15 @@ const init = () => {
 				searchSettings.submitSearch(frag);
 			});
 		};
+		// analysis tab
+		tabContent[TAB_ANALYSIS] = document.getElementById('tpl-analysis-page').content.firstElementChild.cloneNode(true);
+		
 		
 		// enable tab switching
 		eNavTabs[TAB_PROJECT].onclick = () => renderTab(TAB_PROJECT);
 		eNavTabs[TAB_LEXICON].onclick = () => renderTab(TAB_LEXICON);
 		eNavTabs[TAB_SEARCH].onclick = () => renderTab(TAB_SEARCH);
+		eNavTabs[TAB_ANALYSIS].onclick = () => renderTab(TAB_ANALYSIS);
 		console.log(`Application interactive after ${Math.round(performance.now()-t0_init)} ms. Deferred operations took ${Math.round(performance.now()-t0_init_deferred)} ms.`);
 	});
 };
@@ -1544,6 +1552,122 @@ const renderSearchFilters = () => {
 	}
 };
 
+// analysis tab
+const setListStr = (title,setToList) => {
+	let arrFromSet = [...setToList].filter(x => x).sort();
+	// const numNonBlank = arrFromSet.length; // no longer necessary since every media usage Set() has blank vals scrubbed
+	if (arrFromSet.length === 0) arrFromSet.push(`// [no items in this section]`);
+	return `//// ${title} (${setToList.size}) ////\n\n${arrFromSet.join('\n')}`;
+};
+const populateAnalysisTab = () => {
+	let mediaUsageSection = null;
+	const renderAnalysisMediaUsage = () => {
+		console.log(`Active media usage section is "${mediaUsageSection}"`);
+		// render tabs
+		for (let section of ['missing-images','missing-audio','unused-images','unused-audio']) {
+			if (section === mediaUsageSection) {
+				tabContent[TAB_ANALYSIS].querySelector(`#analysis-preview-${section}`).classList.add('active');
+			} else {
+				tabContent[TAB_ANALYSIS].querySelector(`#analysis-preview-${section}`).classList.remove('active');
+			}
+		}
+		// render preview of list
+		switch (mediaUsageSection) {
+			case 'missing-images':
+				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Images',lexicon.media.imagesMissing);
+				break;
+			case 'missing-audio':
+				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Audio',lexicon.media.audioMissing);
+				break;
+			case 'unused-images':
+				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Images',lexicon.media.imagesUnused);
+				break;
+			case 'unused-audio':
+				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Audio',lexicon.media.audioUnused);
+				break;
+			default:
+				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = `Select a section to preview it.`;
+		}
+	};
+	// media checks
+	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-images'), {
+		title : `Supported image formats: ${lexicon.SUPPORTED_IMAGES.join(', ')}`,
+		onclick : () => {
+			console.log('missing images');
+			mediaUsageSection = 'missing-images';
+			renderAnalysisMediaUsage();
+		}
+	});
+	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-audio'), {
+		title : `Supported audio formats: ${lexicon.SUPPORTED_AUDIO.join(', ')}`,
+		onclick : () => {
+			console.log('missing audio');
+			mediaUsageSection = 'missing-audio';
+			renderAnalysisMediaUsage();
+		}
+	});
+	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-images'), {
+		title : `Supported image formats: ${lexicon.SUPPORTED_IMAGES.join(', ')}`,
+		onclick : () => {
+			console.log('unused images');
+			mediaUsageSection = 'unused-images';
+			renderAnalysisMediaUsage();
+		}
+	});
+	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-audio'), {
+		title : `Supported audio formats: ${lexicon.SUPPORTED_AUDIO.join(', ')}`,
+		onclick : () => {
+			console.log('unused audio');
+			mediaUsageSection = 'unused-audio';
+			renderAnalysisMediaUsage();
+		}
+	});
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-selected-section').onclick = () => {
+		console.log(`Export current section: "${mediaUsageSection}"`);
+		switch (mediaUsageSection) {
+			case 'missing-images': exportTextFile( setListStr('Missing Images',lexicon.media.imagesMissing) ); break;
+			case 'missing-audio': exportTextFile( setListStr('Missing Audio',lexicon.media.audioMissing) ); break;
+			case 'unused-images': exportTextFile( setListStr('Unused Images',lexicon.media.imagesUnused) ); break;
+			case 'unused-audio': exportTextFile( setListStr('Unused Audio',lexicon.media.audioUnused) ); break;
+			default: console.warn(`Section is null or unrecognized. Nothing to export.`);
+		}
+	};
+
+	// media checks combined
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-missing').onclick = () => {
+		exportTextFile( `${setListStr('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${setListStr('Missing Audio',lexicon.media.audioMissing)}` );
+	};
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-unused').onclick = () => {
+		exportTextFile( `${setListStr('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${setListStr('Unused Audio',lexicon.media.audioUnused)}` );
+	};
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-usage').onclick = () => {
+		lexicon.indexMediaUsage();
+		exportTextFile(
+			`${setListStr('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${setListStr('Missing Audio',lexicon.media.audioMissing)}`
+			+ `\n\n\n\n${setListStr('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${setListStr('Unused Audio',lexicon.media.audioUnused)}`
+		);
+	};
+
+	// auto-select first section
+	mediaUsageSection = 'missing-images';
+	renderAnalysisMediaUsage();
+	// render
+	renderAnalysisTab();
+};
+const renderAnalysisTab = () => {
+	// we are free to use Set.size here w/o fear of OBOE, since media indexing process scrubs blank filenames from usage stats
+
+	// media checks
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-images > span').textContent = lexicon.media.imagesMissing.size;
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-audio > span').textContent = lexicon.media.audioMissing.size;
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-images > span').textContent = lexicon.media.imagesUnused.size;
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-audio > span').textContent = lexicon.media.audioUnused.size;
+	// combined media checks
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-num-missing').textContent = lexicon.media.imagesMissing.size + lexicon.media.audioMissing.size;
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-num-unused').textContent = lexicon.media.imagesUnused.size + lexicon.media.audioUnused.size;
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-num-missing-or-unused').textContent = lexicon.media.imagesMissing.size + lexicon.media.audioMissing.size + lexicon.media.imagesUnused.size + lexicon.media.audioUnused.size;
+};
+
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -2161,7 +2285,17 @@ const setWindowTitle = () => {
 	}
 };
 
-// project state
+//// file creation
+
+// export text file
+const exportTextFile = (contents='') => {
+	console.log('Renderer exports text file.');
+	console.log(contents);
+	if (!contents) console.warn(`Contents of file are blank.`);
+	window.electronAPI.rendererExportTextFile( String(contents) );
+};
+
+//// project state
 
 // mark modified
 window.electronAPI.onMainMarkModified(() => {
@@ -2370,6 +2504,10 @@ const tryLoadProject = async (path) => {
 	populateSearchTab(); // automatically renders UI
 
 	console.log(`Search tab built in ${Math.round(performance.now()-t3_loadProject)} ms.`);
+
+	// rebuild analysis tab
+	populateAnalysisTab();
+
 	console.log(`All loading finished in ${Math.round(performance.now()-t0_loadProject)} ms.`);
 }
 

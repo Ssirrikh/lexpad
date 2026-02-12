@@ -12,6 +12,7 @@ const VERSION = 'v0.0';
 const TAB_PROJECT = 0;
 const TAB_LEXICON = 1;
 const TAB_SEARCH = 2;
+const TAB_ANALYSIS = 3;
 
 const TPL_NEW_PROJECT = `{
 	"_WARNING" : "Before mucking around in here, SAVE A BACKUP. It will be annoying for everyone involved if you break something and lose data because you didn't backup your project.",
@@ -145,6 +146,31 @@ const onRendererSelectDirectory = async (evt) => {
 	});
 	if (canceled || !filePaths?.length) return { canceled: true };
 	return { path: filePaths[0] };
+};
+
+// file creation
+const onRendererExportTextFile = async (evt,contents) => {
+	console.log('Renderer exports text file.');
+	// console.log(evt);
+	console.log(contents);
+	const dirpath = activeFile.path.replace(/\\[^\\]+?$/,'');
+	console.log(`Default save to "${dirpath}\\output.txt"`);
+	const { canceled, filePath } = await dialog.showSaveDialog({
+		title: 'Export Text File',
+		defaultPath: `${dirpath}\\output.txt`,
+		filters: [
+			{ name: 'Text File', extensions: ['txt'] },
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePath) return { canceled: true };
+	try {
+		await fs.writeFile(filePath,contents);
+		console.log('Success');
+		return { message : 'Text file exported successfully.', path: filePath };
+	} catch (err) {
+		return { error: 'cannot_save_file', message: String(err), path: filePath };
+	}
 };
 
 // mark modified
@@ -407,18 +433,15 @@ const createWindow = () => {
 					accelerator : 'CmdOrCtrl+,',
 					click : () => console.log('Trigger open LexPad settings tab...')
 				},
-				{ type: 'separator' },
-				{
-					label : 'Close Project',
-					accelerator : 'CmdOrCtrl+W',
-					click : () => console.log('Trigger close project...')
-				},
 				// Non-Mac Quit Option (Ctrl+Q)
-				...(isMac ? [] : [{
-					role : 'quit',
-					accelerator : 'CmdOrCtrl+Q'
-					// TODO: check for unsaved changes
-				}])
+				...(isMac ? [] : [
+					{ type: 'separator' },
+					{
+						role : 'quit',
+						accelerator : 'CmdOrCtrl+Q'
+						// TODO: check for unsaved changes
+					}
+				])
 			]
 		},
 		// Edit { role: 'editMenu' }
@@ -472,6 +495,11 @@ const createWindow = () => {
 					label : 'Search Tab',
 					accelerator : 'CmdOrCtrl+3',
 					click : () => win.webContents.send('trigger-tab', TAB_SEARCH)
+				},
+				{
+					label : 'Analysis Tab',
+					accelerator : 'CmdOrCtrl+4',
+					click : () => win.webContents.send('trigger-tab', TAB_ANALYSIS)
 				},
 				{ type: 'separator' },
 				{
@@ -554,12 +582,15 @@ app.whenReady().then(() => {
 	// ipcMain.handle('dbg-request-object',dbg_requestObject);
 	// ipcMain.on('dbg-check-object', dbg_checkObject);
 
-	// 
+	// file selection
 	ipcMain.handle('renderer-select-directory', onRendererSelectDirectory);
 	ipcMain.handle('renderer-select-images', onRendererSelectImages);
 	ipcMain.handle('renderer-select-audio', onRendererSelectAudio);
 
-	//
+	// file creation
+	ipcMain.handle('renderer-export-text-file', onRendererExportTextFile);
+
+	// project status
 	ipcMain.on('renderer-mark-modified', onRendererMarkModified);
 	ipcMain.handle('renderer-save-project', onRendererSaveProject);
 	ipcMain.handle('renderer-save-project-as', onRendererSaveProjectAs);

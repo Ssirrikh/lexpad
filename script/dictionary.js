@@ -284,6 +284,13 @@ const indexMediaUsage = (forceRebind) => {
 	indexing.media.audioUnused = indexing.media.audioAvailable.difference(audioReferenced);
 	indexing.media.imagesUnused = indexing.media.imagesAvailable.difference(imagesReferenced);
 	indexing.media.invalidUnused = indexing.media.invalidAvailable.difference(invalidReferenced);
+	// filter blank elements; they cannot occur except by user tampering and will be auto removed if accessed
+	if (indexing.media.audioMissing.delete('')) console.log('Detected blank filename in missing audio');
+	if (indexing.media.imagesMissing.delete('')) console.log('Detected blank filename in missing images');
+	if (indexing.media.invalidMissing.delete('')) console.log('Detected blank filename in missing non-media');
+	if (indexing.media.audioUnused.delete('')) console.log('Detected blank filename in unused audio');
+	if (indexing.media.imagesUnused.delete('')) console.log('Detected blank filename in unused images');
+	if (indexing.media.invalidUnused.delete('')) console.log('Detected blank filename in unused non-media');
 	console.log('audio missing', indexing.media.audioMissing);
 	console.log('audio unused', indexing.media.audioUnused);
 	console.log('images missing', indexing.media.imagesMissing);
@@ -608,6 +615,8 @@ const toJSON = () => {
 //// API ////
 
 export {
+	// constants
+	SUPPORTED_AUDIO, SUPPORTED_IMAGES,
 	// project components
 	file, fromJSON, toJSON,
 	project, L1, L2, data,

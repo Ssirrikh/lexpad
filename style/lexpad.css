@@ -598,6 +598,15 @@ select:focus-visible {
     width: 100%;
     margin: 0.5em 0;
 }
+.coming-soon-banner {
+    color: var(--text-subtitle);
+    background-color: var(--bg-light);
+    border-radius: 0.5em;
+    padding: 0.5em;
+    width: 20em;
+    font-size: 0.8em;
+    text-align: center;
+}
 
 #project-lang-info {
     /*  */
@@ -608,15 +617,6 @@ select:focus-visible {
 }
 #project-lang-info > input + label, #project-lang-info > .subtitle + label {
     margin-top: 0.5em;
-}
-#project-coming-soon {
-    color: var(--text-subtitle);
-    background-color: var(--bg-light);
-    border-radius: 0.5em;
-    padding: 0.5em;
-    width: 20em;
-    font-size: 0.8em;
-    text-align: center;
 }
 
 #project-stats {
@@ -1458,6 +1458,65 @@ select:focus-visible {
 .search-result-sentence > .flex-col > p:nth-child(2) {
     /* sentence translation is italicized */
     font-style: italic;
+}
+
+
+
+/**** ANALYSIS TAB ****/
+
+#analysis-media > .analysis-section-header {
+    margin-bottom: 0.5em;
+}
+.analysis-section-header {
+    background-color: var(--bg-offwhite);
+    border-radius: 4px;
+    padding: 0.2em;
+}
+.analysis-section-header > p {
+    font-size: 1.2em;
+}
+.analysis-section {
+    gap: 0.5em;
+}
+.analysis-section-tabs {
+    align-self: start;
+    flex-shrink: 0;
+}
+.analysis-section-tabs > button {
+    color: var(--text-subtitle);
+    background-color: transparent;
+    padding: 0.25em 0.5em;
+    width: 10em;
+}
+.analysis-section-tabs > button:hover {
+    background-color: var(--bg-offwhite);
+}
+.analysis-section-tabs > button:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
+.analysis-section-tabs > button.active {
+    color: black;
+    background-color: white;
+    box-shadow: inset 5px 0 0 0 var(--primary-highlight) !important;
+}
+.list-preview {
+    background-color: white;
+    border: thin solid var(--border-medium);
+    
+    padding: 0.25em;
+    min-height: 100%;
+    max-height: 8em;
+    white-space: pre;
+
+    height: 100%;
+    flex-grow: 1;
+    
+    overflow-x: overlay;
+    overflow-y: scroll;
+}
+.analysis-exports {
+    font-size: 0.8em;
+    gap: 0.5em;
 }
 
 

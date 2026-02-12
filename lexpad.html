@@ -27,7 +27,7 @@
 			<button id='navtab-0' class='navtab active-navtab'>Project</button>
 			<button id='navtab-1' class='navtab'>Lexicon</button>
 			<button id='navtab-2' class='navtab'>Search</button>
-			<button id='navtab-3' class='navtab'>Analysis</button>
+			<button id='navtab-3' class='navtab'>Consistency</button>
 			<div class='flex-sep'></div>
 		</div>
 		<div id='statbar' class='flex-row'>
@@ -141,7 +141,7 @@
 					<p>[no catgs]</p>
 				</div>
 			</div>
-			<p id='project-coming-soon'>More project statistics coming soon...</p>
+			<p class='coming-soon-banner'>More project statistics coming soon...</p>
 			<button id='dbg-mark-modified' class='button-highlight'>DBG Mark Modified</button>
 			<button id='dbg-trigger' class='button-highlight'>DBG Trigger Action</button>
 		</div>
@@ -420,6 +420,55 @@
 		<div class='flex-row search-result-note'>
 			<p class='subtitle'>Note N</p>
 			<p>Contents of note</p>
+		</div>
+	</template>
+
+	<!-- ANALYSIS TAB TEMPLATES -->
+
+	<template id='tpl-analysis-page'>
+		<div id='r-content' class='flex-col padded'>
+			<!-- media checker -->
+			<div id='analysis-media' class='flex-col project-tab-section'>
+				<div class='flex-row analysis-section-header'>
+					<p>Missing & Unused Media</p>
+				</div>
+				<div class='flex-col analysis-section'>
+					<div class='flex-row'>
+						<div class='flex-col analysis-section-tabs'>
+							<button id='analysis-preview-missing-images' class='analysis-section-tab active'>Missing Images (<span>0</span>)</button>
+							<button id='analysis-preview-missing-audio' class='analysis-section-tab'>Missing Audio (<span>0</span>)</button>
+							<button id='analysis-preview-unused-images' class='analysis-section-tab'>Unused Images (<span>1000</span>)</button>
+							<button id='analysis-preview-unused-audio' class='analysis-section-tab'>Unused Audio (<span>243</span>)</button>
+						</div>
+						<div id='analysis-preview-media-usage' class='flex-col list-preview'>
+							<p>Select a category to preview it.</p>
+						</div>
+					</div>
+					<div class='flex-row analysis-exports'>
+						<div class='flex-sep'></div>
+						<button id='analysis-export-media-selected-section' class='button-highlight' title='Export current section as .txt file'>Export as Text File</button>
+					</div>
+					<div class='flex-col'>
+						<p class='subtitle'>"Missing" files were used by an entry, but couldn't be found in the assets folder.</p>
+						<p class='subtitle'>"Unused" files are present in the assets folder, but never used in any entry.</p>
+					</div>
+				</div>
+				
+				<div class='stats-separator'></div>
+
+				<div class='flex-row analysis-exports'>
+					<button id='analysis-export-media-missing' class='button-highlight' title='Export list of all missing media as .txt file'>Missing Media (<span id='analysis-num-missing'>0</span>)</button>
+					<button id='analysis-export-media-unused' class='button-highlight' title='Export list of all unused assets as .txt file'>Unused Media (<span id='analysis-num-unused'>0</span>)</button>
+					<div class='flex-sep'></div>
+					<button id='analysis-export-media-usage' class='button-highlight' title='Export list of all missing/unused assets as .txt file'>Combined (<span id='analysis-num-missing-or-unused'>0</span>)</button>
+				</div>
+				<!-- <p class='subtitle'>File lists can be exported as .txt files for external use.</p> -->
+				<!-- <p>0 files available (0 images, 0 audio, 0 non-media)</p> -->
+				<!-- <p>0 files referenced (0 images, 0 audio, 0 non-media)</p> -->
+			</div>
+			
+			<!-- sentence checker -->
+			<p class='coming-soon-banner'>Sentence checker coming soon...</p>
 		</div>
 	</template>
 
@@ -913,6 +962,9 @@
 					</div>
 					<div class='flex-row ref-section' title='Switch to the Search Tab, where you can use filters to perform advanced searches of your database.'>
 						<p>Search Tab</p><p>Ctrl + 3</p>
+					</div>
+					<div class='flex-row ref-section' title='Switch to the Analysis Tab, where you can check the consistency and completeness of your database.'>
+						<p>Analysis Tab</p><p>Ctrl + 4</p>
 					</div>
 					<!-- ref -->
 					<div class='ref-section-title'>Settings</div>

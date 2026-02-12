@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	rendererSelectImages : () => ipcRenderer.invoke('renderer-select-images'),
 	rendererSelectAudio : () => ipcRenderer.invoke('renderer-select-audio'),
 
+	// file creation
+	rendererExportTextFile : (contents) => ipcRenderer.invoke('renderer-export-text-file',contents),
+
 	// mark modified
 	onMainMarkModified : (callback) => ipcRenderer.on('main-mark-modified', (evt) => callback()),
 	rendererMarkModified : () => ipcRenderer.send('renderer-mark-modified'),
