@@ -1,16 +1,16 @@
 {
-	"_WARNING" : "To whoever reads this warning: Save a backup before mucking around in here! It will be annoying for everyone involved if you break something and have to call a techie about it.",
+	"_WARNING" : "To whoever reads this warning: Save a backup before mucking around in here! It will be annoying for everyone involved if you break something and don't know how to fix it.",
 	"project" : {
 		"lexpadVersion" : "v0.0",
 		"authorship" : "Data collected by Geoff Gamble. Corrections by Chris Golston and Kat Adisasmito-Smith.",
 		"lastEdited" : 1767133020865,
-		"togglePrimary" : false,
 		"activeEntry" : 3,
 		"catgs" : {
 			"n" : "Noun",
 			"v" : "Verb",
 			"adj" : "Adjective"
-		}
+		},
+		"ignorelist" : "Jane Mary"
 	},
 	"language" : {
 		"name" : "Wikchamni",
@@ -123,8 +123,8 @@
 				{ "form" : -1, "L2" : "" }
 			],
 			"sents" : [
-				{ "form" : -1, "L1" : "0", "L2" : "" },
-				{ "form" : -1, "L1" : "", "L2" : "" }
+				{ "form" : -1, "L1" : "0", "L2" : "Jane plants 33 trees." },
+				{ "form" : -1, "L1" : "", "L2" : "Mary plants 2 trees." }
 			],
 			"notes" : [],
 			"images" : [

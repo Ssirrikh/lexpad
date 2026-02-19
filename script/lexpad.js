@@ -35,6 +35,12 @@ const MODAL_FOCUS_MAXLEN = 20;
 
 const capitalize = s => (s[0]??'').toUpperCase() + s.slice(1);
 const trim = (text,maxLen=null) => (maxLen === null || text.length <= maxLen) ? text : `${text.slice(0,maxLen)}...`; // if maxLen neg, trim n chars off end; if maxLen pos, act as max len
+const setListStr = (title,setToList) => {
+	let arrFromSet = [...setToList].filter(x => x).sort();
+	// const numNonBlank = arrFromSet.length; // no longer necessary since every media usage Set() has blank vals scrubbed
+	if (arrFromSet.length === 0) arrFromSet.push(`// [no items in this section]`);
+	return `//// ${title} (${setToList.size}) ////\n\n${arrFromSet.join('\n')}`;
+};
 
 
 //// media.js ////
@@ -197,6 +203,80 @@ window.addEventListener('keydown', e => {
 			// options menu
 	}
 });
+
+// update triggers
+let lastUpdate = { // performance.now() when instance of datafield last modified
+	// project
+	projectCatgs : -1,
+	projectIgnorelist : -1,
+	// language / L2
+	languageName : -1,
+	languageAbbr : -1,
+	languageAlph : -1,
+	languageAuth : -1,
+	languageForms : -1,
+	// lexicon / data
+	lexiconL1 : -1,
+	lexiconL2 : -1,
+	lexiconSentenceL1 : -1,
+	lexiconSentenceL2 : -1,
+	lexiconNotes : -1,
+	lexiconAudio : -1,
+	lexiconImages : -1,
+};
+let lastRender = { // performance.now() when UI components last rendered (if lastRender[x] < lastUpdate[y] then rerender x)
+	mediaChecker : -1,
+	sentenceChecker : -1
+};
+// const markUpdated = (datafield) => {
+// 	if (!lastUpdate[datafield]) { console.warn(`Datafield "${datafield}" not registered. Unable to mark.`); return false; }
+// 	lastUpdate[datafield] = performance.now();
+// 	console.log(`Datafield "${datafield}" marked updated @ ${lastUpdate[datafield]}`);
+// 	return true;
+// };
+const markUpdated = (...datafields) => {
+	for (let datafield of datafields) {
+		if (typeof lastUpdate[datafield] === 'undefined') {
+			console.warn(`Datafield "${datafield}" not registered. Unable to mark.`);
+			continue;
+		}
+		lastUpdate[datafield] = performance.now();
+		console.log(`Datafield "${datafield}" marked updated @ ${lastUpdate[datafield]}`);
+	}
+};
+// const markRendered = (component) => {
+// 	if (!lastRender[component]) { console.warn(`Render-component "${component}" not registered. Unable to mark.`); return false; }
+// 	lastRender[component] = performance.now();
+// 	console.log(`Render-component "${component}" marked rendered @ ${lastRender[component]}`);
+// 	return true;
+// };
+const markRendered = (...components) => {
+	for (let component of components) {
+		if (typeof lastRender[component] === 'undefined') {
+			console.warn(`Render-component "${component}" not registered. Unable to mark.`);
+			continue;
+		}
+		lastRender[component] = performance.now();
+		console.log(`Render-component "${component}" marked rendered @ ${lastRender[component]}`);
+	}
+};
+const needsUpdate = (component) => {
+	if (!lastRender[component]) { console.warn(`Render-component "${component}" not registered. Nothing to update.`); return false; }
+	// analysis tab checkers
+	if (component === 'mediaChecker') {
+		if (lastRender[component] < lastUpdate.lexiconAudio) return true;
+		if (lastRender[component] < lastUpdate.lexiconImages) return true;
+		return false;
+	}
+	if (component === 'sentenceChecker') {
+		if (lastRender[component] < lastUpdate.lexiconL2) return true;
+		if (lastRender[component] < lastUpdate.lexiconSentenceL2) return true;
+		return false;
+	}
+	// default
+	console.warn(`Render-component "${component}" not registered. Nothing to update.`);
+	return false;
+}
 
 
 
@@ -739,7 +819,7 @@ const renderTab = (tabId) => {
 			eNavTabs[i].classList.remove('active-navtab');
 		}
 	}
-	// update content
+	// swap container content
 	activeElement.replaceWith(tabContent[tabId]);
 	activeElement = document.getElementById('r-content'); // rebind var to active container
 	// focus management
@@ -748,6 +828,11 @@ const renderTab = (tabId) => {
 		case TAB_LEXICON: tabContent[TAB_LEXICON].querySelector('#lexicon-search').focus(); break;
 		case TAB_SEARCH: tabContent[TAB_SEARCH].querySelector('#search-query').focus(); break;
 		default: activeInput = null; console.warn(`Tab id ${tabId} does not have a designated focus target. Clearing focus anchor.`);
+	}
+	// deferred updates
+	switch (tabId) {
+		case TAB_ANALYSIS: checkUpdatesAnalysisTab(); break;
+		default: console.log(`Tab id ${tabId} does not require deferred updates.`);
 	}
 	
 	// if (tabNeedsUpdate[tabId]) {
@@ -828,15 +913,16 @@ const registerInput = (container,id,onUpdate) => {
 	container.querySelector(id).onfocus = () => activeInput = container.querySelector(id); // TODO: clear activeInput whenever an input is removed/replaced; esp check for e.innerHTML=''
 	if (onUpdate) {
 		container.querySelector(id).onblur = onUpdate;
-		container.querySelector(id).onkeydown = (evt) => {
-			switch (evt.key) {
-				case 'Enter': // allow [Enter] to submit textbox as if it's a form
-				// case 'Escape':
-					container.querySelector(id).blur();
-					break;
-			}
-			// TODO: possibly allow arrow keys to navigate from here
-		};
+		// TODO: [Enter] submission temporarily blocked to allow new lines in textareas; add arg to toggle this on/off
+		// container.querySelector(id).onkeydown = (evt) => {
+		// 	switch (evt.key) {
+		// 		case 'Enter': // allow [Enter] to submit textbox as if it's a form
+		// 		// case 'Escape':
+		// 			container.querySelector(id).blur();
+		// 			break;
+		// 	}
+		// 	// TODO: possibly allow arrow keys to navigate from here
+		// };
 	}
 	// console.log(`Registered input "${id}"`);
 };
@@ -848,6 +934,7 @@ const populateProjectTab = () => {
 		console.log(`Lang name changed from "${lexicon.L2.name}" to "${e.value}".`);
 		lexicon.L2.name = e.value;
 		markModified();
+		markUpdated('languageName');
 	});
 	registerInput(tabContent[TAB_PROJECT], '#lang-abbr', () => {
 		const e = tabContent[TAB_PROJECT].querySelector('#lang-abbr');
@@ -855,6 +942,7 @@ const populateProjectTab = () => {
 		console.log(`Lang abbr changed from "${lexicon.L2.abbr}" to "${e.value}".`);
 		lexicon.L2.abbr = e.value;
 		markModified();
+		markUpdated('languageAbbr');
 		tryLoadEntry(project.activeEntry, true); // TODO: only need refresh sentences; renderAllSentences()/etc need to check if entry loaded
 	});
 	registerInput(tabContent[TAB_PROJECT], '#lang-alph', () => {
@@ -863,6 +951,7 @@ const populateProjectTab = () => {
 		console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${e.value}".`);
 		lexicon.L2.alph = e.value;
 		markModified();
+		markUpdated('languageAlph');
 		populateQuickCopyBar();
 	});
 	registerInput(tabContent[TAB_PROJECT], '#project-authors', () => {
@@ -871,6 +960,7 @@ const populateProjectTab = () => {
 		console.log(`Authorship info changed from "${project.authorship}" to "${e.value}".`);
 		project.authorship = e.value;
 		markModified();
+		markUpdated('languageAuth');
 	});
 	renderProjectInfo();
 	// project statistics
@@ -954,6 +1044,7 @@ const renderProjectCatgForm = (catg,formNum) => {
 		console.log(`Catg "${catg}" form ${formNum} modified from "${lexicon.L2.forms[catg][formNum]}" to "${e.value}"`);
 		lexicon.L2.forms[catg][formNum] = e.value;
 		markModified();
+		markUpdated('languageForms');
 		tryLoadEntry(project.activeEntry, true); // force reload active entry so that form selectors are rebuilt
 	});
 };
@@ -978,8 +1069,9 @@ const populateProjectCatgs = () => {
 		eCatgSection.querySelector('.icon-plus').title = `Add new form for catg "${catg}"`;
 		eCatgSection.querySelector('.icon-plus').onclick = () => {
 			console.log(`Add new form for catg "${catg}"`);
-			markModified();
 			lexicon.L2.forms[catg].push('');
+			markModified();
+			markUpdated('languageForms');
 			renderProjectCatgsHeader();
 			renderProjectCatg(catg);
 		};
@@ -1151,7 +1243,7 @@ const filterLexicon = () => {
 };
 
 const renderEditorHeader = () => {
-	console.log(activeEntry.L1);
+	// console.log(activeEntry.L1);
 	tabContent[TAB_LEXICON].querySelector('#entry-L1-label').textContent = `${lexicon.L1.name || 'L1'} Word(s)`;
 	tabContent[TAB_LEXICON].querySelector('#entry-L1').value = activeEntry.L1;
 	registerInput(tabContent[TAB_LEXICON], '#entry-L1', () => {
@@ -1160,6 +1252,7 @@ const renderEditorHeader = () => {
 		if (newL1 !== activeEntry.L1) {
 			activeEntry.L1 = newL1;
 			markModified();
+			markUpdated('lexiconL1');
 			lexicon.indexLexicon(true);
 			populateLexicon();
 		}
@@ -1210,7 +1303,7 @@ const renderAllNotes = () => {
 };
 
 const renderWordform = i => {
-	// TODO: make sure an entry is active before executing
+	if (!activeEntry) { console.warn(`No entry active. Failed to render wordform.`); return; } // make sure an entry is active before executing
 	let e = document.getElementById('tpl-entry-wordform').content.cloneNode(true);
 	// form select
 	e.querySelector('select').replaceWith( document.querySelector('#tpl-form-select').content.cloneNode(true) );
@@ -1221,10 +1314,11 @@ const renderWordform = i => {
 			// NOTE: changes made here should also be applied to form select onchange() in renderSentence()
 			if (document.getElementById(`entry-form-${i}-selector`).value === '+') {
 				console.log(`Add New Form, triggered by wordform ${i}`);
-				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]); // marks modified is successful
+				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]); // marks modified/updated if successful
 			} else {
-				activeEntry.L2[i].formId = document.getElementById(`entry-form-${i}-selector`).value;
+				activeEntry.L2[i].form = document.getElementById(`entry-form-${i}-selector`).value;
 				markModified();
+				markUpdated('languageForms');
 			}
 		}
 	});
@@ -1253,6 +1347,8 @@ const renderWordform = i => {
 		const hadNoAudio = (!Array.isArray(activeEntry.L2[i].audio) || activeEntry.L2[i].audio.length === 0);
 		console.log(activeEntry.L2[i].audio);
 		if (!(await addAudioTo(activeEntry.L2[i]))) return; // addAudioTo() marks project modified if at least one file was added
+		// markModified();
+		markUpdated('lexiconAudio');
 		console.log(activeEntry.L2[i].audio);
 		renderAllWordforms(); // refresh entire section for simplicity
 		// only rebuild lexicon if we just added the first audio
@@ -1282,6 +1378,7 @@ const renderWordform = i => {
 		if (newL2 !== activeEntry.L2[i].L2) {
 			activeEntry.L2[i].L2 = newL2;
 			markModified();
+			markUpdated('lexiconL2');
 			lexicon.indexLexicon(true);
 			populateLexicon();
 		}
@@ -1299,10 +1396,11 @@ const renderSentence = i => {
 			// NOTE: changes made here should also be applied to form select onchange() in renderWordform()
 			if (document.getElementById(`entry-sentence-${i}-selector`).value === '+') {
 				console.log(`Add New Form, triggered by sentence ${i}`);
-				openModalCreateForm(activeEntry.catg,activeEntry.sents[i]);
+				openModalCreateForm(activeEntry.catg,activeEntry.sents[i]); // marks modified/updated if successful
 			} else {
 				activeEntry.sents[i].form = document.getElementById(`entry-sentence-${i}-selector`).value;
 				markModified();
+				markUpdated('languageForms');
 			}
 		}
 	});
@@ -1329,6 +1427,8 @@ const renderSentence = i => {
 		const hadNoAudio = (!Array.isArray(activeEntry.sents[i].audio) || activeEntry.sents[i].audio.length === 0);
 		console.log(activeEntry.sents[i].audio);
 		if (!(await addAudioTo(activeEntry.sents[i]))) return; // addAudioTo() marks project modified if at least one file was added
+		// markModified();
+		markUpdated('lexiconAudio');
 		console.log(activeEntry.sents[i].audio);
 		renderAllSentences(); // refresh entire section for simplicity
 		// only rebuild lexicon if we just added the first audio
@@ -1366,11 +1466,13 @@ const renderSentence = i => {
 	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L1`, () => {
 		activeEntry.sents[i].L1 = document.getElementById(`entry-sentence-${i}-L1`).value;
 		markModified();
+		markUpdated('lexiconSentenceL1');
 		console.log(activeEntry.sents[i]);
 	});
 	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L2`, () => {
 		activeEntry.sents[i].L2 = document.getElementById(`entry-sentence-${i}-L2`).value;
 		markModified();
+		markUpdated('lexiconSentenceL2');
 		console.log(activeEntry.sents[i]);
 	});
 };
@@ -1391,6 +1493,7 @@ const renderNote = i => {
 	registerInput(tabContent[TAB_LEXICON], `#entry-note-${i}`, () => {
 		activeEntry.notes[i].note = document.getElementById(`entry-note-${i}`).value;
 		markModified();
+		markUpdated('lexiconNotes');
 		console.log(activeEntry.notes[i]);
 	});
 };
@@ -1399,7 +1502,7 @@ const addWordform = () => {
 	if (!activeEntry) return false;
 	// add wordform
 	if (!Array.isArray(activeEntry.L2)) activeEntry.L2 = [];
-	activeEntry.L2.push({ formId : -1, L2 : "" });
+	activeEntry.L2.push({ form : -1, L2 : "" });
 	markModified();
 	// refresh UI
 	if (activeEntry.L2.length === 1) {
@@ -1415,7 +1518,7 @@ const addSentence = () => {
 	if (!activeEntry) return false;
 	// add sentence
 	if (!Array.isArray(activeEntry.sents)) activeEntry.sents = [];
-	activeEntry.sents.push({ formId : -1, L1 : "", L2 : "" });
+	activeEntry.sents.push({ form : -1, L1 : "", L2 : "" });
 	markModified();
 	// refresh UI
 	if (activeEntry.sents.length === 1) {
@@ -1431,7 +1534,7 @@ const addNote = () => {
 	if (!activeEntry) return false;
 	// add note
 	if (!Array.isArray(activeEntry.notes)) activeEntry.notes = [];
-	activeEntry.notes.push({ formId : -1, note : "" });
+	activeEntry.notes.push({ form : -1, note : "" });
 	markModified();
 	// refresh UI
 	if (activeEntry.notes.length === 1) {
@@ -1553,43 +1656,13 @@ const renderSearchFilters = () => {
 };
 
 // analysis tab
-const setListStr = (title,setToList) => {
-	let arrFromSet = [...setToList].filter(x => x).sort();
-	// const numNonBlank = arrFromSet.length; // no longer necessary since every media usage Set() has blank vals scrubbed
-	if (arrFromSet.length === 0) arrFromSet.push(`// [no items in this section]`);
-	return `//// ${title} (${setToList.size}) ////\n\n${arrFromSet.join('\n')}`;
-};
 const populateAnalysisTab = () => {
-	let mediaUsageSection = null;
-	const renderAnalysisMediaUsage = () => {
-		console.log(`Active media usage section is "${mediaUsageSection}"`);
-		// render tabs
-		for (let section of ['missing-images','missing-audio','unused-images','unused-audio']) {
-			if (section === mediaUsageSection) {
-				tabContent[TAB_ANALYSIS].querySelector(`#analysis-preview-${section}`).classList.add('active');
-			} else {
-				tabContent[TAB_ANALYSIS].querySelector(`#analysis-preview-${section}`).classList.remove('active');
-			}
-		}
-		// render preview of list
-		switch (mediaUsageSection) {
-			case 'missing-images':
-				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Images',lexicon.media.imagesMissing);
-				break;
-			case 'missing-audio':
-				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Audio',lexicon.media.audioMissing);
-				break;
-			case 'unused-images':
-				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Images',lexicon.media.imagesUnused);
-				break;
-			case 'unused-audio':
-				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Audio',lexicon.media.audioUnused);
-				break;
-			default:
-				tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = `Select a section to preview it.`;
-		}
+	// media checker refresh button
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-refresh-media-checker').onclick = () => {
+		renderAnalysisMediaUsage(true);
+		checkUpdatesAnalysisTab();
 	};
-	// media checks
+	// media checker
 	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-images'), {
 		title : `Supported image formats: ${lexicon.SUPPORTED_IMAGES.join(', ')}`,
 		onclick : () => {
@@ -1632,7 +1705,6 @@ const populateAnalysisTab = () => {
 			default: console.warn(`Section is null or unrecognized. Nothing to export.`);
 		}
 	};
-
 	// media checks combined
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-missing').onclick = () => {
 		exportTextFile( `${setListStr('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${setListStr('Missing Audio',lexicon.media.audioMissing)}` );
@@ -1641,31 +1713,159 @@ const populateAnalysisTab = () => {
 		exportTextFile( `${setListStr('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${setListStr('Unused Audio',lexicon.media.audioUnused)}` );
 	};
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-usage').onclick = () => {
-		lexicon.indexMediaUsage();
+		lexicon.indexMediaUsage(true);
 		exportTextFile(
 			`${setListStr('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${setListStr('Missing Audio',lexicon.media.audioMissing)}`
 			+ `\n\n\n\n${setListStr('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${setListStr('Unused Audio',lexicon.media.audioUnused)}`
 		);
 	};
 
+	// sentence checker refresh button
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-refresh-sentence-checker').onclick = () => {
+		renderAnalysisSentenceChecker(true);
+		checkUpdatesAnalysisTab();
+	};
+
 	// auto-select first section
 	mediaUsageSection = 'missing-images';
-	renderAnalysisMediaUsage();
 	// render
-	renderAnalysisTab();
+	renderAnalysisTab(true);
 };
-const renderAnalysisTab = () => {
+
+
+const renderAnalysisTab = (needRefreshAll) => {
 	// we are free to use Set.size here w/o fear of OBOE, since media indexing process scrubs blank filenames from usage stats
 
-	// media checks
+	// // media checks
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-images > span').textContent = lexicon.media.imagesMissing.size;
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-audio > span').textContent = lexicon.media.audioMissing.size;
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-images > span').textContent = lexicon.media.imagesUnused.size;
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-audio > span').textContent = lexicon.media.audioUnused.size;
+	// // combined media checks
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-num-missing').textContent = lexicon.media.imagesMissing.size + lexicon.media.audioMissing.size;
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-num-unused').textContent = lexicon.media.imagesUnused.size + lexicon.media.audioUnused.size;
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-num-missing-or-unused').textContent = lexicon.media.imagesMissing.size + lexicon.media.audioMissing.size + lexicon.media.imagesUnused.size + lexicon.media.audioUnused.size;
+
+	// media checker
+	renderAnalysisMediaUsage(needRefreshAll);
+	// sentence checker
+	renderAnalysisSentenceChecker(needRefreshAll);
+
+	console.log(`last update ${Math.round(Math.max(lastUpdate.lexiconL2,lastUpdate.lexiconSentenceL2))}, last render ${Math.round(lastRender.sentenceChecker)}`);
+};
+
+let mediaUsageSection = null;
+const renderAnalysisMediaUsage = async (needRebuildIndex) => {
+	if (needRebuildIndex) {
+		// lexicon.indexAvailableMedia();
+		console.log(`Media checker rescans assets in ${file.path}`);
+		await tryListMedia(`${file.path}\\${file.filename}`);
+		lexicon.indexReferencedMedia();
+		lexicon.indexMediaUsage(true);
+	}
+	console.log(`Active media usage section is "${mediaUsageSection}"`);
+	// render tabs
+	// we are free to use Set.size here w/o fear of OBOE, since media indexing process scrubs blank filenames from usage stats
+	for (let section of ['missing-images','missing-audio','unused-images','unused-audio']) {
+		if (section === mediaUsageSection) {
+			tabContent[TAB_ANALYSIS].querySelector(`#analysis-preview-${section}`).classList.add('active');
+		} else {
+			tabContent[TAB_ANALYSIS].querySelector(`#analysis-preview-${section}`).classList.remove('active');
+		}
+	}
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-images > span').textContent = lexicon.media.imagesMissing.size;
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-audio > span').textContent = lexicon.media.audioMissing.size;
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-images > span').textContent = lexicon.media.imagesUnused.size;
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-audio > span').textContent = lexicon.media.audioUnused.size;
-	// combined media checks
+	// render preview of list
+	switch (mediaUsageSection) {
+		case 'missing-images':
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Images',lexicon.media.imagesMissing);
+			break;
+		case 'missing-audio':
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Audio',lexicon.media.audioMissing);
+			break;
+		case 'unused-images':
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Images',lexicon.media.imagesUnused);
+			break;
+		case 'unused-audio':
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Audio',lexicon.media.audioUnused);
+			break;
+		default:
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = `Select a section to preview it.`;
+	}
+	// render combined-check buttons
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-num-missing').textContent = lexicon.media.imagesMissing.size + lexicon.media.audioMissing.size;
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-num-unused').textContent = lexicon.media.imagesUnused.size + lexicon.media.audioUnused.size;
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-num-missing-or-unused').textContent = lexicon.media.imagesMissing.size + lexicon.media.audioMissing.size + lexicon.media.imagesUnused.size + lexicon.media.audioUnused.size;
+	// register render
+	markRendered('mediaChecker');
+};
+const renderAnalysisSentenceChecker = (needRebuildIndex) => {
+	if (needRebuildIndex) {
+		lexicon.indexSentences(true);
+	}
+	const t0_renderSentenceChecker = performance.now();
+	// sentence coverage
+	console.log(`word inv L2 sentences: size ${lexicon.sentences.wordInventory.size}`);
+	console.log(`word inv unrecognized: size ${lexicon.sentences.wordsWithoutCoverage.size}`);
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-sentence-coverage').textContent = (100 * (lexicon.sentences.wordInventory.size - lexicon.sentences.wordsWithoutCoverage.size) / lexicon.sentences.wordInventory.size).toFixed(1) ?? 'ERROR';
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-uniq-sentence-words').textContent = lexicon.sentences.wordInventory.size ?? 'ERROR';
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-unrecognized-words-count').textContent = lexicon.sentences.wordsWithoutCoverage.size ?? 'ERROR';
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-uniq-sentence-words-2').textContent = lexicon.sentences.wordInventory.size ?? 'ERROR';
+	// unrecognized words
+	// tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = [...lexicon.sentences.wordsWithoutCoverage].sort().join('\n');
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = setListStr('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage);
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-sentence-uncovered-words').onclick = () => {
+		exportTextFile( setListStr('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage) );
+	};
+	// ignorelist
+	const ignorelist = project.ignorelist.split(/\s+/);
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-ignorelist-len').textContent = ignorelist.length;
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-ignorelist').textContent = ignorelist.join('\n');
+	registerInput(tabContent[TAB_ANALYSIS], '#analysis-ignorelist', () => {
+		const ignorelistArr = tabContent[TAB_ANALYSIS].querySelector('#analysis-ignorelist').value.trim().split(/\s+/);
+		console.log(ignorelistArr);
+		const ignorelistStr = ignorelistArr.join(' ');
+		console.log(ignorelistStr);
+		if (ignorelistStr === project.ignorelist) return;
+		project.ignorelist = ignorelistStr;
+		markModified();
+		renderAnalysisSentenceChecker(true);
+	});
+	markRendered('sentenceChecker');
+	console.log(`Rendered sentence checker in ${Math.round(performance.now()-t0_renderSentenceChecker)} ms.`);
+};
+
+const checkUpdatesAnalysisTab = () => {
+	// media checker affected by images and audio
+	if (needsUpdate('mediaChecker')) {
+		console.log(`Media checker requires refresh.`);
+		const e = tabContent[TAB_ANALYSIS].querySelector('#analysis-refresh-media-checker');
+		e.textContent = `Click to Re-Scan`;
+		e.classList.remove('disabled');
+		e.inert = false;
+	} else {
+		console.log(`Media checker up to date.`);
+		const e = tabContent[TAB_ANALYSIS].querySelector('#analysis-refresh-media-checker');
+		e.textContent = `Scan Complete!`;
+		e.classList.add('disabled');
+		e.inert = true;
+	}
+	// sentence checker affected by wordform L2 and sentence L2
+	if (needsUpdate('sentenceChecker')) {
+		console.log(`Sentence checker requires refresh.`);
+		const e = tabContent[TAB_ANALYSIS].querySelector('#analysis-refresh-sentence-checker');
+		e.textContent = `Click to Re-Scan`;
+		e.classList.remove('disabled');
+		e.inert = false;
+	} else {
+		console.log(`Sentence checker up to date.`);
+		const e = tabContent[TAB_ANALYSIS].querySelector('#analysis-refresh-sentence-checker');
+		e.textContent = `Scan Complete!`;
+		e.classList.add('disabled');
+		e.inert = true;
+	}
 };
 
 
@@ -1820,7 +2020,9 @@ const openModalCreateCatg = () => {
 		if (!lexicon.createCatg(catgName, catgAbbr)) {
 			console.error(`Unable to create catg "${catgName}" with abbreviation "${catgAbbr}".`);
 		} else {
-			markModified(); // only mark project modified if we actually succeeded at creating catg
+			// only mark project modified if we actually succeeded at creating catg
+			markModified();
+			markUpdated('projectCatgs');
 		}
 		// refresh UI whether or not catg creation was successful
 		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
@@ -1861,7 +2063,9 @@ const openModalEditCatg = (prevCatg) => {
 		if (!lexicon.editCatg(prevCatg,catgName,catgAbbr)) {
 			console.error(`ERROR Failed to edit catg. Old name was "${prevCatgName}" with abbreviation "${prevCatg}". New name was "${catgName}" with abbreviation "${catgAbbr}".`);
 		} else {
-			markModified(); // only mark project modified if we actually succeeded at editing catg
+			// only mark project modified if we actually succeeded at editing catg
+			markModified();
+			markUpdated('projectCatgs');
 		}
 		// refresh UI whether or not edit was successful
 		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
@@ -1881,7 +2085,9 @@ const openModalDeleteCatg = (catgAbbr) => {
 		if (!lexicon.deleteCatg(catgAbbr)) {
 			console.error(`ERROR Failed to delete catg "${project.catgs[catgAbbr]}" with abbreviation "${catgAbbr}".`);
 		} else {
-			markModified(); // only mark project modified if we actually succeeded at deleting catg
+			// only mark project modified if we actually succeeded at deleting catg
+			markModified();
+			markUpdated('projectCatgs');
 		}
 		// refresh UI whether or not deletion was successful
 		onRefreshCatgs(); // render stats, populate catgs, index words, populate lexicon, reload entry, populate search
@@ -1905,7 +2111,9 @@ const openModalDeleteCatgForm = (catgAbbr,formNum) => {
 			console.log(project.catgs);
 			console.log(lexicon.L2.forms);
 		} else {
-			markModified(); // only mark project modified if we actually succeeded at deleting catg
+			// only mark project modified if we actually succeeded at deleting catg
+			markModified();
+			markUpdated('languageForms');
 		}
 		// refresh UI whether or not deletion was successful
 		renderProjectCatgsHeader();
@@ -1964,6 +2172,7 @@ const openModalCreateEntry = () => {
 			console.log(`Created entry #${project.activeEntry}`);
 		}
 		markModified();
+		markUpdated('projectCatgs');
 		// refresh UI
 		onAddOrDeleteEntry(createdNewCatg); // runs tryLoadEntry(-1);
 		closeModal();
@@ -1981,6 +2190,12 @@ const openModalDeleteEntry = (entryId) => {
 		activeEntry = null; // clear pointer to deleted entry so it can be garbage collected properly
 		// project.activeEntry = -1; // redundant; this gets unset by lexicon.deleteEntry()
 		markModified();
+		markUpdated(
+			'projectCatgs',
+			'languageForms',
+			'lexiconL1','lexiconL2','lexiconSentenceL1','lexiconSentenceL2','lexiconNotes',
+			'lexiconAudio','lexiconImages'
+		);
 		onAddOrDeleteEntry(false); // needRefreshCatgs = false; deletion doesn't create catg => only partial refresh
 		closeModal();
 	};
@@ -2018,6 +2233,7 @@ const openModalManageImages = (imageParent) => {
 				console.log(`Deleting image ${i}: "${imageParent.images[i]}"`);
 				imageParent.images.splice(i,1);
 				markModified();
+				markUpdated('lexiconImages');
 				// refresh entry editor in case first image changed
 				renderEditorHeader();
 				// only rebuild lexicon if we just deleted the last image
@@ -2036,6 +2252,8 @@ const openModalManageImages = (imageParent) => {
 		const hadNoImages = (!Array.isArray(imageParent.images) || imageParent.images.length === 0);
 		console.log(imageParent.images);
 		if (!(await addImageTo(imageParent))) return; // skip refresh if selection cancelled; will mark project modified if at least one file successfully added
+		// markModified(); // addImageTo() marks project modified if successful
+		markUpdated('lexiconImages');
 		console.log(imageParent.images);
 		// refresh entry editor in case first image changed
 		renderEditorHeader();
@@ -2085,6 +2303,7 @@ const openModalManageAudio = (audioParent) => {
 				console.log(`Deleting audio ${i}: "${audioParent.audio[i]}"`);
 				audioParent.audio.splice(i,1);
 				markModified();
+				markUpdated('lexiconAudio');
 				// we don't know whether audio was added to wordform or section, so refresh both sections to be safe
 				renderAllWordforms();
 				renderAllSentences();
@@ -2104,6 +2323,8 @@ const openModalManageAudio = (audioParent) => {
 		const hadNoAudio = (!Array.isArray(audioParent.audio) || audioParent.audio.length === 0);
 		console.log(audioParent.audio);
 		if (!(await addAudioTo(audioParent))) return; // skip refresh if selection cancelled; will mark project modified if at least one file successfully added
+		// markModified();
+		markUpdated('lexiconAudio');
 		console.log(audioParent.audio);
 		// we don't know whether audio was added to wordform or section, so refresh both sections to be safe
 		renderAllWordforms();
@@ -2138,6 +2359,7 @@ const openModalDeleteWordform = (formId) => {
 		console.log(activeEntry.L2[formId]);
 		activeEntry.L2.splice(formId,1); // delete data
 		markModified();
+		markUpdated('languageForms','lexiconL2','lexiconAudio');
 		renderAllWordforms();
 		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
 		closeModal();
@@ -2157,6 +2379,7 @@ const openModalDeleteSentence = (sentId) => {
 		console.log(activeEntry.sents[sentId]);
 		activeEntry.sents.splice(sentId,1); // delete data
 		markModified();
+		markUpdated('languageForms','lexiconSentenceL2','lexiconAudio');
 		renderAllSentences();
 		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
 		closeModal();
@@ -2173,6 +2396,7 @@ const openModalDeleteNote = (noteId) => {
 		console.log(activeEntry.notes[noteId]);
 		activeEntry.notes.splice(noteId,1); // delete data
 		markModified();
+		markUpdated('lexiconNotes');
 		renderAllNotes();
 		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
 		closeModal();
@@ -2200,6 +2424,7 @@ const openModalCreateForm = (catg,parent) => {
 			populateProjectCatgs(); // refresh project tab
 		}
 		markModified();
+		markUpdated('languageForms');
 		console.log(parent);
 
 		// need to refresh interface, whether we created form or not
@@ -2482,6 +2707,7 @@ const tryLoadProject = async (path) => {
 	console.log(`Project file loaded in ${Math.round(t1_loadProject-t0_loadProject)} ms.`);
 
 	// scan for media in project directory
+	console.log(`tryLoadProject() scans for media in ${path}`);
 	await tryListMedia(path);
 	lexicon.indexMediaUsage();
 
@@ -2503,12 +2729,16 @@ const tryLoadProject = async (path) => {
 	// rebuild search tab
 	populateSearchTab(); // automatically renders UI
 
-	console.log(`Search tab built in ${Math.round(performance.now()-t3_loadProject)} ms.`);
+	const t4_loadProject = performance.now();
+	console.log(`Search tab built in ${Math.round(t4_loadProject-t3_loadProject)} ms.`);
 
 	// rebuild analysis tab
 	populateAnalysisTab();
 
-	console.log(`All loading finished in ${Math.round(performance.now()-t0_loadProject)} ms.`);
+	const t5_loadProject = performance.now();
+	console.log(`Analysis tab built in ${Math.round(t5_loadProject-t4_loadProject)} ms.`);
+	
+	console.log(`All loading done in ${Math.round(performance.now()-t5_loadProject)} ms.`);
 }
 
 //

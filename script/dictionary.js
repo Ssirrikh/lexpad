@@ -21,8 +21,8 @@ const MEDIA_TYPE_IMAGE = 1;
 	// Chromium Audio Codecs: flac, mp3, opus, pcm, vorbis
 	// => mp3, wav, ogg + mpeg, 3gp + mp4, adts, flac, webm
 // TODO: test supported file types exhaustively
-const SUPPORTED_IMAGES = ['bmp','jpeg','jpg','png','webp'];
-const SUPPORTED_AUDIO = ['mp3','mpeg','ogg','wav'];
+const SUPPORTED_IMAGES = Object.freeze(['bmp','jpeg','jpg','png','webp']);
+const SUPPORTED_AUDIO = Object.freeze(['mp3','mpeg','ogg','wav']);
 // const RE_SUPPORTED_IMAGES = /^.*\.(bmp|jpe?g|png|webp)$/i;
 const RE_SUPPORTED_IMAGES = new RegExp(`^.+\\.(${SUPPORTED_IMAGES.join('|')})$`, 'i');
 const RE_SUPPORTED_AUDIO = new RegExp(`^.+\\.(${SUPPORTED_AUDIO.join('|')})$`, 'i');
@@ -98,10 +98,10 @@ let fileContents = { // replaced by JSON.parse(rawFile)
 	// export { propAccess };
 
 // access points for project file
-let project, L2, data; // access points project/L2/data correspond to proj obj project/language/lexicon
+let project, L2, data; // access points [project,L2,data] correspond to proj obj [project,language,lexicon]
 // access points for indexing
 let orderedL1, orderedL2;
-// let mediaAvailable, mediaReferenced, mediaUnused, mediaMissing;
+let sentences;
 let media;
 let stats;
 
@@ -116,6 +116,7 @@ const rebindIndexAccess = () => {
 	// TODO: use memory snapshot to make sure old objects successfully GC'd
 	orderedL1 = indexing.orderedL1;
 	orderedL2 = indexing.orderedL2;
+	sentences = indexing.sentences;
 	media = indexing.media;
 	stats = indexing.stats;
 };
@@ -127,6 +128,11 @@ let indexing = {
 	orderedL1 : [], // array of {wordL1,catg,entryId,hasAudio,hasImage} sorted alphabetically by obj.word
 	orderedL2 : [], // array of {wordL2,catg,entryId,hasAudio,hasImage} sorted alphabetically by obj.word
 	// orderedCatgs : [], // array of catg abbreviations sorted alphabetically
+	sentences : {
+		wordInventory : new Set(), // set of unique words in L2 (lowercase, smart quotes normalized)
+		wordsWithoutCoverage : new Set(), // set of unique words in L2 sentences that are NOT recorded as an L2 wordform in the lexicon (lowercase, smart quotes normalized)
+		// calc coverage = (wordInventory.size - wordsWithoutCoverage.size) / wordInventory.size
+	},
 	media : {
 		// available => file exists in /project/assets
 		// referenced => file referenced by at least one lexicon entry
@@ -157,8 +163,7 @@ let indexing = {
 		numAudioReferenced : 0, // number of references to any audio by any datafield (NOT the number of uniq audio files which were referenced!)
 		numImagesReferenced : 0, // number of references to any image by any datafield (NOT the number of uniq image files which were referenced!)
 		catgCounts : {},
-		catgCountMisc : 0,
-		// blank and unregistered catgs will be treated as misc
+		catgCountMisc : 0, // blank and unregistered catgs will be treated as misc
 		// unregistered catgs shouldn't be possible unless JSON is edited outside LexPad
 		catgFormCounts : {}, // catgFormCounts[catg][form] = 0
 	},
@@ -214,6 +219,72 @@ const indexLexicon = (forceRebind) => {
 	console.log(indexing.orderedL1);
 	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 	console.log(`Indexed ${data.length} lexicon entries in ${Math.round(performance.now()-t0_indexLexicon)} ms.`);
+};
+const indexSentences = (forceRebind) => {
+	const t0_indexSentences = performance.now();
+	// disable smart quotes while indexing, since "it’s" and "it's" would be treated as separate words
+	const RE_SMART_QUOTES = /[‘’ʼ]/g; // single quotes [‘’] char codes 8216,8217 and apostrophe [ʼ] char code 700 normalize to ASCII ['] char code 39
+	// construct set of L2 lowercase alphanumeric characters, plus ['] for contractions and [-] for compounds
+	// negated charset used to discard all other chars during indexing
+	let characterInventory = new Set(`abcdefghijklmnopqrstuvwxyz0123456789'-` + L2.alph.toLowerCase().replaceAll(/\s+/g,'').replaceAll(RE_SMART_QUOTES,`'`));
+	characterInventory.delete('-'); // explicitly handle [-] later, so it isn't treated as range
+	// const STR_NON_ALNUM = `[^${[...characterInventory].join('')}]`;
+	// console.log(STR_NON_ALNUM);
+	// const RE_NON_ALNUM = new RegExp(STR_NON_ALNUM, 'g');
+	const RE_NON_ALNUM = new RegExp(`[^${[...characterInventory].join('')}-]`, 'g'); // placing [-] at end of charset treats it as char instead of range
+	console.log(`RE_NON_ALNUM "${RE_NON_ALNUM}"`);
+	const RE_NUMERIC_WORD = /[0-9]+/g;
+	
+	// index all words in L2 forms
+	let wordInventoryL2 = new Set();
+	let wordInventorySentences = new Set();
+	for (let entry of data) {
+		for (let form of entry.L2 ?? []) {
+			let synonyms = form.L2.split(SYNONYM_SPLITTER);
+			for (let synonym of synonyms) {
+				// console.log(`FORM ${synonym}`);
+				wordInventoryL2.add( synonym.toLowerCase().replaceAll(RE_SMART_QUOTES,`'`).replaceAll(RE_NON_ALNUM,'') );
+			}
+		}
+		for (let sentence of entry.sents ?? []) {
+			let words = sentence.L2.trim().replaceAll(/\s+/g,' ') // scrub trailing/repeated whitespace
+				.split(' ') // break into words
+				.filter(x => !RE_NUMERIC_WORD.test(x)); // remove standalone numbers (accept 'thirty', reject '30')
+			for (let word of words) {
+				// console.log(`SENT "${word}" -> "${word.toLowerCase().replaceAll(RE_SMART_QUOTES,`'`).replaceAll(RE_NON_ALNUM,'')}"`);
+				wordInventorySentences.add( word.toLowerCase().replaceAll(RE_SMART_QUOTES,`'`).replaceAll(RE_NON_ALNUM,'') );
+			}
+		}
+	}
+	// // discard empty strings (ex if user clicked "Add Wordform" but didn't type anything)
+	// wordInventoryL2.delete('');
+	// wordInventorySentences.delete('');
+	// discard any words on the ignorelist, and empty strings
+	let wordsWithoutCoverage = wordInventorySentences.difference(wordInventoryL2); // a.diff(b) => in a but not in b
+	const ignorelist = project.ignorelist.toLowerCase().split(/\s+/);
+	for (let word of ignorelist) {
+		wordsWithoutCoverage.delete(word);
+	}
+	wordInventoryL2.delete('');
+	wordInventorySentences.delete('');
+	wordsWithoutCoverage.delete('');
+	console.log(wordInventoryL2);
+	console.log(wordInventorySentences);
+	console.log(wordsWithoutCoverage);
+	// to save mem, only keep data about what's NOT covered, since that's what the linguist needs to fix
+	indexing.sentences = {};
+	indexing.sentences.wordInventory = wordInventorySentences;
+	indexing.sentences.wordsWithoutCoverage = wordsWithoutCoverage;
+
+	// const sentenceWordsWithEntry = wordInventorySentences.intersection(wordInventoryL2); // a.intersect(b) === b.intersect(a)
+	// const sentenceWordsWithoutEntry = wordInventorySentences.difference(wordInventoryL2); // a.diff(b) => in a but not in b
+	// const coverage = sentenceWordsWithEntry.size / wordInventorySentences.size;
+	// console.log(sentenceWordsWithEntry);
+	// console.log(sentenceWordsWithoutEntry);
+	// console.log(`${Math.round(100*coverage)}% coverage: ${sentenceWordsWithEntry.size} / ${wordInventorySentences.size} unique words in L2 sentences are recorded as an L2 wordform in the lexicon.`);
+
+	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
+	console.log(`Indexed sentences in ${Math.round(performance.now()-t0_indexSentences)} ms.`);
 };
 // const indexOrderedCatgs = () => {
 // 	// TODO: decide if this is worth indexing; operation is cheap and not used often
@@ -622,6 +693,7 @@ export {
 	project, L1, L2, data,
 	// indexing
 	orderedL1, orderedL2, indexLexicon,
+	sentences, indexSentences,
 	stats, calculateStatistics,
 	media, indexAvailableMedia, indexReferencedMedia, indexMediaUsage,
 	// batch ops

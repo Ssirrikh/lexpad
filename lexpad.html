@@ -22,7 +22,7 @@
 	<!-- main covers entire viewport; it should allow zooming but not scrolling -->
 	<div id='main' class='flex-col'>
 		<!-- HEADER BARS -->
-		<div id='navbar' class='flex-row'>
+		<div id='navbar' class='flex-row no-scrollbar'>
 			<div class='flex-sep'></div>
 			<button id='navtab-0' class='navtab active-navtab'>Project</button>
 			<button id='navtab-1' class='navtab'>Lexicon</button>
@@ -429,18 +429,23 @@
 		<div id='r-content' class='flex-col padded'>
 			<!-- media checker -->
 			<div id='analysis-media' class='flex-col project-tab-section'>
-				<div class='flex-row analysis-section-header'>
+				<!-- <div class='flex-row analysis-section-header'>
 					<p>Missing & Unused Media</p>
+				</div> -->
+				<!-- <p class='analysis-section-header2'>Missing & Unused Media</p> -->
+				<div class='flex-row flex-separated-row analysis-section-header3'>
+					<p>Missing & Unused Media</p>
+					<button id='analysis-refresh-media-checker' class='button-highlight'>Click to Re-Scan</button>
 				</div>
 				<div class='flex-col analysis-section'>
 					<div class='flex-row'>
 						<div class='flex-col analysis-section-tabs'>
 							<button id='analysis-preview-missing-images' class='analysis-section-tab active'>Missing Images (<span>0</span>)</button>
 							<button id='analysis-preview-missing-audio' class='analysis-section-tab'>Missing Audio (<span>0</span>)</button>
-							<button id='analysis-preview-unused-images' class='analysis-section-tab'>Unused Images (<span>1000</span>)</button>
-							<button id='analysis-preview-unused-audio' class='analysis-section-tab'>Unused Audio (<span>243</span>)</button>
+							<button id='analysis-preview-unused-images' class='analysis-section-tab'>Unused Images (<span>0</span>)</button>
+							<button id='analysis-preview-unused-audio' class='analysis-section-tab'>Unused Audio (<span>0</span>)</button>
 						</div>
-						<div id='analysis-preview-media-usage' class='flex-col list-preview'>
+						<div id='analysis-preview-media-usage' class='flex-col list-preview-sideways'>
 							<p>Select a category to preview it.</p>
 						</div>
 					</div>
@@ -468,7 +473,49 @@
 			</div>
 			
 			<!-- sentence checker -->
-			<p class='coming-soon-banner'>Sentence checker coming soon...</p>
+			<div id='analysis-sentences' class='flex-col project-tab-section'>
+				<!-- <p class='analysis-section-header2'>Unrecognized L2 Words</p> -->
+				<div class='flex-row flex-separated-row analysis-section-header3'>
+					<p>Unrecognized L2 Words</p>
+					<button id='analysis-refresh-sentence-checker' class='button-highlight'>Click to Re-Scan</button>
+				</div>
+				<div class='flex-col analysis-section'>
+					<!-- coverage -->
+					<div class='flex-row flex-separated-row'>
+						<p title='Words in L2 sentences are "covered" if they appear in the wordform section of some entry.'><span id='analysis-sentence-coverage'>0</span>% sentence coverage</p>
+						<div class='flex-col'>
+							<p class='subtitle'><span id='analysis-uniq-sentence-words'>0</span> <span class='learn-more' title="Case-insensative. Treats smart quotes [‘’], angled apostrophes [ʼ], and vertical apostrophes ['] as the same character. Ignores standalone numbers ('thirty' treated as word, but not '30').">unique words</span> across all L2 sentences</p>
+							<p class='subtitle warning'><span id='analysis-unrecognized-words-count'>0</span> / <span id='analysis-uniq-sentence-words-2'>0</span> do not appear in any L2 wordform</p>
+						</div>
+					</div>
+					<!-- unrecognized words -->
+					<div id='analysis-preview-sentence-coverage' class='flex-col list-preview'>
+						<p>Rescan sentences to display unrecognized words.</p>
+					</div>
+					<div class='flex-row analysis-exports'>
+						<div class='flex-sep'></div>
+						<button id='analysis-export-sentence-uncovered-words' class='button-highlight' title='Export list of unrecognized L2 words as .txt file'>Export as Text File</button>
+					</div>
+					<div class='flex-col'>
+						<p class='subtitle'>Words in this section appeared in an L2 sentence, but never in any L2 wordform.</p>
+						<p class='subtitle'>This flags both typos and words that don't have an entry. Use the Search Tab to check.</p>
+						<!-- <p class='subtitle'>This check is case-insensative, and normalizes smart quotes [‘’], angled apostrophes [ʼ], and vertical apostrophes ['].</p> -->
+					</div>
+				</div>
+
+				<br>
+				<div class='stats-separator'></div>
+
+				<div class='flex-col analysis-section'>
+					<!-- ignorelist -->
+					<p>Ignorelist is omitting <span id='analysis-ignorelist-len'>0</span> words from sentence checker.</p>
+					<textarea id='analysis-ignorelist' rows='8'></textarea>
+					<div class='flex-col'>
+						<p class='subtitle'>L2 words in the ignorelist will NOT be flagged by the sentence checker, even if they don't have an entry.</p>
+						<p class='subtitle'>Add proper names, words from frozen phrases, and anything else you won't be adding to your lexicon.</p>
+					</div>
+				</div>
+			</div>
 		</div>
 	</template>
 

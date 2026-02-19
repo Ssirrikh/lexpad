@@ -15,14 +15,15 @@ const TAB_SEARCH = 2;
 const TAB_ANALYSIS = 3;
 
 const TPL_NEW_PROJECT = `{
-	"_WARNING" : "Before mucking around in here, SAVE A BACKUP. It will be annoying for everyone involved if you break something and lose data because you didn't backup your project.",
+	"_WARNING" : "Before mucking around in here, SAVE A BACKUP. It will be annoying for everyone involved if you break something and don't know how to fix it.",
 	"project" : {
 		"lexpadVersion" : "${VERSION}",
 		"authorship" : "",
 		"lastEdited" : -1,
 		"togglePrimary" : false,
 		"activeEntry" : -1,
-		"catgs" : {}
+		"catgs" : {},
+		"ignorelist" : ""
 	},
 	"language" : {
 		"name" : "",
