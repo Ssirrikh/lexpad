@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// Main-to-Renderer signals
 	onTriggerTab : (callback) => ipcRenderer.on('trigger-tab', (evt,tabId) => callback(tabId)),
 
+	// Renderer-to-Main signals
+	rendererOpenLexPadGithub : () => ipcRenderer.invoke('renderer-open-github'),
+
 	// Project State, File I/O
 
 	// file selection

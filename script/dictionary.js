@@ -305,9 +305,9 @@ const indexAvailableMedia = (mediaList,forceRebind) => {
 				indexing.media.invalidAvailable.add(filename.replace('/','\\')); break;
 		}
 	}
-	console.log(indexing.media.audioAvailable);
-	console.log(indexing.media.imagesAvailable);
-	console.log(indexing.media.invalidAvailable);
+	// console.log(indexing.media.audioAvailable);
+	// console.log(indexing.media.imagesAvailable);
+	// console.log(indexing.media.invalidAvailable);
 	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 };
 const indexReferencedMedia = (forceRebind) => {
@@ -335,8 +335,8 @@ const indexReferencedMedia = (forceRebind) => {
 			indexing.media.imagesReferenced[image].add(entryId);
 		}
 	}
-	console.log(indexing.media.audioReferenced);
-	console.log(indexing.media.imagesReferenced);
+	// console.log(indexing.media.audioReferenced);
+	// console.log(indexing.media.imagesReferenced);
 	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 	console.log(`Indexed ${Object.keys(indexing.media.audioReferenced).length} referenced audio files and ${Object.keys(indexing.media.imagesReferenced).length} referenced image files in ${Math.round(performance.now()-t0_indexMedia)} ms.`);
 };
@@ -362,10 +362,10 @@ const indexMediaUsage = (forceRebind) => {
 	if (indexing.media.audioUnused.delete('')) console.log('Detected blank filename in unused audio');
 	if (indexing.media.imagesUnused.delete('')) console.log('Detected blank filename in unused images');
 	if (indexing.media.invalidUnused.delete('')) console.log('Detected blank filename in unused non-media');
-	console.log('audio missing', indexing.media.audioMissing);
-	console.log('audio unused', indexing.media.audioUnused);
-	console.log('images missing', indexing.media.imagesMissing);
-	console.log('images unused', indexing.media.imagesUnused);
+	// console.log('audio missing', indexing.media.audioMissing);
+	// console.log('audio unused', indexing.media.audioUnused);
+	// console.log('images missing', indexing.media.imagesMissing);
+	// console.log('images unused', indexing.media.imagesUnused);
 	if (forceRebind) rebindIndexAccess(); // allow other modules to trigger rebinds
 	console.log(`Media usage indexed in ${Math.round(performance.now()-t0_indexMediaUsage)} ms.`);
 };

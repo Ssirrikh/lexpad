@@ -17,10 +17,11 @@ import { file, project } from "./dictionary.js";
 const RE_SYNONYM_SPLITTER = /;\s*/;
 const SYNONYM_JOIN = '; ';
 
-const TAB_PROJECT = 0;
-const TAB_LEXICON = 1;
-const TAB_SEARCH = 2;
-const TAB_ANALYSIS = 3;
+const TAB_SETTINGS = 0;
+const TAB_PROJECT = 1;
+const TAB_LEXICON = 2;
+const TAB_SEARCH = 3;
+const TAB_ANALYSIS = 4;
 
 const SEARCH_PATTERN_BEGINS = 0;
 const SEARCH_PATTERN_CONTAINS = 1;
@@ -33,9 +34,11 @@ const TAG_T = 2; // tag true (include)
 
 const MODAL_FOCUS_MAXLEN = 20;
 
+//// GLOBAL UTILS ////
+
 const capitalize = s => (s[0]??'').toUpperCase() + s.slice(1);
 const trim = (text,maxLen=null) => (maxLen === null || text.length <= maxLen) ? text : `${text.slice(0,maxLen)}...`; // if maxLen neg, trim n chars off end; if maxLen pos, act as max len
-const setListStr = (title,setToList) => {
+const prettyPrintSet = (title,setToList) => {
 	let arrFromSet = [...setToList].filter(x => x).sort();
 	// const numNonBlank = arrFromSet.length; // no longer necessary since every media usage Set() has blank vals scrubbed
 	if (arrFromSet.length === 0) arrFromSet.push(`// [no items in this section]`);
@@ -43,11 +46,14 @@ const setListStr = (title,setToList) => {
 };
 
 
-//// media.js ////
+
+///////////////
+//// MEDIA ////
+///////////////
 
 let audioPlayer = {
 	player : document.createElement('audio'),
-	projectPath : '',
+	projectPath : '', // leave blank to use relative paths
 	play : (src) => {
 		console.log(`Playing audio "${audioPlayer.projectPath}/${src}"`);
 		audioPlayer.player.pause();
@@ -71,10 +77,11 @@ let gubbins = {
 	//// ALREADY INTEGRATED ////
 
 	// window behavior
-	quickCopy : {
-		title : `Quick Copy`,
-		desc : `Clicking characters in the quick-copy bar will either copy them to the clipboard, or insert them into the active textbox. If OFF: Click to insert, Ctrl+Click to copy. If ON: Click to copy, Ctrl+Click to insert.`,
-		state : false
+	quickInsert : {
+		title : `Quick Insert`,
+		label : `Quick copy bar inserts characters`,
+		desc : `Toggle quick copy bar between click-to-copy and click-to-insert. If ON: Click to insert, Ctrl+Click to copy. If OFF: Click to copy, Ctrl+Click to insert.`,
+		state : true
 	},
 
 	//// PLANNED ////
@@ -82,18 +89,14 @@ let gubbins = {
 	// search behavior
 	instantSearch : {
 		title : `Instant Search`,
-		desc : `If ON: Changing parameters in the search tab will update results immediately. Only recommended on faster devices. If OFF: After adjusting search paramters, click Submit or hit Enter in the searchbar to update results. Recommended for slower devices.`,
+		label : `Search tab uses live search`,
+		desc : `If ON: Typing or changing parameters updates results immediately. Recommended on faster devices. If OFF: Must click Submit or hit Enter in the searchbar to update results. Recommended on slower devices.`,
 		state : false
 		// TODO: add gubbins check to all search tab settings buttons
 		// TODO: on keyup in searchbar, reset timer that updates search results
 	}
 };
 
-// let tabNeedsUpdate = [
-//     false, // project tab
-//     false, // lexicon tab
-//     false, // search tab
-// ];
 // key state tracking
 let ctrlDown = false;
 let shiftDown = false;
@@ -102,8 +105,8 @@ window.addEventListener('keydown', evt => {
 	if (evt.key === 'Shift') shiftDown = true;
 	renderModifierKeys();
 	if (file.isOpen) {
-		updateQuickCopyBar();
-		document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+		renderQuickCopyBar();
+		
 	}
 });
 window.addEventListener('keyup', evt => {
@@ -111,8 +114,8 @@ window.addEventListener('keyup', evt => {
 	if (evt.key === 'Shift') shiftDown = false;
 	renderModifierKeys();
 	if (file.isOpen) {
-		updateQuickCopyBar();
-		document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
+		renderQuickCopyBar();
+		// document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickInsert.state) ? 'Click to insert:' : 'Click to copy:';
 	}
 });
 const renderModifierKeys = () => {
@@ -122,7 +125,7 @@ const renderModifierKeys = () => {
 	eStatbarRight.textContent = modStr.join('+');
 };
 // focus anchors
-let activeInput;
+let activeInput = null; // pointer to DOM element of last focused input
 
 // active entry
 let activeEntry = null; // pointer to active entry, ie lexicon.data[i]
@@ -169,13 +172,6 @@ const toggleMenu = (evt,menuContainer,menuId) => {
 		activeMenu.container = menuContainer;
 		activeMenu.id = menuId;
 	}
-
-	// clicked inside menu -> do nothing
-	// clicked menu trigger
-		// if this menu already open -> close it
-		// if a diff menu open -> close that menu, then open this one
-		// if no menu is open -> open this menu
-	// clicked somewhere else -> close open menu, if any
 };
 window.addEventListener('click', evt => {
 	if (activeMenu.id && !activeMenu.container.querySelector(activeMenu.id).contains(evt.target)) {
@@ -228,12 +224,6 @@ let lastRender = { // performance.now() when UI components last rendered (if las
 	mediaChecker : -1,
 	sentenceChecker : -1
 };
-// const markUpdated = (datafield) => {
-// 	if (!lastUpdate[datafield]) { console.warn(`Datafield "${datafield}" not registered. Unable to mark.`); return false; }
-// 	lastUpdate[datafield] = performance.now();
-// 	console.log(`Datafield "${datafield}" marked updated @ ${lastUpdate[datafield]}`);
-// 	return true;
-// };
 const markUpdated = (...datafields) => {
 	for (let datafield of datafields) {
 		if (typeof lastUpdate[datafield] === 'undefined') {
@@ -241,15 +231,9 @@ const markUpdated = (...datafields) => {
 			continue;
 		}
 		lastUpdate[datafield] = performance.now();
-		console.log(`Datafield "${datafield}" marked updated @ ${lastUpdate[datafield]}`);
+		// console.log(`Datafield "${datafield}" marked updated @ ${lastUpdate[datafield]}`);
 	}
 };
-// const markRendered = (component) => {
-// 	if (!lastRender[component]) { console.warn(`Render-component "${component}" not registered. Unable to mark.`); return false; }
-// 	lastRender[component] = performance.now();
-// 	console.log(`Render-component "${component}" marked rendered @ ${lastRender[component]}`);
-// 	return true;
-// };
 const markRendered = (...components) => {
 	for (let component of components) {
 		if (typeof lastRender[component] === 'undefined') {
@@ -257,7 +241,7 @@ const markRendered = (...components) => {
 			continue;
 		}
 		lastRender[component] = performance.now();
-		console.log(`Render-component "${component}" marked rendered @ ${lastRender[component]}`);
+		// console.log(`Render-component "${component}" marked rendered @ ${lastRender[component]}`);
 	}
 };
 const needsUpdate = (component) => {
@@ -652,10 +636,11 @@ let searchSettings = {
 
 // static content anchors
 const eNavTabs = [
-	document.getElementById('navtab-0'),
-	document.getElementById('navtab-1'),
-	document.getElementById('navtab-2'),
-	document.getElementById('navtab-3'),
+	document.getElementById('navtab-0'), // TAB_SETTINGS
+	document.getElementById('navtab-1'), // TAB_PROJECT
+	document.getElementById('navtab-2'), // TAB_LEXICON
+	document.getElementById('navtab-3'), // TAB_SEARCH
+	document.getElementById('navtab-4'), // TAB_ANALYSIS
 ];
 const eStatbarLeft = document.getElementById('statbar-left');
 const eStatbarRight = document.getElementById('statbar-right');
@@ -664,6 +649,7 @@ let activeElement = document.getElementById('r-content');
 // off-DOM content
 let nWelcomePage;
 let tabContent = [
+	// [settings tab]
 	// project tab
 	// lexicon tab
 	// search tab
@@ -714,6 +700,8 @@ const init = () => {
 	// allow page to render, then build content skeletons off-DOM
 	requestAnimationFrame(() => {
 		const t0_init_deferred = performance.now();
+		// settings tab
+		tabContent[TAB_SETTINGS] = document.getElementById('tpl-settings-page').content.firstElementChild.cloneNode(true);
 		// project tab
 		tabContent[TAB_PROJECT] = document.getElementById('tpl-project-page').content.firstElementChild.cloneNode(true);
 		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markModified();
@@ -721,7 +709,6 @@ const init = () => {
 		tabContent[TAB_PROJECT].querySelector('#dbg-trigger').onclick = () => exportTextFile('Hewwo wordle');
 		// lexicon tab
 		tabContent[TAB_LEXICON] = document.getElementById('tpl-lexicon-page').content.firstElementChild.cloneNode(true);
-		// tabContent[TAB_LEXICON].style.padding = '0';
 		registerInput(tabContent[TAB_LEXICON], '#lexicon-search');
 		tabContent[TAB_LEXICON].querySelector('#lexicon-search').addEventListener('keyup', evt => {
 			// TODO: convert to debounce timer so input isn't blocked on slower machines
@@ -743,7 +730,6 @@ const init = () => {
 		tabContent[TAB_LEXICON].querySelector('#entry-editor .window-status p').textContent = 'Load an entry to get started';
 		// search tab
 		tabContent[TAB_SEARCH] = document.getElementById('tpl-search-page').content.firstElementChild.cloneNode(true);
-		// tabContent[TAB_SEARCH].style.padding = '0';
 		registerInput(tabContent[TAB_SEARCH], '#search-query');
 		tabContent[TAB_SEARCH].querySelector('#search-query').addEventListener('keyup', evt => {
 			// TODO: try parse searchSettings.fromString(input.value) in case user manually typed tag
@@ -784,6 +770,7 @@ const init = () => {
 		
 		
 		// enable tab switching
+		eNavTabs[TAB_SETTINGS].onclick = () => renderTab(TAB_SETTINGS);
 		eNavTabs[TAB_PROJECT].onclick = () => renderTab(TAB_PROJECT);
 		eNavTabs[TAB_LEXICON].onclick = () => renderTab(TAB_LEXICON);
 		eNavTabs[TAB_SEARCH].onclick = () => renderTab(TAB_SEARCH);
@@ -834,10 +821,6 @@ const renderTab = (tabId) => {
 		case TAB_ANALYSIS: checkUpdatesAnalysisTab(); break;
 		default: console.log(`Tab id ${tabId} does not require deferred updates.`);
 	}
-	
-	// if (tabNeedsUpdate[tabId]) {
-	//     // TODO: run appropriate update function(s)
-	// }
 
 	return true;
 };
@@ -861,7 +844,11 @@ const buildFormSelect = (catg) => {
 // project tab
 const copyOrInsert = (letter='') => {
 	if (shiftDown) letter = capitalize(letter);
-	if (ctrlDown === gubbins.quickCopy.state) {
+	if (ctrlDown === gubbins.quickInsert.state) {
+		// copy (ctrl+click OR click w/ quick copy on)
+		navigator.clipboard.writeText(letter);
+		console.log(`Copied "${letter}" to clipboard.`);
+	} else {
 		// insert (click OR ctrl+click w/ quick copy on)
 		if (activeInput) {
 			activeInput.value += letter;
@@ -869,10 +856,6 @@ const copyOrInsert = (letter='') => {
 			activeInput.focus();
 		}
 		console.log(`Inserted "${letter}" in textbox.`);
-	} else {
-		// copy (ctrl+click OR click w/ quick copy on)
-		navigator.clipboard.writeText(letter);
-		console.log(`Copied "${letter}" to clipboard.`);
 	}
 };
 const populateQuickCopyBar = () => {
@@ -895,8 +878,13 @@ const populateQuickCopyBar = () => {
 		// className : 'subtitle',
 		textContent : '[no letters added to quick-copy bar]'
 	}) );
+	renderQuickCopyBar();
 };
-const updateQuickCopyBar = () => {
+const renderQuickCopyBar = () => {
+	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickInsert.state) ? 'Click to copy:' : 'Click to insert:';
+	eStatbarLeft.title = (gubbins.quickInsert.state)
+		? `Click to insert in textbox. Ctrl+Click to copy to clipboard. Hold Shift for uppercase.`
+		: `Click to copy to clipboard. Ctrl+Click to insert in textbox. Hold Shift for uppercase.`;
 	// if (!file.isOpen) return;
 	let alphabet = lexicon.L2.alph.split(' ');
 	for (let i = 0; i < alphabet.length; i++) {
@@ -904,9 +892,8 @@ const updateQuickCopyBar = () => {
 		if (e) e.textContent = (shiftDown) ? capitalize(alphabet[i]) : alphabet[i];
 	}
 };
-
+// registering input allows quick-copy bar to paste characters into it, and allows optional onUpdate()
 const registerInput = (container,id,onUpdate) => {
-	// registering input allows quick-copy bar to paste characters into it, and allows optional onUpdate()
 	// passing (container,id) allows fetching target element even if original has been replaced
 	// will need to rerun if container gets replaced
 	// TODO: optimization pass, check if mem leak occurs if container is rebuilt
@@ -926,6 +913,8 @@ const registerInput = (container,id,onUpdate) => {
 	}
 	// console.log(`Registered input "${id}"`);
 };
+
+
 const populateProjectTab = () => {
 	// language data
 	registerInput(tabContent[TAB_PROJECT], '#lang-name', () => {
@@ -1698,25 +1687,25 @@ const populateAnalysisTab = () => {
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-selected-section').onclick = () => {
 		console.log(`Export current section: "${mediaUsageSection}"`);
 		switch (mediaUsageSection) {
-			case 'missing-images': exportTextFile( setListStr('Missing Images',lexicon.media.imagesMissing) ); break;
-			case 'missing-audio': exportTextFile( setListStr('Missing Audio',lexicon.media.audioMissing) ); break;
-			case 'unused-images': exportTextFile( setListStr('Unused Images',lexicon.media.imagesUnused) ); break;
-			case 'unused-audio': exportTextFile( setListStr('Unused Audio',lexicon.media.audioUnused) ); break;
+			case 'missing-images': exportTextFile( prettyPrintSet('Missing Images',lexicon.media.imagesMissing) ); break;
+			case 'missing-audio': exportTextFile( prettyPrintSet('Missing Audio',lexicon.media.audioMissing) ); break;
+			case 'unused-images': exportTextFile( prettyPrintSet('Unused Images',lexicon.media.imagesUnused) ); break;
+			case 'unused-audio': exportTextFile( prettyPrintSet('Unused Audio',lexicon.media.audioUnused) ); break;
 			default: console.warn(`Section is null or unrecognized. Nothing to export.`);
 		}
 	};
 	// media checks combined
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-missing').onclick = () => {
-		exportTextFile( `${setListStr('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${setListStr('Missing Audio',lexicon.media.audioMissing)}` );
+		exportTextFile( `${prettyPrintSet('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${prettyPrintSet('Missing Audio',lexicon.media.audioMissing)}` );
 	};
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-unused').onclick = () => {
-		exportTextFile( `${setListStr('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${setListStr('Unused Audio',lexicon.media.audioUnused)}` );
+		exportTextFile( `${prettyPrintSet('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${prettyPrintSet('Unused Audio',lexicon.media.audioUnused)}` );
 	};
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-usage').onclick = () => {
 		lexicon.indexMediaUsage(true);
 		exportTextFile(
-			`${setListStr('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${setListStr('Missing Audio',lexicon.media.audioMissing)}`
-			+ `\n\n\n\n${setListStr('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${setListStr('Unused Audio',lexicon.media.audioUnused)}`
+			`${prettyPrintSet('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${prettyPrintSet('Missing Audio',lexicon.media.audioMissing)}`
+			+ `\n\n\n\n${prettyPrintSet('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${prettyPrintSet('Unused Audio',lexicon.media.audioUnused)}`
 		);
 	};
 
@@ -1763,7 +1752,7 @@ const renderAnalysisMediaUsage = async (needRebuildIndex) => {
 		lexicon.indexReferencedMedia();
 		lexicon.indexMediaUsage(true);
 	}
-	console.log(`Active media usage section is "${mediaUsageSection}"`);
+	// console.log(`Active media usage section is "${mediaUsageSection}"`);
 	// render tabs
 	// we are free to use Set.size here w/o fear of OBOE, since media indexing process scrubs blank filenames from usage stats
 	for (let section of ['missing-images','missing-audio','unused-images','unused-audio']) {
@@ -1780,16 +1769,16 @@ const renderAnalysisMediaUsage = async (needRebuildIndex) => {
 	// render preview of list
 	switch (mediaUsageSection) {
 		case 'missing-images':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Images',lexicon.media.imagesMissing);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Missing Images',lexicon.media.imagesMissing);
 			break;
 		case 'missing-audio':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Missing Audio',lexicon.media.audioMissing);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Missing Audio',lexicon.media.audioMissing);
 			break;
 		case 'unused-images':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Images',lexicon.media.imagesUnused);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Unused Images',lexicon.media.imagesUnused);
 			break;
 		case 'unused-audio':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = setListStr('Unused Audio',lexicon.media.audioUnused);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Unused Audio',lexicon.media.audioUnused);
 			break;
 		default:
 			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = `Select a section to preview it.`;
@@ -1815,9 +1804,9 @@ const renderAnalysisSentenceChecker = (needRebuildIndex) => {
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-uniq-sentence-words-2').textContent = lexicon.sentences.wordInventory.size ?? 'ERROR';
 	// unrecognized words
 	// tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = [...lexicon.sentences.wordsWithoutCoverage].sort().join('\n');
-	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = setListStr('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage);
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = prettyPrintSet('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage);
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-sentence-uncovered-words').onclick = () => {
-		exportTextFile( setListStr('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage) );
+		exportTextFile( prettyPrintSet('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage) );
 	};
 	// ignorelist
 	const ignorelist = project.ignorelist.split(/\s+/);
@@ -1866,6 +1855,30 @@ const checkUpdatesAnalysisTab = () => {
 		e.classList.add('disabled');
 		e.inert = true;
 	}
+};
+
+// settings tab
+const populateSettingsTab = () => {
+	// gubbins toggles
+	tabContent[TAB_SETTINGS].querySelector('#gubbins-quick-insert').onclick = () => {
+		console.log(`Quick Insert toggled from ${gubbins.quickInsert.state} to ${!gubbins.quickInsert.state}`);
+		gubbins.quickInsert.state = !gubbins.quickInsert.state;
+		if (gubbins.quickInsert.state) {
+			tabContent[TAB_SETTINGS].querySelector('#gubbins-quick-insert .button-toggle').classList.remove('off');
+		} else {
+			tabContent[TAB_SETTINGS].querySelector('#gubbins-quick-insert .button-toggle').classList.add('off');
+		}
+		populateQuickCopyBar();
+	};
+
+	// quick links
+	tabContent[TAB_SETTINGS].querySelector('#settings-link-github').onclick = () => {
+		console.log(`Opening github repo...`);
+		window.electronAPI.rendererOpenLexPadGithub();
+	};
+	tabContent[TAB_SETTINGS].querySelector('#settings-link-shortcuts').onclick = () => {
+		openTutorialKeyboardShortcuts();
+	};
 };
 
 
@@ -2693,8 +2706,8 @@ const tryLoadProject = async (path) => {
 
 	// build/render app UI (just quick-copy bar at the moment)
 	populateQuickCopyBar();
-	document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickCopy.state) ? 'Click to insert:' : 'Click to copy:';
-	eStatbarLeft.title = `Click to insert in current textbox. Ctrl+Click to copy to clipboard. Hold Shift for uppercase.`; // hover text
+	// document.querySelector('#quick-copy-tooltip').textContent = (ctrlDown === gubbins.quickInsert.state) ? 'Click to insert:' : 'Click to copy:';
+	// eStatbarLeft.title = `Click to insert in current textbox. Ctrl+Click to copy to clipboard. Hold Shift for uppercase.`; // hover text
 	// reset modifier keys; keyboard shortcuts (ie Ctrl+O) cause modifiers to get stuck in down position cuz of open file dialogue stealing focus
 	ctrlDown = false;
 	shiftDown = false;
@@ -2737,9 +2750,12 @@ const tryLoadProject = async (path) => {
 
 	const t5_loadProject = performance.now();
 	console.log(`Analysis tab built in ${Math.round(t5_loadProject-t4_loadProject)} ms.`);
+
+	// rebuild settings tab
+	populateSettingsTab();
 	
 	console.log(`All loading done in ${Math.round(performance.now()-t5_loadProject)} ms.`);
-}
+};
 
 //
 

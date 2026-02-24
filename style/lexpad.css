@@ -7,7 +7,8 @@
     --entry-form-input-width: 14em;
     --entry-form-audio-min-width: 6em;
 
-    --edge-sharpness-shadow: drop-shadow(0 0 4px #00000038);
+    --edge-sharpness-shadow: drop-shadow(0 0 4px #0004);
+    --modal-shadow: drop-shadow(0 0 10px #00000022);
 }
 
 body {
@@ -315,8 +316,9 @@ select:focus-visible {
     /* border: thin solid var(--primary-dark); */
     /* border: thin solid var(--primary-highlight); */
     /* border: thin solid var(--text-subtitle); */
-    filter: drop-shadow(0 0 10px #00000044);
-    filter: drop-shadow(0 0 10px #00000022);
+    /* filter: drop-shadow(0 0 10px #00000044); */
+    /* filter: drop-shadow(0 0 10px #00000022); */
+    filter: var(--modal-shadow);
     border-radius: 0.5em;
     padding: 1em;
     width: min(24em, 50%);
@@ -404,6 +406,7 @@ select:focus-visible {
 #modal-image-manager, #modal-audio-manager {
     max-height: 12em;
     overflow-y: overlay;
+    gap: 3px;
 }
 #modal-add-image, #modal-add-audio {
     width: fit-content;
@@ -414,6 +417,7 @@ select:focus-visible {
 .modal-image-thumbnail {
     background: var(--primary-selection) var(--thumbnail-position);
     filter: drop-shadow(0 0 4px #00000022);
+    filter: var(--edge-sharpness-shadow);
     border-radius: 0.5em;
     width: 2em;
     height: 2em;
@@ -540,6 +544,47 @@ select:focus-visible {
 .button-option:focus-visible {
     outline: medium solid var(--primary-dark);
 }
+.button-toggle {
+    background-color: var(--primary);
+    border: thin solid var(--primary);
+    border-radius: 1em;
+    width: 1.5em;
+    height: 1em;
+
+    position: relative;
+}
+.button-toggle:hover {
+    background-color: var(--primary-selection);
+}
+.button-toggle::after {
+    content: '';
+    background-color: var(--bg-light);
+    border-radius: 1em;
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(0%,-50%);
+    font-size: 0.7em;
+    font-size: 0.6em;
+}
+.button-toggle.off {
+    background-color: var(--bg-offwhite);
+    border: thin solid var(--border-darker);
+}
+.button-toggle.off:hover {
+    background-color: var(--bg-grey);
+}
+.button-toggle.off::after {
+    background-color: var(--border-dark);
+    transform: translate(-100%,-50%);
+    font-size: 0.5em;
+}
+.button-toggle:focus-visible {
+    outline: medium solid var(--primary-dark);
+}
 
 .subtitle {
     color: grey;
@@ -574,6 +619,33 @@ select:focus-visible {
 
 
 
+/**** SETTINGS TAB ****/
+
+.settings-row {
+    padding: 0.5em;
+}
+.settings-row + .settings-row {
+    border-top: thin solid var(--border-medium);
+}
+.settings-row:hover {
+    cursor: pointer;
+    background-color: var(--bg-offwhite);
+}
+
+.project-tab-section > .settings-row:first-child {
+    border-radius: 0.5em 0.5em 0 0;
+}
+.project-tab-section > .settings-row:last-child {
+    border-radius: 0 0 0.5em 0.5em;
+}
+
+.settings-actions {
+    width: 32em;
+    justify-content: space-between;
+}
+
+
+
 /**** PROJECT TAB ****/
 
 /* welcome screen */
@@ -600,11 +672,19 @@ select:focus-visible {
 
 .project-tab-section {
     background-color: var(--bg-light);
+    filter: var(--edge-sharpness-shadow);
     border-radius: 0.5em;
     position: relative;
-    padding: 1em;
     width: 32em;
 }
+.project-tab-section.padded {
+    padding: 1em;
+}
+.project-tab-section-title {
+    width: 32em;
+    /* font-size: 1.2em; */
+}
+
 .stats-separator {
     border-bottom: thin solid var(--border-medium);
     width: 100%;

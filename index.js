@@ -9,10 +9,11 @@ const isMac = process.platform === 'darwin';
 
 const VERSION = 'v0.0';
 
-const TAB_PROJECT = 0;
-const TAB_LEXICON = 1;
-const TAB_SEARCH = 2;
-const TAB_ANALYSIS = 3;
+const TAB_SETTINGS = 0;
+const TAB_PROJECT = 1;
+const TAB_LEXICON = 2;
+const TAB_SEARCH = 3;
+const TAB_ANALYSIS = 4;
 
 const TPL_NEW_PROJECT = `{
 	"_WARNING" : "Before mucking around in here, SAVE A BACKUP. It will be annoying for everyone involved if you break something and don't know how to fix it.",
@@ -307,6 +308,14 @@ const openKeyboardShortcutReference = (win) => {
 
 
 
+// quick links
+const openLexPadGithub = async () => {
+	console.log('Open GitHub main page...');
+	await shell.openExternal('https://github.com/ssirrikh/lexpad?tab=readme-ov-file#lexpad');
+};
+
+
+
 //// APP COMPONENTS ////
 
 	
@@ -432,7 +441,8 @@ const createWindow = () => {
 				{
 					label : 'LexPad Settings',
 					accelerator : 'CmdOrCtrl+,',
-					click : () => console.log('Trigger open LexPad settings tab...')
+					// click : () => console.log('Trigger open LexPad settings tab...')
+					click : () => win.webContents.send('trigger-tab', TAB_SETTINGS)
 				},
 				// Non-Mac Quit Option (Ctrl+Q)
 				...(isMac ? [] : [
@@ -551,10 +561,11 @@ const createWindow = () => {
 				},
 				{
 					label : 'Visit LexPad GitHub',
-					click : async () => {
-						console.log('Open GitHub main page...');
-						await shell.openExternal('https://github.com/ssirrikh/lexpad?tab=readme-ov-file#lexpad')
-					}
+					click : () => openLexPadGithub()
+					// click : async () => {
+					// 	console.log('Open GitHub main page...');
+					// 	await shell.openExternal('https://github.com/ssirrikh/lexpad?tab=readme-ov-file#lexpad')
+					// }
 				}
 			]
 		}
@@ -582,6 +593,9 @@ app.whenReady().then(() => {
 	// ipcMain.on('dbg-flip-toggle', dbg_flipToggle);
 	// ipcMain.handle('dbg-request-object',dbg_requestObject);
 	// ipcMain.on('dbg-check-object', dbg_checkObject);
+
+	// quick links
+	ipcMain.handle('renderer-open-github', openLexPadGithub);
 
 	// file selection
 	ipcMain.handle('renderer-select-directory', onRendererSelectDirectory);
