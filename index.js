@@ -8,6 +8,7 @@ const fs = require('node:fs/promises');
 const isMac = process.platform === 'darwin';
 
 const VERSION = 'v0.0';
+const DBG_DEV_MODE = true; // turn on to enable debug tools in app menu
 
 const TAB_SETTINGS = 0;
 const TAB_PROJECT = 1;
@@ -196,15 +197,18 @@ const onRendererSaveProject = async (evt,contents) => {
 	console.log('Renderer saves project.');
 	console.log(contents);
 	const filePath = activeFile.path;
-	console.log(`Debug authority interrupts save to prevent mutation of input conditions. Save would succeed.`);
-	return { message : `Debug authority interrupts save to prevent mutation of input conditions. Save would succeed.`, path: filePath };
-	try {
-		await fs.writeFile(filePath,contents);
-		console.log('Success');
-		activeFile.modified = false;
-		return { message : 'Project saved successfully.', path: filePath };
-	} catch (err) {
-		return { error: 'cannot_save_file', message: String(err), path: filePath };
+	if (DBG_DEV_MODE) {
+		console.log(`Debug authority interrupts save to prevent mutation of input conditions. Save would succeed.`);
+		return { message : `Debug authority interrupts save to prevent mutation of input conditions. Save would succeed.`, path: filePath };
+	} else {
+		try {
+			await fs.writeFile(filePath,contents);
+			console.log('Success');
+			activeFile.modified = false;
+			return { message : 'Project saved successfully.', path: filePath };
+		} catch (err) {
+			return { error: 'cannot_save_file', message: String(err), path: filePath };
+		}
 	}
 };
 const saveProject = (win) => {
@@ -324,19 +328,6 @@ const openLexPadGithub = async () => {
 
 //// I/O ////
 
-// const dbg_flipToggle = e => {
-// 	demoToggle = !demoToggle;
-// 	const webContents = e.sender;
-// 	const win = BrowserWindow.fromWebContents(webContents);
-// 	win.setTitle(demoToggle ? 'LexPad Toggled' : 'LexPad');
-// };
-// const dbg_requestObject = e => {
-// 	return demoObject;
-// }
-// const dbg_checkObject = e => {
-// 	console.log(demoObject);
-// }
-
 const newProject = async e => {
 	console.log('Main creating new project');
 };
@@ -428,11 +419,13 @@ const createWindow = () => {
 					accelerator : 'CmdOrCtrl+Shift+S',
 					click : () => saveProjectAs(win)
 				},
-				{
-					label : 'DBG Mark Modified',
-					accelerator : 'CmdOrCtrl+M',
-					click : () => markModified(win)
-				},
+				...(!DBG_DEV_MODE ? [] : [
+					{
+						label : 'DBG Mark Modified',
+						accelerator : 'CmdOrCtrl+M',
+						click : () => markModified(win)
+					},
+				]),
 				{ type: 'separator' },
 				// {
 				// 	label : 'Run Auto-Cleanup Script',
@@ -441,7 +434,6 @@ const createWindow = () => {
 				{
 					label : 'LexPad Settings',
 					accelerator : 'CmdOrCtrl+,',
-					// click : () => console.log('Trigger open LexPad settings tab...')
 					click : () => win.webContents.send('trigger-tab', TAB_SETTINGS)
 				},
 				// Non-Mac Quit Option (Ctrl+Q)
@@ -492,10 +484,7 @@ const createWindow = () => {
 				{
 					label : 'Project Tab',
 					accelerator : 'CmdOrCtrl+1',
-					click : () => {
-						console.log(`Trigger tab ${TAB_PROJECT}`);
-						win.webContents.send('trigger-tab', TAB_PROJECT);
-					}
+					click : () => win.webContents.send('trigger-tab', TAB_PROJECT)
 				},
 				{
 					label : 'Lexicon Tab',
@@ -512,15 +501,17 @@ const createWindow = () => {
 					accelerator : 'CmdOrCtrl+4',
 					click : () => win.webContents.send('trigger-tab', TAB_ANALYSIS)
 				},
-				{ type: 'separator' },
-				{
-					role : 'forceReload' // Force Reload 'CmdOrCtrl+Shift+R
-				},
-				{
-					role : 'toggleDevTools',
-					label : 'Developer Tools',
-					accelerator : 'F12'
-				}
+				...(!DBG_DEV_MODE ? [] : [
+					{ type: 'separator' },
+					{
+						role : 'forceReload' // Force Reload 'CmdOrCtrl+Shift+R'
+					},
+					{
+						role : 'toggleDevTools',
+						label : 'Developer Tools',
+						accelerator : 'F12'
+					}
+				])
 			]
 		},
 		// Help
@@ -562,10 +553,6 @@ const createWindow = () => {
 				{
 					label : 'Visit LexPad GitHub',
 					click : () => openLexPadGithub()
-					// click : async () => {
-					// 	console.log('Open GitHub main page...');
-					// 	await shell.openExternal('https://github.com/ssirrikh/lexpad?tab=readme-ov-file#lexpad')
-					// }
 				}
 			]
 		}
