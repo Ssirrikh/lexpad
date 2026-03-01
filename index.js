@@ -2,6 +2,7 @@
 console.log('Hello from Electron');
 
 const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require('electron');
+if (require('electron-squirrel-startup')) app.quit(); // silence stub-launches during windows installation process
 const path = require('node:path');
 const fs = require('node:fs/promises');
 
