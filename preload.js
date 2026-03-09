@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	rendererSelectDirectory : () => ipcRenderer.invoke('renderer-select-directory'),
 	rendererSelectImages : () => ipcRenderer.invoke('renderer-select-images'),
 	rendererSelectAudio : () => ipcRenderer.invoke('renderer-select-audio'),
+	onMainTriggerSelectToolboxProject : (callback) => ipcRenderer.on('main-select-toolbox-project', (evt) => callback()),
+	rendererSelectToolboxProject : () => ipcRenderer.invoke('renderer-select-toolbox-project'),
 
 	// file creation
 	rendererExportTextFile : (contents) => ipcRenderer.invoke('renderer-export-text-file',contents),

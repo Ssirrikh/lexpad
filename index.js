@@ -102,40 +102,6 @@ const listDir = async (e,dirpath) => {
 		return { error: 'cannot_read_directory', message: String(err), path: dirpath };
 	}
 };
-// file selection
-	// https://en.wikipedia.org/wiki/Comparison_of_web_browsers#Image_format_support
-	// Chromium Images: jpeg, webp, gif, png, apng, <canvas>/blob, bmp, ico
-	// https://www.chromium.org/audio-video/
-	// Chromium Audio Codecs: flac, mp3, opus, pcm, vorbis
-	// => mp3, wav, ogg + mpeg, 3gp + mp4, adts, flac, webm
-const SUPPORTED_IMAGES = ['bmp','jpeg','jpg','png','webp'];
-const SUPPORTED_AUDIO = ['mp3','mpeg','ogg','wav'];
-const onRendererSelectImages = async (evt) => {
-	console.log('Renderer selects image file(s).')
-	const { canceled, filePaths } = await dialog.showOpenDialog({
-		properties : ['openFile','multiSelections'],
-		filters : [
-			{ name: 'Supported Images', extensions: SUPPORTED_IMAGES },
-			// { name: 'Supported Images', extensions: ['bmp','jpeg','jpg','png','webp'] },
-			{ name: 'All Files', extensions: ['*'] },
-		]
-	});
-	if (canceled || !filePaths?.length) return { canceled: true };
-	return { paths: filePaths };
-};
-const onRendererSelectAudio = async (evt) => {
-	console.log('Renderer selects audio file(s).')
-	const { canceled, filePaths } = await dialog.showOpenDialog({
-		properties : ['openFile','multiSelections'],
-		filters : [
-			{ name: 'Supported Audio', extensions: SUPPORTED_AUDIO },
-			// { name: 'Supported Audio', extensions: ['mp3','mpeg','ogg','wav'] },
-			{ name: 'All Files', extensions: ['*'] },
-		]
-	});
-	if (canceled || !filePaths?.length) return { canceled: true };
-	return { paths: filePaths };
-};
 const onRendererSelectDirectory = async (evt) => {
 	console.log('Renderer selects directory.')
 	const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -150,6 +116,57 @@ const onRendererSelectDirectory = async (evt) => {
 	});
 	if (canceled || !filePaths?.length) return { canceled: true };
 	return { path: filePaths[0] };
+};
+// file selection
+	// https://en.wikipedia.org/wiki/Comparison_of_web_browsers#Image_format_support
+	// Chromium Images: jpeg, webp, gif, png, apng, <canvas>/blob, bmp, ico
+	// https://www.chromium.org/audio-video/
+	// Chromium Audio Codecs: flac, mp3, opus, pcm, vorbis
+	// => mp3, wav, ogg + mpeg, 3gp + mp4, adts, flac, webm
+const SUPPORTED_IMAGES = ['bmp','jpeg','jpg','png','webp'];
+const SUPPORTED_AUDIO = ['mp3','mpeg','ogg','wav'];
+const onRendererSelectImages = async (evt) => {
+	console.log('Renderer selects image file(s).')
+	const { canceled, filePaths } = await dialog.showOpenDialog({
+		properties : ['openFile','multiSelections'],
+		filters : [
+			{ name: 'Supported Images', extensions: SUPPORTED_IMAGES },
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePaths?.length) return { canceled: true };
+	return { paths: filePaths };
+};
+const onRendererSelectAudio = async (evt) => {
+	console.log('Renderer selects audio file(s).')
+	const { canceled, filePaths } = await dialog.showOpenDialog({
+		properties : ['openFile','multiSelections'],
+		filters : [
+			{ name: 'Supported Audio', extensions: SUPPORTED_AUDIO },
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePaths?.length) return { canceled: true };
+	return { paths: filePaths };
+};
+const onRendererSelectToolboxOutput = async (evt) => {
+	console.log('Renderer selects Toolbox project to import.')
+	const { canceled, filePaths } = await dialog.showOpenDialog({
+		properties : ['openFile'],
+		filters : [
+			{ name: 'All Files', extensions: ['*'] },
+		]
+	});
+	if (canceled || !filePaths?.length) return { canceled: true };
+	// read selected file
+	const filepath = filePaths[0];
+	try {
+		const raw = await fs.readFile(filepath, 'utf8');
+		console.log('Main successfully reads Toolbox project file.');
+		return { path: filepath, contents: raw };
+	} catch (err) {
+		return { error: 'read_or_parse_failed', message: String(err) };
+	}
 };
 
 // file creation
@@ -428,10 +445,11 @@ const createWindow = () => {
 					},
 				]),
 				{ type: 'separator' },
-				// {
-				// 	label : 'Run Auto-Cleanup Script',
-				// 	click : () => console.log('Trigger auto-cleanup script...')
-				// },
+				{
+					label : 'Import Toolbox Project',
+					accelerator : 'CmdOrCtrl+Alt+I',
+					click : () => win.webContents.send('main-select-toolbox-project')
+				},
 				{
 					label : 'LexPad Settings',
 					accelerator : 'CmdOrCtrl+,',
@@ -589,6 +607,7 @@ app.whenReady().then(() => {
 	ipcMain.handle('renderer-select-directory', onRendererSelectDirectory);
 	ipcMain.handle('renderer-select-images', onRendererSelectImages);
 	ipcMain.handle('renderer-select-audio', onRendererSelectAudio);
+	ipcMain.handle('renderer-select-toolbox-project', onRendererSelectToolboxOutput);
 
 	// file creation
 	ipcMain.handle('renderer-export-text-file', onRendererExportTextFile);

@@ -3,6 +3,7 @@ console.log(`Inline JS running successfully.`);
 
 import * as lexicon from "./dictionary.js";
 import { file, project } from "./dictionary.js";
+import * as importExport from "./import-export.js"
 
 // TODO: IPC/security is adding too much complexity for early stages
 	// pipe entire JSON object to dictionary.js
@@ -2810,6 +2811,19 @@ const addImageTo = async (parent) => {
 	return true;
 };
 
+window.electronAPI.onMainTriggerSelectToolboxProject(() => {
+	console.log(`Main requests import Toolbox project.`);
+	importToolboxProject();
+});
+const importToolboxProject = async () => {
+	console.log('Renderer selects Toolbox project to import.');
+	const res = await window.electronAPI.rendererSelectToolboxProject();
+	if (res.canceled || !res.path) return false;
+	// parse file contents
+	console.log(`Imported ${res.path}`);
+	importExport.importMDF(res.contents);
+	return true;
+};
 
 // pattern for two-way comms where TX has authority:
 	// TX checks prereqs
