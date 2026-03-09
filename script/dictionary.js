@@ -1,5 +1,5 @@
 
-const VERSION = "v0.0";
+const VERSION = "v0.0.0";
 
 const RE_SYNONYM_SPLITTER = /;\s*/;
 
@@ -604,7 +604,8 @@ const createEntry = (catg) => {
 		"sents" : [],
 		"notes" : [],
 		"images" : [],
-		// "meta" : {}
+		// "meta" : {},
+		"lastEdit" : "", // blank string indicates entry never edited
 	});
 	indexing.orderedL1.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
 	indexing.orderedL2.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
@@ -645,14 +646,15 @@ const fromJSON = (jsonRaw) => {
 	if (!jsonParse) return false; // report failure
 	// check validity of project file
 	if (
-		typeof jsonParse.project !== 'object' || typeof jsonParse.project.lexpadVersion !== 'string'
+		typeof jsonParse.lexpadVersion !== 'string'
+		|| typeof jsonParse.project !== 'object'
 		|| typeof jsonParse.language !== 'object'
 		|| !Array.isArray(jsonParse.lexicon)
 	) {
 		console.error(`JSON did not contain valid LexPad project. Unable to load.`);
 		return false;
 	}
-	console.log(`Project file parsed. Last saved with LexPad ${jsonParse.project.lexpadVersion}.`);
+	console.log(`Project file parsed. Last saved with LexPad ${jsonParse.lexpadVersion}.`);
 	
 	// replace prev project with newly-opened project
 	fileContents = jsonParse;

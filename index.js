@@ -8,7 +8,7 @@ const fs = require('node:fs/promises');
 
 const isMac = process.platform === 'darwin';
 
-const VERSION = 'v0.0';
+const VERSION = 'v0.0.0';
 const DBG_DEV_MODE = true; // turn on to enable debug tools in app menu
 
 const TAB_SETTINGS = 0;
@@ -18,12 +18,11 @@ const TAB_SEARCH = 3;
 const TAB_ANALYSIS = 4;
 
 const TPL_NEW_PROJECT = `{
+	"lexpadVersion" : "${VERSION}",
 	"_WARNING" : "Before mucking around in here, SAVE A BACKUP. It will be annoying for everyone involved if you break something and don't know how to fix it.",
 	"project" : {
-		"lexpadVersion" : "${VERSION}",
 		"authorship" : "",
-		"lastEdited" : -1,
-		"togglePrimary" : false,
+		"lastEdit" : -1,
 		"activeEntry" : -1,
 		"catgs" : {},
 		"ignorelist" : ""

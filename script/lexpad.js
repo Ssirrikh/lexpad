@@ -35,6 +35,8 @@ const TAG_T = 2; // tag true (include)
 
 const MODAL_FOCUS_MAXLEN = 20;
 
+const DATE_MONTH_SHORT = Object.freeze(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
+
 //// GLOBAL UTILS ////
 
 const capitalize = s => (s[0]??'').toUpperCase() + s.slice(1);
@@ -44,6 +46,13 @@ const prettyPrintSet = (title,setToList) => {
 	// const numNonBlank = arrFromSet.length; // no longer necessary since every media usage Set() has blank vals scrubbed
 	if (arrFromSet.length === 0) arrFromSet.push(`// [no items in this section]`);
 	return `//// ${title} (${setToList.size}) ////\n\n${arrFromSet.join('\n')}`;
+};
+const dateStr = () => {
+	const today = new Date();
+	const dd = String(today.getDate()).padStart(2,'0');
+	const MMM = today.toLocaleString('default', { month: 'short' });
+	const yyyy = today.getFullYear();
+	return `${dd}/${MMM}/${yyyy}`;
 };
 
 
@@ -246,7 +255,7 @@ const markRendered = (...components) => {
 	}
 };
 const needsUpdate = (component) => {
-	if (!lastRender[component]) { console.warn(`Render-component "${component}" not registered. Nothing to update.`); return false; }
+	if (!lastRender[component]) { console.warn(`"${component}" not registered as renderable component.`); return false; }
 	// analysis tab checkers
 	if (component === 'mediaChecker') {
 		if (lastRender[component] < lastUpdate.lexiconAudio) return true;
@@ -259,9 +268,17 @@ const needsUpdate = (component) => {
 		return false;
 	}
 	// default
-	console.warn(`Render-component "${component}" not registered. Nothing to update.`);
+	console.warn(`"${component}" not registered as renderable component.`);
 	return false;
-}
+};
+
+const markEntryModified = () => {
+	if (!activeEntry) { console.warn(`No active entry. Cannot mark entry modified.`); return false; }
+	activeEntry.lastEdit = dateStr();
+	console.log(`Entry ${project.activeEntry} modified on ${activeEntry.lastEdit}`);
+	// console.log(activeEntry);
+	return true;
+};
 
 
 
@@ -705,7 +722,7 @@ const init = () => {
 		tabContent[TAB_SETTINGS] = document.getElementById('tpl-settings-page').content.firstElementChild.cloneNode(true);
 		// project tab
 		tabContent[TAB_PROJECT] = document.getElementById('tpl-project-page').content.firstElementChild.cloneNode(true);
-		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markModified();
+		tabContent[TAB_PROJECT].querySelector('#dbg-mark-modified').onclick = () => markProjectModified();
 		// tabContent[TAB_PROJECT].querySelector('#dbg-trigger').onclick = () => document.title = `Cool New Title`;
 		tabContent[TAB_PROJECT].querySelector('#dbg-trigger').onclick = () => exportTextFile('Hewwo wordle');
 		// lexicon tab
@@ -923,7 +940,7 @@ const populateProjectTab = () => {
 		if (lexicon.L2.name === e.value) return;
 		console.log(`Lang name changed from "${lexicon.L2.name}" to "${e.value}".`);
 		lexicon.L2.name = e.value;
-		markModified();
+		markProjectModified();
 		markUpdated('languageName');
 	});
 	registerInput(tabContent[TAB_PROJECT], '#lang-abbr', () => {
@@ -931,7 +948,7 @@ const populateProjectTab = () => {
 		if (lexicon.L2.abbr === e.value) return;
 		console.log(`Lang abbr changed from "${lexicon.L2.abbr}" to "${e.value}".`);
 		lexicon.L2.abbr = e.value;
-		markModified();
+		markProjectModified();
 		markUpdated('languageAbbr');
 		tryLoadEntry(project.activeEntry, true); // TODO: only need refresh sentences; renderAllSentences()/etc need to check if entry loaded
 	});
@@ -940,7 +957,7 @@ const populateProjectTab = () => {
 		if (lexicon.L2.alph === e.value) return;
 		console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${e.value}".`);
 		lexicon.L2.alph = e.value;
-		markModified();
+		markProjectModified();
 		markUpdated('languageAlph');
 		populateQuickCopyBar();
 	});
@@ -949,7 +966,7 @@ const populateProjectTab = () => {
 		if (project.authorship === e.value) return;
 		console.log(`Authorship info changed from "${project.authorship}" to "${e.value}".`);
 		project.authorship = e.value;
-		markModified();
+		markProjectModified();
 		markUpdated('languageAuth');
 	});
 	renderProjectInfo();
@@ -1033,7 +1050,7 @@ const renderProjectCatgForm = (catg,formNum) => {
 		if (e.value === lexicon.L2.forms[catg][formNum]) return; // exit early if no changes
 		console.log(`Catg "${catg}" form ${formNum} modified from "${lexicon.L2.forms[catg][formNum]}" to "${e.value}"`);
 		lexicon.L2.forms[catg][formNum] = e.value;
-		markModified();
+		markProjectModified();
 		markUpdated('languageForms');
 		tryLoadEntry(project.activeEntry, true); // force reload active entry so that form selectors are rebuilt
 	});
@@ -1060,7 +1077,7 @@ const populateProjectCatgs = () => {
 		eCatgSection.querySelector('.icon-plus').onclick = () => {
 			console.log(`Add new form for catg "${catg}"`);
 			lexicon.L2.forms[catg].push('');
-			markModified();
+			markProjectModified();
 			markUpdated('languageForms');
 			renderProjectCatgsHeader();
 			renderProjectCatg(catg);
@@ -1241,7 +1258,8 @@ const renderEditorHeader = () => {
 		console.log(`Entry L1 modified from "${activeEntry.L1}" to "${newL1}".`);
 		if (newL1 !== activeEntry.L1) {
 			activeEntry.L1 = newL1;
-			markModified();
+			markProjectModified();
+			markEntryModified();
 			markUpdated('lexiconL1');
 			lexicon.indexLexicon(true);
 			populateLexicon();
@@ -1307,7 +1325,7 @@ const renderWordform = i => {
 				openModalCreateForm(activeEntry.catg,activeEntry.L2[i]); // marks modified/updated if successful
 			} else {
 				activeEntry.L2[i].form = document.getElementById(`entry-form-${i}-selector`).value;
-				markModified();
+				markProjectModified();
 				markUpdated('languageForms');
 			}
 		}
@@ -1337,7 +1355,8 @@ const renderWordform = i => {
 		const hadNoAudio = (!Array.isArray(activeEntry.L2[i].audio) || activeEntry.L2[i].audio.length === 0);
 		console.log(activeEntry.L2[i].audio);
 		if (!(await addAudioTo(activeEntry.L2[i]))) return; // addAudioTo() marks project modified if at least one file was added
-		// markModified();
+		// markProjectModified();
+		markEntryModified();
 		markUpdated('lexiconAudio');
 		console.log(activeEntry.L2[i].audio);
 		renderAllWordforms(); // refresh entire section for simplicity
@@ -1367,7 +1386,8 @@ const renderWordform = i => {
 		console.log(`Entry L2 modified from "${activeEntry.L2[i].L2}" to "${newL2}".`);
 		if (newL2 !== activeEntry.L2[i].L2) {
 			activeEntry.L2[i].L2 = newL2;
-			markModified();
+			markProjectModified();
+			markEntryModified();
 			markUpdated('lexiconL2');
 			lexicon.indexLexicon(true);
 			populateLexicon();
@@ -1389,7 +1409,7 @@ const renderSentence = i => {
 				openModalCreateForm(activeEntry.catg,activeEntry.sents[i]); // marks modified/updated if successful
 			} else {
 				activeEntry.sents[i].form = document.getElementById(`entry-sentence-${i}-selector`).value;
-				markModified();
+				markProjectModified();
 				markUpdated('languageForms');
 			}
 		}
@@ -1417,7 +1437,8 @@ const renderSentence = i => {
 		const hadNoAudio = (!Array.isArray(activeEntry.sents[i].audio) || activeEntry.sents[i].audio.length === 0);
 		console.log(activeEntry.sents[i].audio);
 		if (!(await addAudioTo(activeEntry.sents[i]))) return; // addAudioTo() marks project modified if at least one file was added
-		// markModified();
+		// markProjectModified();
+		markEntryModified();
 		markUpdated('lexiconAudio');
 		console.log(activeEntry.sents[i].audio);
 		renderAllSentences(); // refresh entire section for simplicity
@@ -1455,13 +1476,15 @@ const renderSentence = i => {
 	tabContent[TAB_LEXICON].querySelector('#entry-sentences-wrapper').appendChild(e);
 	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L1`, () => {
 		activeEntry.sents[i].L1 = document.getElementById(`entry-sentence-${i}-L1`).value;
-		markModified();
+		markProjectModified();
+		markEntryModified();
 		markUpdated('lexiconSentenceL1');
 		console.log(activeEntry.sents[i]);
 	});
 	registerInput(tabContent[TAB_LEXICON], `#entry-sentence-${i}-L2`, () => {
 		activeEntry.sents[i].L2 = document.getElementById(`entry-sentence-${i}-L2`).value;
-		markModified();
+		markProjectModified();
+		markEntryModified();
 		markUpdated('lexiconSentenceL2');
 		console.log(activeEntry.sents[i]);
 	});
@@ -1482,7 +1505,8 @@ const renderNote = i => {
 	tabContent[TAB_LEXICON].querySelector('#entry-notes-wrapper').appendChild(e);
 	registerInput(tabContent[TAB_LEXICON], `#entry-note-${i}`, () => {
 		activeEntry.notes[i].note = document.getElementById(`entry-note-${i}`).value;
-		markModified();
+		markProjectModified();
+		markEntryModified();
 		markUpdated('lexiconNotes');
 		console.log(activeEntry.notes[i]);
 	});
@@ -1493,7 +1517,7 @@ const addWordform = () => {
 	// add wordform
 	if (!Array.isArray(activeEntry.L2)) activeEntry.L2 = [];
 	activeEntry.L2.push({ form : -1, L2 : "" });
-	markModified();
+	markProjectModified();
 	// refresh UI
 	if (activeEntry.L2.length === 1) {
 		// if this is the first wordform, remove the "No Wordforms" message
@@ -1509,7 +1533,7 @@ const addSentence = () => {
 	// add sentence
 	if (!Array.isArray(activeEntry.sents)) activeEntry.sents = [];
 	activeEntry.sents.push({ form : -1, L1 : "", L2 : "" });
-	markModified();
+	markProjectModified();
 	// refresh UI
 	if (activeEntry.sents.length === 1) {
 		// if this is the first sentence, remove the "No Sentences" message
@@ -1525,7 +1549,7 @@ const addNote = () => {
 	// add note
 	if (!Array.isArray(activeEntry.notes)) activeEntry.notes = [];
 	activeEntry.notes.push({ form : -1, note : "" });
-	markModified();
+	markProjectModified();
 	// refresh UI
 	if (activeEntry.notes.length === 1) {
 		// if this is the first note, remove the "No Notes" message
@@ -1820,7 +1844,7 @@ const renderAnalysisSentenceChecker = (needRebuildIndex) => {
 		console.log(ignorelistStr);
 		if (ignorelistStr === project.ignorelist) return;
 		project.ignorelist = ignorelistStr;
-		markModified();
+		markProjectModified();
 		renderAnalysisSentenceChecker(true);
 	});
 	markRendered('sentenceChecker');
@@ -1914,7 +1938,7 @@ const onAddOrDeleteEntry = (needRefreshCatgs) => {
 	// refresh lexicon tab
 	lexicon.indexLexicon(true);
 	populateLexicon();
-	tryLoadEntry(project.activeEntry,true); // should have been set to new entry id if creating, or -1 if deleting
+	tryLoadEntry(project.activeEntry,true); // project.activeEntry set to new entry id if creating, or -1 if deleting
 	// refresh search tab
 	if (needRefreshCatgs) populateSearchTab();
 };
@@ -2035,7 +2059,7 @@ const openModalCreateCatg = () => {
 			console.error(`Unable to create catg "${catgName}" with abbreviation "${catgAbbr}".`);
 		} else {
 			// only mark project modified if we actually succeeded at creating catg
-			markModified();
+			markProjectModified();
 			markUpdated('projectCatgs');
 		}
 		// refresh UI whether or not catg creation was successful
@@ -2078,7 +2102,7 @@ const openModalEditCatg = (prevCatg) => {
 			console.error(`ERROR Failed to edit catg. Old name was "${prevCatgName}" with abbreviation "${prevCatg}". New name was "${catgName}" with abbreviation "${catgAbbr}".`);
 		} else {
 			// only mark project modified if we actually succeeded at editing catg
-			markModified();
+			markProjectModified();
 			markUpdated('projectCatgs');
 		}
 		// refresh UI whether or not edit was successful
@@ -2100,7 +2124,7 @@ const openModalDeleteCatg = (catgAbbr) => {
 			console.error(`ERROR Failed to delete catg "${project.catgs[catgAbbr]}" with abbreviation "${catgAbbr}".`);
 		} else {
 			// only mark project modified if we actually succeeded at deleting catg
-			markModified();
+			markProjectModified();
 			markUpdated('projectCatgs');
 		}
 		// refresh UI whether or not deletion was successful
@@ -2126,7 +2150,7 @@ const openModalDeleteCatgForm = (catgAbbr,formNum) => {
 			console.log(lexicon.L2.forms);
 		} else {
 			// only mark project modified if we actually succeeded at deleting catg
-			markModified();
+			markProjectModified();
 			markUpdated('languageForms');
 		}
 		// refresh UI whether or not deletion was successful
@@ -2185,7 +2209,7 @@ const openModalCreateEntry = () => {
 			project.activeEntry = lexicon.createEntry(eSelect.value);
 			console.log(`Created entry #${project.activeEntry}`);
 		}
-		markModified();
+		markProjectModified();
 		markUpdated('projectCatgs');
 		// refresh UI
 		onAddOrDeleteEntry(createdNewCatg); // runs tryLoadEntry(-1);
@@ -2203,7 +2227,8 @@ const openModalDeleteEntry = (entryId) => {
 		if (!lexicon.deleteEntry(entryId)) return;
 		activeEntry = null; // clear pointer to deleted entry so it can be garbage collected properly
 		// project.activeEntry = -1; // redundant; this gets unset by lexicon.deleteEntry()
-		markModified();
+		markProjectModified();
+		markEntryModified();
 		markUpdated(
 			'projectCatgs',
 			'languageForms',
@@ -2246,7 +2271,8 @@ const openModalManageImages = (imageParent) => {
 			eImage.querySelector('.icon-x').onclick = () => {
 				console.log(`Deleting image ${i}: "${imageParent.images[i]}"`);
 				imageParent.images.splice(i,1);
-				markModified();
+				markProjectModified();
+				markEntryModified();
 				markUpdated('lexiconImages');
 				// refresh entry editor in case first image changed
 				renderEditorHeader();
@@ -2266,7 +2292,8 @@ const openModalManageImages = (imageParent) => {
 		const hadNoImages = (!Array.isArray(imageParent.images) || imageParent.images.length === 0);
 		console.log(imageParent.images);
 		if (!(await addImageTo(imageParent))) return; // skip refresh if selection cancelled; will mark project modified if at least one file successfully added
-		// markModified(); // addImageTo() marks project modified if successful
+		// markProjectModified(); // addImageTo() marks project modified if successful
+		markEntryModified();
 		markUpdated('lexiconImages');
 		console.log(imageParent.images);
 		// refresh entry editor in case first image changed
@@ -2316,7 +2343,8 @@ const openModalManageAudio = (audioParent) => {
 			eAudio.querySelector('.icon-x').onclick = () => {
 				console.log(`Deleting audio ${i}: "${audioParent.audio[i]}"`);
 				audioParent.audio.splice(i,1);
-				markModified();
+				markProjectModified();
+				markEntryModified();
 				markUpdated('lexiconAudio');
 				// we don't know whether audio was added to wordform or section, so refresh both sections to be safe
 				renderAllWordforms();
@@ -2337,7 +2365,8 @@ const openModalManageAudio = (audioParent) => {
 		const hadNoAudio = (!Array.isArray(audioParent.audio) || audioParent.audio.length === 0);
 		console.log(audioParent.audio);
 		if (!(await addAudioTo(audioParent))) return; // skip refresh if selection cancelled; will mark project modified if at least one file successfully added
-		// markModified();
+		// markProjectModified();
+		markEntryModified();
 		markUpdated('lexiconAudio');
 		console.log(audioParent.audio);
 		// we don't know whether audio was added to wordform or section, so refresh both sections to be safe
@@ -2372,7 +2401,8 @@ const openModalDeleteWordform = (formId) => {
 		console.log(activeEntry.L2);
 		console.log(activeEntry.L2[formId]);
 		activeEntry.L2.splice(formId,1); // delete data
-		markModified();
+		markProjectModified();
+		markEntryModified();
 		markUpdated('languageForms','lexiconL2','lexiconAudio');
 		renderAllWordforms();
 		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
@@ -2392,7 +2422,8 @@ const openModalDeleteSentence = (sentId) => {
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.sents[sentId]);
 		activeEntry.sents.splice(sentId,1); // delete data
-		markModified();
+		markProjectModified();
+		markEntryModified();
 		markUpdated('languageForms','lexiconSentenceL2','lexiconAudio');
 		renderAllSentences();
 		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
@@ -2409,7 +2440,8 @@ const openModalDeleteNote = (noteId) => {
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.notes[noteId]);
 		activeEntry.notes.splice(noteId,1); // delete data
-		markModified();
+		markProjectModified();
+		markEntryModified();
 		markUpdated('lexiconNotes');
 		renderAllNotes();
 		activeMenu.reset(); // clear pointer to old hiding menu, since it just got deleted from the DOM
@@ -2437,7 +2469,7 @@ const openModalCreateForm = (catg,parent) => {
 			parent.form = lexicon.L2.forms[catg].length - 1;
 			populateProjectCatgs(); // refresh project tab
 		}
-		markModified();
+		markProjectModified();
 		markUpdated('languageForms');
 		console.log(parent);
 
@@ -2540,9 +2572,9 @@ const exportTextFile = (contents='') => {
 window.electronAPI.onMainMarkModified(() => {
 	if (!file.isOpen) { console.error('Main requests mark project modified, but no project currently open.'); return; }
 	console.log('Main requests mark project modified.');
-	markModified(); // renderer has authority over save state
+	markProjectModified(); // renderer has authority over save state
 });
-const markModified = () => {
+const markProjectModified = () => {
 	if (!file.isOpen) { console.warn('No project currently open. Nothing to mark as modified.'); return; }
 	if (!file.modified) {
 		console.log('Renderer marks project as modified.');
@@ -2566,7 +2598,7 @@ const trySaveProject = async () => {
 	console.log('Main confirms project is saved.');
 	file.modified = false;
 	setWindowTitle();
-	project.lastEdited = performance.now();
+	project.lastEdit = performance.now();
 	return true;
 };
 window.electronAPI.onMainSaveProjectAs(() => {
@@ -2588,7 +2620,7 @@ const trySaveProjectAs = async () => {
 		modified : false
 	});
 	setWindowTitle();
-	project.lastEdited = performance.now();
+	project.lastEdit = performance.now();
 	return true;
 };
 // create new project
@@ -2782,7 +2814,7 @@ const addAudioTo = async (parent) => {
 		}
 	}
 	parent.audio.sort();
-	if (hasAddedAudio) markModified(); // only mark project modified if at least one file successfully added
+	if (hasAddedAudio) markProjectModified(); // only mark project modified if at least one file successfully added
 	return true;
 };
 const addImageTo = async (parent) => {
@@ -2807,7 +2839,7 @@ const addImageTo = async (parent) => {
 		}
 	}
 	parent.images.sort();
-	if (hasAddedImage) markModified(); // only mark project modified if at least one file successfully added
+	if (hasAddedImage) markProjectModified(); // only mark project modified if at least one file successfully added
 	return true;
 };
 
