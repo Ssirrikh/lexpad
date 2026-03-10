@@ -1,48 +1,9 @@
 
-const VERSION = "v0.0.0";
-
-const RE_SYNONYM_SPLITTER = /;\s*/;
-
-const SYNONYM_SPLITTER = '; ';
-const ALPHABET_SPLITTER = ' ';
-
-const MEDIA_TYPE_INVALID = -1;
-const MEDIA_TYPE_AUDIO = 0;
-const MEDIA_TYPE_IMAGE = 1;
+import * as common from "./common.js";
 
 
 
 //// global helpers ////
-
-// file selection
-	// https://en.wikipedia.org/wiki/Comparison_of_web_browsers#Image_format_support
-	// Chromium Images: jpeg, webp, gif, png, apng, <canvas>/blob, bmp, ico
-	// https://www.chromium.org/audio-video/
-	// Chromium Audio Codecs: flac, mp3, opus, pcm, vorbis
-	// => mp3, wav, ogg + mpeg, 3gp + mp4, adts, flac, webm
-// TODO: test supported file types exhaustively
-const SUPPORTED_IMAGES = Object.freeze(['bmp','jpeg','jpg','png','webp']);
-const SUPPORTED_AUDIO = Object.freeze(['mp3','mpeg','ogg','wav']);
-// const RE_SUPPORTED_IMAGES = /^.*\.(bmp|jpe?g|png|webp)$/i;
-const RE_SUPPORTED_IMAGES = new RegExp(`^.+\\.(${SUPPORTED_IMAGES.join('|')})$`, 'i');
-const RE_SUPPORTED_AUDIO = new RegExp(`^.+\\.(${SUPPORTED_AUDIO.join('|')})$`, 'i');
-const mediaType  = (filepath = '') => {
-	if (RE_SUPPORTED_AUDIO.test(filepath)) return MEDIA_TYPE_AUDIO;
-	if (RE_SUPPORTED_IMAGES.test(filepath)) return MEDIA_TYPE_IMAGE;
-	return MEDIA_TYPE_INVALID;
-};
-
-// console.log(`mediaType('boop.png') = ${mediaType('boop.png')}`);
-// console.log(`mediaType('boop.PNG') = ${mediaType('boop.PNG')}`);
-// console.log(`mediaType('bap.wav') = ${mediaType('bap.wav')}`);
-// console.log(`mediaType('lazerz.txt') = ${mediaType('lazerz.txt')}`);
-// console.log(`mediaType('') = ${mediaType('')}`);
-// console.log(`mediaType(69) = ${mediaType(69)}`);
-// console.log(`mediaType('file/.mp3/trick.pdf') = ${mediaType('file/.mp3/trick.pdf')}`);
-
-const RE_ESCAPE = /[&<>"']/g;
-const RE_MAP_ESCAPE = { "&" : "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }; // all contexts support &#39; but not all support &apos;, so ignore it
-const escapeHTML = (s) => String(s).replace(RE_ESCAPE, c => RE_MAP_ESCAPE[c]);
 
 const alphabetizeIndex = (a,b) => a.word.toLowerCase().localeCompare(b.word.toLowerCase());
 
@@ -210,8 +171,8 @@ const indexLexicon = (forceRebind) => {
 		// console.log(data[entryId]);
 		const hasImage = data[entryId].images?.length > 0;
 		const hasAudio = data[entryId].L2?.some(form => form.audio?.length > 0) || data[entryId].sents?.some(sentence => sentence.audio?.length > 0);
-		indexing.orderedL1.push(...data[entryId].L1.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[entryId].catg,entryId:entryId,hasAudio:hasAudio,hasImage:hasImage}}));
-		for (let form of data[entryId].L2) indexing.orderedL2.push(...form.L2.split(SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[entryId].catg,entryId:entryId,hasAudio:hasAudio,hasImage:hasImage}}));
+		indexing.orderedL1.push(...data[entryId].L1.split(common.RE_SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[entryId].catg,entryId:entryId,hasAudio:hasAudio,hasImage:hasImage}}));
+		for (let form of data[entryId].L2) indexing.orderedL2.push(...form.L2.split(common.RE_SYNONYM_SPLITTER).map(w => {return {word:w,catg:data[entryId].catg,entryId:entryId,hasAudio:hasAudio,hasImage:hasImage}}));
 		// TODO: add Set() of forms to index cards
 	}
 	indexing.orderedL1.sort(alphabetizeIndex);
@@ -228,9 +189,6 @@ const indexSentences = (forceRebind) => {
 	// negated charset used to discard all other chars during indexing
 	let characterInventory = new Set(`abcdefghijklmnopqrstuvwxyz0123456789'-` + L2.alph.toLowerCase().replaceAll(/\s+/g,'').replaceAll(RE_SMART_QUOTES,`'`));
 	characterInventory.delete('-'); // explicitly handle [-] later, so it isn't treated as range
-	// const STR_NON_ALNUM = `[^${[...characterInventory].join('')}]`;
-	// console.log(STR_NON_ALNUM);
-	// const RE_NON_ALNUM = new RegExp(STR_NON_ALNUM, 'g');
 	const RE_NON_ALNUM = new RegExp(`[^${[...characterInventory].join('')}-]`, 'g'); // placing [-] at end of charset treats it as char instead of range
 	console.log(`RE_NON_ALNUM "${RE_NON_ALNUM}"`);
 	const RE_NUMERIC_WORD = /[0-9]+/g;
@@ -240,7 +198,7 @@ const indexSentences = (forceRebind) => {
 	let wordInventorySentences = new Set();
 	for (let entry of data) {
 		for (let form of entry.L2 ?? []) {
-			let synonyms = form.L2.split(SYNONYM_SPLITTER);
+			let synonyms = form.L2.split(common.RE_SYNONYM_SPLITTER);
 			for (let synonym of synonyms) {
 				// console.log(`FORM ${synonym}`);
 				wordInventoryL2.add( synonym.toLowerCase().replaceAll(RE_SMART_QUOTES,`'`).replaceAll(RE_NON_ALNUM,'') );
@@ -295,12 +253,12 @@ const indexAvailableMedia = (mediaList,forceRebind) => {
 	indexing.media.imagesAvailable = new Set();
 	indexing.media.invalidAvailable = new Set();
 	for (let filename of mediaList ?? []) {
-		// console.log(mediaType(filename));
-		switch (mediaType(filename)) {
+		// console.log(common.mediaType(filename));
+		switch (common.mediaType(filename)) {
 			// node.js lists files as "dir/file.ext", but chromium accesses files as "dir\file.ext"
-			case MEDIA_TYPE_AUDIO: indexing.media.audioAvailable.add(filename.replace('/','\\')); break;
-			case MEDIA_TYPE_IMAGE: indexing.media.imagesAvailable.add(filename.replace('/','\\')); break;
-			case MEDIA_TYPE_INVALID:
+			case common.MEDIA_TYPE_AUDIO: indexing.media.audioAvailable.add(filename.replace('/','\\')); break;
+			case common.MEDIA_TYPE_IMAGE: indexing.media.imagesAvailable.add(filename.replace('/','\\')); break;
+			case common.MEDIA_TYPE_INVALID:
 			default:
 				indexing.media.invalidAvailable.add(filename.replace('/','\\')); break;
 		}
@@ -412,9 +370,9 @@ const calculateStatistics = (forceRebind) => {
 		}
 		// wordcount
 		if (entry.L1) {
-			indexing.stats.numWordsL1 += entry.L1.split(RE_SYNONYM_SPLITTER).length ?? 0; // doesn't count empty L1 as word
+			indexing.stats.numWordsL1 += entry.L1.split(common.RE_RE_SYNONYM_SPLITTER).length ?? 0; // doesn't count empty L1 as word
 		}
-		// indexing.stats.numWordsL1 += entry.L1?.split(RE_SYNONYM_SPLITTER).length ?? 0; // doesn't count empty L1 as word
+		// indexing.stats.numWordsL1 += entry.L1?.split(common.RE_RE_SYNONYM_SPLITTER).length ?? 0; // doesn't count empty L1 as word
 		for (let form of entry.L2 ?? []) {
 			// TODO: this does not account for L2 synonyms
 			if (form.L2) indexing.stats.numWordsL2++;
@@ -596,8 +554,8 @@ const deleteForm = (catg,formNum) => {
 	return true;
 };
 
-const createEntry = (catg) => {
-	data.push({
+const BlankEntry = (catg='') => {
+	return {
 		"L1" : "",
 		"catg" : catg,
 		"L2" : [],
@@ -605,8 +563,11 @@ const createEntry = (catg) => {
 		"notes" : [],
 		"images" : [],
 		// "meta" : {},
-		"lastEdit" : "", // blank string indicates entry never edited
-	});
+		"lastEdit" : common.dateStr(),
+	};
+};
+const createEntry = (catg) => {
+	data.push( BlankEntry(catg) );
 	indexing.orderedL1.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
 	indexing.orderedL2.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
 	return data.length - 1;
@@ -688,8 +649,6 @@ const toJSON = () => {
 //// API ////
 
 export {
-	// constants
-	SUPPORTED_AUDIO, SUPPORTED_IMAGES,
 	// project components
 	file, fromJSON, toJSON,
 	project, L1, L2, data,
@@ -701,5 +660,7 @@ export {
 	// batch ops
 	createCatg, editCatg, deleteCatg,
 	createForm, editForm, deleteForm,
-	createEntry, deleteEntry
+	createEntry, deleteEntry,
+	// misc
+	BlankEntry
 };

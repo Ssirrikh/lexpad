@@ -42,6 +42,8 @@ const TPL_NEW_PROJECT = `{
 //// PROGRAM STATE ////
 
 // https://stackoverflow.com/questions/39574636/prompt-to-save-quit-before-closing-window
+// https://www.electronjs.org/docs/latest/tutorial/keyboard-shortcuts
+// https://www.electronjs.org/docs/latest/tutorial/application-menu
 
 // Toolbox's New Project Flow:
 	// (no check for unsaved changes, everything happens in new sub-window)

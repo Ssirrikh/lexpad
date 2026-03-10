@@ -1,22 +1,10 @@
 
 console.log(`Inline JS running successfully.`);
 
+import * as common from "./common.js";
 import * as lexicon from "./dictionary.js";
 import { file, project } from "./dictionary.js";
-import * as importExport from "./import-export.js"
-
-// TODO: IPC/security is adding too much complexity for early stages
-	// pipe entire JSON object to dictionary.js
-	// do all indexing/sorting/etc there
-	// lexpad.js uses dictionary.js API to selectively request data
-		// defend against accidental user bungles, but assume API is safe
-		// add scrubbing to dictionary.js later down the pipeline
-
-// https://www.electronjs.org/docs/latest/tutorial/keyboard-shortcuts
-// https://www.electronjs.org/docs/latest/tutorial/application-menu
-
-const RE_SYNONYM_SPLITTER = /;\s*/;
-const SYNONYM_JOIN = '; ';
+import * as importExport from "./import-export.js";
 
 const TAB_SETTINGS = 0;
 const TAB_PROJECT = 1;
@@ -34,26 +22,6 @@ const TAG_N = 1; // tag null (no constraint)
 const TAG_T = 2; // tag true (include)
 
 const MODAL_FOCUS_MAXLEN = 20;
-
-const DATE_MONTH_SHORT = Object.freeze(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
-
-//// GLOBAL UTILS ////
-
-const capitalize = s => (s[0]??'').toUpperCase() + s.slice(1);
-const trim = (text,maxLen=null) => (maxLen === null || text.length <= maxLen) ? text : `${text.slice(0,maxLen)}...`; // if maxLen neg, trim n chars off end; if maxLen pos, act as max len
-const prettyPrintSet = (title,setToList) => {
-	let arrFromSet = [...setToList].filter(x => x).sort();
-	// const numNonBlank = arrFromSet.length; // no longer necessary since every media usage Set() has blank vals scrubbed
-	if (arrFromSet.length === 0) arrFromSet.push(`// [no items in this section]`);
-	return `//// ${title} (${setToList.size}) ////\n\n${arrFromSet.join('\n')}`;
-};
-const dateStr = () => {
-	const today = new Date();
-	const dd = String(today.getDate()).padStart(2,'0');
-	const MMM = today.toLocaleString('default', { month: 'short' });
-	const yyyy = today.getFullYear();
-	return `${dd}/${MMM}/${yyyy}`;
-};
 
 
 
@@ -274,7 +242,7 @@ const needsUpdate = (component) => {
 
 const markEntryModified = () => {
 	if (!activeEntry) { console.warn(`No active entry. Cannot mark entry modified.`); return false; }
-	activeEntry.lastEdit = dateStr();
+	activeEntry.lastEdit = common.dateStr();
 	console.log(`Entry ${project.activeEntry} modified on ${activeEntry.lastEdit}`);
 	// console.log(activeEntry);
 	return true;
@@ -560,7 +528,7 @@ let searchSettings = {
 				// TODO: deleting entry in lexicon tab should clear search results so onclick doesn't become hanging pointer
 
 			// header
-			e.querySelector('.search-result-catg').textContent = capitalize(lexicon.data[i].catg || '---');
+			e.querySelector('.search-result-catg').textContent = common.capitalize(lexicon.data[i].catg || '---');
 			if ((inAny || searchSettings.filters.in.L1 === TAG_T) && frag !== '') { // guaranteed match at this point, so either inAny&&in.L1==TAG_N or in.L1==TAG_T
 				e.querySelector('.search-result-L1').innerHTML = tryHighlight(lexicon.data[i].L1); // TODO: clean UNSAFE arbitrary text
 			} else {
@@ -861,7 +829,7 @@ const buildFormSelect = (catg) => {
 
 // project tab
 const copyOrInsert = (letter='') => {
-	if (shiftDown) letter = capitalize(letter);
+	if (shiftDown) letter = common.capitalize(letter);
 	if (ctrlDown === gubbins.quickInsert.state) {
 		// copy (ctrl+click OR click w/ quick copy on)
 		navigator.clipboard.writeText(letter);
@@ -878,8 +846,8 @@ const copyOrInsert = (letter='') => {
 };
 const populateQuickCopyBar = () => {
 	eStatbarLeft.innerHTML = `<p id="quick-copy-tooltip" class="no-wrap">Click to copy:</p>`;
-	let englishAlphabet = lexicon.L1.alph.split(' ');
-	let alphabet = lexicon.L2.alph.split(' ');
+	let englishAlphabet = lexicon.L1.alph.split(common.RE_ALPHABET_SPLITTER);
+	let alphabet = lexicon.L2.alph.split(common.RE_ALPHABET_SPLITTER);
 	let addedLetter = false;
 	for (let i = 0; i < alphabet.length; i++) {
 		const letter = alphabet[i];
@@ -904,10 +872,10 @@ const renderQuickCopyBar = () => {
 		? `Click to insert in textbox. Ctrl+Click to copy to clipboard. Hold Shift for uppercase.`
 		: `Click to copy to clipboard. Ctrl+Click to insert in textbox. Hold Shift for uppercase.`;
 	// if (!file.isOpen) return;
-	let alphabet = lexicon.L2.alph.split(' ');
+	let alphabet = lexicon.L2.alph.split(common.RE_ALPHABET_SPLITTER);
 	for (let i = 0; i < alphabet.length; i++) {
 		const e = document.querySelector(`#quick-copy-${i}`);
-		if (e) e.textContent = (shiftDown) ? capitalize(alphabet[i]) : alphabet[i];
+		if (e) e.textContent = (shiftDown) ? common.capitalize(alphabet[i]) : alphabet[i];
 	}
 };
 // registering input allows quick-copy bar to paste characters into it, and allows optional onUpdate()
@@ -918,7 +886,7 @@ const registerInput = (container,id,onUpdate) => {
 	container.querySelector(id).onfocus = () => activeInput = container.querySelector(id); // TODO: clear activeInput whenever an input is removed/replaced; esp check for e.innerHTML=''
 	if (onUpdate) {
 		container.querySelector(id).onblur = onUpdate;
-		// TODO: [Enter] submission temporarily blocked to allow new lines in textareas; add arg to toggle this on/off
+		// TODO: [Enter] submission temporarily blocked to allow new lines in textareas; impl Shift+Enter for newlines
 		// container.querySelector(id).onkeydown = (evt) => {
 		// 	switch (evt.key) {
 		// 		case 'Enter': // allow [Enter] to submit textbox as if it's a form
@@ -954,9 +922,10 @@ const populateProjectTab = () => {
 	});
 	registerInput(tabContent[TAB_PROJECT], '#lang-alph', () => {
 		const e = tabContent[TAB_PROJECT].querySelector('#lang-alph');
-		if (lexicon.L2.alph === e.value) return;
-		console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${e.value}".`);
-		lexicon.L2.alph = e.value;
+		const newAlph = e.value.split(common.RE_ALPHABET_SPLITTER).join(common.ALPHABET_JOIN);
+		if (lexicon.L2.alph === newAlph) return;
+		console.log(`Lang alph changed from "${lexicon.L2.alph}" to "${newAlph}".`);
+		lexicon.L2.alph = newAlph;
 		markProjectModified();
 		markUpdated('languageAlph');
 		populateQuickCopyBar();
@@ -1021,7 +990,7 @@ const renderProjectStats = () => {
 		let e = document.getElementById('tpl-catg-bubble').content.firstElementChild.cloneNode(true);
 			e.title = `Click to search catg:${catg}`;
 			e.onclick = () => searchTag(`catg:${catg}`);
-			e.querySelector('.catg-bubble-label').textContent = project.catgs[catg] ?? capitalize(catg);
+			e.querySelector('.catg-bubble-label').textContent = project.catgs[catg] ?? common.capitalize(catg);
 			e.querySelector('.catg-bubble-count').textContent = lexicon.stats.catgCounts[catg] ?? '??';
 		eStatsCatgs.appendChild(e);
 	}
@@ -1124,7 +1093,7 @@ const renderProjectCatg = (catg) => {
 		if (form !== undefined) numForms++;
 	}
 	// section header
-	eCatgSection.querySelector('.project-catg-name').textContent = capitalize(project.catgs[catg] || catg || '---');
+	eCatgSection.querySelector('.project-catg-name').textContent = common.capitalize(project.catgs[catg] || catg || '---');
 	eCatgSection.querySelector('.project-catg-abbr').textContent = `${catg}.`;
 	eCatgSection.querySelector('.project-catg-formcount').textContent = `(${numForms} form${(numForms===1)?'':'s'})`;
 	// section forms
@@ -1167,6 +1136,7 @@ const setLexiconSearchIndex = (searchL2) => {
 		tabContent[TAB_LEXICON].querySelector('#lexicon-search-L2').classList.add('active');
 		populateLexicon();
 	}
+	filterLexicon();
 	tabContent[TAB_LEXICON].querySelector('#lexicon-search').focus();
 };
 const clearLexiconSearch = () => {
@@ -1190,8 +1160,8 @@ const populateLexicon = () => {
 		});
 		// console.log(`${lexicon[searchIndex][i].entryId} (${project.activeEntry})`);
 		if (project.activeEntry === lexicon[searchIndex][i].entryId) e.classList.add('active-entry');
-		e.querySelector('.lexicon-entry-catg').title = project.catgs[lexicon[searchIndex][i].catg] || capitalize(lexicon[searchIndex][i].catg);
-		e.querySelector('.lexicon-entry-catg').textContent = capitalize(lexicon[searchIndex][i].catg) || '---';
+		e.querySelector('.lexicon-entry-catg').title = project.catgs[lexicon[searchIndex][i].catg] || common.capitalize(lexicon[searchIndex][i].catg);
+		e.querySelector('.lexicon-entry-catg').textContent = common.capitalize(lexicon[searchIndex][i].catg) || '---';
 		e.querySelector('.lexicon-entry-word').textContent = lexicon[searchIndex][i].word || '---';
 		if (lexicon[searchIndex][i].hasImage) {
 			e.querySelector('.flex-row .icon:nth-child(1)').classList.add('icon-image');
@@ -1254,7 +1224,7 @@ const renderEditorHeader = () => {
 	tabContent[TAB_LEXICON].querySelector('#entry-L1-label').textContent = `${lexicon.L1.name || 'L1'} Word(s)`;
 	tabContent[TAB_LEXICON].querySelector('#entry-L1').value = activeEntry.L1;
 	registerInput(tabContent[TAB_LEXICON], '#entry-L1', () => {
-		const newL1 = tabContent[TAB_LEXICON].querySelector('#entry-L1').value.split(RE_SYNONYM_SPLITTER).join(SYNONYM_JOIN);
+		const newL1 = tabContent[TAB_LEXICON].querySelector('#entry-L1').value.split(common.RE_SYNONYM_SPLITTER).join(common.SYNONYM_JOIN);
 		console.log(`Entry L1 modified from "${activeEntry.L1}" to "${newL1}".`);
 		if (newL1 !== activeEntry.L1) {
 			activeEntry.L1 = newL1;
@@ -1263,9 +1233,10 @@ const renderEditorHeader = () => {
 			markUpdated('lexiconL1');
 			lexicon.indexLexicon(true);
 			populateLexicon();
+			filterLexicon();
 		}
 	});
-	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? capitalize(activeEntry.catg);
+	tabContent[TAB_LEXICON].querySelector('#entry-catg').textContent = project.catgs[activeEntry.catg] ?? common.capitalize(activeEntry.catg);
 	tabContent[TAB_LEXICON].querySelector('#entry-image').onclick = () => openModalManageImages(lexicon.data[project.activeEntry]);
 	if (activeEntry.images?.length > 0) {
 		// use absolute path for bg img, since we don't know where project folder is relative to lexpad folder
@@ -1365,6 +1336,7 @@ const renderWordform = i => {
 			// TODO: should be a targetted refresh once that's available
 			lexicon.indexLexicon(true);
 			populateLexicon();
+			filterLexicon();
 		}
 	};
 	// menu
@@ -1382,7 +1354,7 @@ const renderWordform = i => {
 	// events
 	tabContent[TAB_LEXICON].querySelector('#entry-forms-wrapper').appendChild(e);
 	registerInput(tabContent[TAB_LEXICON], `#entry-form-${i}-content`, () => {
-		const newL2 = tabContent[TAB_LEXICON].querySelector(`#entry-form-${i}-content`).value.split(RE_SYNONYM_SPLITTER).join(SYNONYM_JOIN);
+		const newL2 = tabContent[TAB_LEXICON].querySelector(`#entry-form-${i}-content`).value.split(common.RE_SYNONYM_SPLITTER).join(common.SYNONYM_JOIN);
 		console.log(`Entry L2 modified from "${activeEntry.L2[i].L2}" to "${newL2}".`);
 		if (newL2 !== activeEntry.L2[i].L2) {
 			activeEntry.L2[i].L2 = newL2;
@@ -1391,6 +1363,7 @@ const renderWordform = i => {
 			markUpdated('lexiconL2');
 			lexicon.indexLexicon(true);
 			populateLexicon();
+			filterLexicon();
 		}
 	});
 };
@@ -1447,11 +1420,12 @@ const renderSentence = i => {
 			// TODO: should be a targetted refresh once that's available
 			lexicon.indexLexicon(true);
 			populateLexicon();
+			filterLexicon();
 		}
 	};
 	// sentences
-	e.querySelector('.entry-sentence-label-L1').textContent = capitalize(lexicon.L1.abbr || 'L1');
-	e.querySelector('.entry-sentence-label-L2').textContent = capitalize(lexicon.L2.abbr || 'L2');
+	e.querySelector('.entry-sentence-label-L1').textContent = common.capitalize(lexicon.L1.abbr || 'L1');
+	e.querySelector('.entry-sentence-label-L2').textContent = common.capitalize(lexicon.L2.abbr || 'L2');
 	Object.assign(e.querySelector('.entry-sentence-L1'), {
 		id : `entry-sentence-${i}-L1`,
 		value : activeEntry.sents[i].L1
@@ -1678,7 +1652,7 @@ const populateAnalysisTab = () => {
 	};
 	// media checker
 	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-images'), {
-		title : `Supported image formats: ${lexicon.SUPPORTED_IMAGES.join(', ')}`,
+		title : `Supported image formats: ${common.SUPPORTED_IMAGES.join(', ')}`,
 		onclick : () => {
 			console.log('missing images');
 			mediaUsageSection = 'missing-images';
@@ -1686,7 +1660,7 @@ const populateAnalysisTab = () => {
 		}
 	});
 	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-missing-audio'), {
-		title : `Supported audio formats: ${lexicon.SUPPORTED_AUDIO.join(', ')}`,
+		title : `Supported audio formats: ${common.SUPPORTED_AUDIO.join(', ')}`,
 		onclick : () => {
 			console.log('missing audio');
 			mediaUsageSection = 'missing-audio';
@@ -1694,7 +1668,7 @@ const populateAnalysisTab = () => {
 		}
 	});
 	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-images'), {
-		title : `Supported image formats: ${lexicon.SUPPORTED_IMAGES.join(', ')}`,
+		title : `Supported image formats: ${common.SUPPORTED_IMAGES.join(', ')}`,
 		onclick : () => {
 			console.log('unused images');
 			mediaUsageSection = 'unused-images';
@@ -1702,7 +1676,7 @@ const populateAnalysisTab = () => {
 		}
 	});
 	Object.assign(tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-unused-audio'), {
-		title : `Supported audio formats: ${lexicon.SUPPORTED_AUDIO.join(', ')}`,
+		title : `Supported audio formats: ${common.SUPPORTED_AUDIO.join(', ')}`,
 		onclick : () => {
 			console.log('unused audio');
 			mediaUsageSection = 'unused-audio';
@@ -1712,25 +1686,25 @@ const populateAnalysisTab = () => {
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-selected-section').onclick = () => {
 		console.log(`Export current section: "${mediaUsageSection}"`);
 		switch (mediaUsageSection) {
-			case 'missing-images': exportTextFile( prettyPrintSet('Missing Images',lexicon.media.imagesMissing) ); break;
-			case 'missing-audio': exportTextFile( prettyPrintSet('Missing Audio',lexicon.media.audioMissing) ); break;
-			case 'unused-images': exportTextFile( prettyPrintSet('Unused Images',lexicon.media.imagesUnused) ); break;
-			case 'unused-audio': exportTextFile( prettyPrintSet('Unused Audio',lexicon.media.audioUnused) ); break;
+			case 'missing-images': exportTextFile( common.prettyPrintSet('Missing Images',lexicon.media.imagesMissing) ); break;
+			case 'missing-audio': exportTextFile( common.prettyPrintSet('Missing Audio',lexicon.media.audioMissing) ); break;
+			case 'unused-images': exportTextFile( common.prettyPrintSet('Unused Images',lexicon.media.imagesUnused) ); break;
+			case 'unused-audio': exportTextFile( common.prettyPrintSet('Unused Audio',lexicon.media.audioUnused) ); break;
 			default: console.warn(`Section is null or unrecognized. Nothing to export.`);
 		}
 	};
 	// media checks combined
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-missing').onclick = () => {
-		exportTextFile( `${prettyPrintSet('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${prettyPrintSet('Missing Audio',lexicon.media.audioMissing)}` );
+		exportTextFile( `${common.prettyPrintSet('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${common.prettyPrintSet('Missing Audio',lexicon.media.audioMissing)}` );
 	};
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-unused').onclick = () => {
-		exportTextFile( `${prettyPrintSet('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${prettyPrintSet('Unused Audio',lexicon.media.audioUnused)}` );
+		exportTextFile( `${common.prettyPrintSet('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${common.prettyPrintSet('Unused Audio',lexicon.media.audioUnused)}` );
 	};
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-media-usage').onclick = () => {
 		lexicon.indexMediaUsage(true);
 		exportTextFile(
-			`${prettyPrintSet('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${prettyPrintSet('Missing Audio',lexicon.media.audioMissing)}`
-			+ `\n\n\n\n${prettyPrintSet('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${prettyPrintSet('Unused Audio',lexicon.media.audioUnused)}`
+			`${common.prettyPrintSet('Missing Images',lexicon.media.imagesMissing)}\n\n\n\n${common.prettyPrintSet('Missing Audio',lexicon.media.audioMissing)}`
+			+ `\n\n\n\n${common.prettyPrintSet('Unused Images',lexicon.media.imagesUnused)}\n\n\n\n${common.prettyPrintSet('Unused Audio',lexicon.media.audioUnused)}`
 		);
 	};
 
@@ -1794,16 +1768,16 @@ const renderAnalysisMediaUsage = async (needRebuildIndex) => {
 	// render preview of list
 	switch (mediaUsageSection) {
 		case 'missing-images':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Missing Images',lexicon.media.imagesMissing);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = common.prettyPrintSet('Missing Images',lexicon.media.imagesMissing);
 			break;
 		case 'missing-audio':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Missing Audio',lexicon.media.audioMissing);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = common.prettyPrintSet('Missing Audio',lexicon.media.audioMissing);
 			break;
 		case 'unused-images':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Unused Images',lexicon.media.imagesUnused);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = common.prettyPrintSet('Unused Images',lexicon.media.imagesUnused);
 			break;
 		case 'unused-audio':
-			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = prettyPrintSet('Unused Audio',lexicon.media.audioUnused);
+			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = common.prettyPrintSet('Unused Audio',lexicon.media.audioUnused);
 			break;
 		default:
 			tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-media-usage').textContent = `Select a section to preview it.`;
@@ -1829,9 +1803,9 @@ const renderAnalysisSentenceChecker = (needRebuildIndex) => {
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-uniq-sentence-words-2').textContent = lexicon.sentences.wordInventory.size ?? 'ERROR';
 	// unrecognized words
 	// tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = [...lexicon.sentences.wordsWithoutCoverage].sort().join('\n');
-	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = prettyPrintSet('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage);
+	tabContent[TAB_ANALYSIS].querySelector('#analysis-preview-sentence-coverage').textContent = common.prettyPrintSet('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage);
 	tabContent[TAB_ANALYSIS].querySelector('#analysis-export-sentence-uncovered-words').onclick = () => {
-		exportTextFile( prettyPrintSet('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage) );
+		exportTextFile( common.prettyPrintSet('Unrecognized L2 Words',lexicon.sentences.wordsWithoutCoverage) );
 	};
 	// ignorelist
 	const ignorelist = project.ignorelist.split(/\s+/);
@@ -1915,6 +1889,7 @@ const populateSettingsTab = () => {
 const refreshLexicon = (needRebuildIndex) => {
 	if (needRebuildIndex) lexicon.indexLexicon();
 	populateLexicon();
+	filterLexicon();
 };
 const onRefreshCatgs = () => {
 	// refresh project tab
@@ -1924,6 +1899,7 @@ const onRefreshCatgs = () => {
 	// TODO: possibly defer this until user next accesses lexicon tab
 	lexicon.indexLexicon(true);
 	populateLexicon();
+	filterLexicon();
 	tryLoadEntry(project.activeEntry, true);
 	// refresh search tab
 	// TODO: possibly defer this until user next accesses lexicon tab
@@ -1938,6 +1914,7 @@ const onAddOrDeleteEntry = (needRefreshCatgs) => {
 	// refresh lexicon tab
 	lexicon.indexLexicon(true);
 	populateLexicon();
+	filterLexicon();
 	tryLoadEntry(project.activeEntry,true); // project.activeEntry set to new entry id if creating, or -1 if deleting
 	// refresh search tab
 	if (needRefreshCatgs) populateSearchTab();
@@ -2173,7 +2150,7 @@ const openModalCreateEntry = () => {
 	for (let catg in project.catgs) {
 		eSelect.appendChild( Object.assign(document.createElement('option'), {
 			value : catg,
-			textContent : project.catgs[catg] || capitalize(catg)
+			textContent : project.catgs[catg] || common.capitalize(catg)
 		}) );
 	}
 	eSelect.appendChild( Object.assign(document.createElement('option'), {
@@ -2281,6 +2258,7 @@ const openModalManageImages = (imageParent) => {
 					// TODO: should be a targetted refresh once that's available
 					lexicon.indexLexicon(true);
 					populateLexicon();
+					filterLexicon();
 				}
 				// refresh this modal
 				openModalManageImages(imageParent);
@@ -2303,6 +2281,7 @@ const openModalManageImages = (imageParent) => {
 			// TODO: should be a targetted refresh once that's available
 			lexicon.indexLexicon(true);
 			populateLexicon();
+			filterLexicon();
 		}
 		// refresh this modal
 		openModalManageImages(imageParent);
@@ -2354,6 +2333,7 @@ const openModalManageAudio = (audioParent) => {
 					// TODO: should be a targetted refresh once that's available
 					lexicon.indexLexicon(true);
 					populateLexicon();
+					filterLexicon();
 				}
 				// refresh this modal
 				openModalManageAudio(audioParent);
@@ -2377,6 +2357,7 @@ const openModalManageAudio = (audioParent) => {
 			// TODO: should be a targetted refresh once that's available
 			lexicon.indexLexicon(true);
 			populateLexicon();
+			filterLexicon();
 		}
 		// refresh this modal
 		openModalManageAudio(audioParent);
@@ -2388,7 +2369,7 @@ const openModalManageAudio = (audioParent) => {
 const openModalDeleteWordform = (formId) => {
 	const eModal = document.querySelector('#tpl-modal-delete-wordform').content.firstElementChild.cloneNode(true);
 	// modal content
-	eModal.querySelector('#modal-wordform').textContent = trim(activeEntry.L2[formId].L2 || '---', MODAL_FOCUS_MAXLEN);
+	eModal.querySelector('#modal-wordform').textContent = common.truncate(activeEntry.L2[formId].L2 || '---', MODAL_FOCUS_MAXLEN);
 	if (!activeEntry.catg) {
 		eModal.querySelector('#modal-wordform-case').textContent = '(entry has no catg)';
 	} else if (activeEntry.L2[formId].form >= 0) {
@@ -2414,10 +2395,10 @@ const openModalDeleteWordform = (formId) => {
 const openModalDeleteSentence = (sentId) => {
 	const eModal = document.querySelector('#tpl-modal-delete-sentence').content.firstElementChild.cloneNode(true);
 	// modal content
-	eModal.querySelector('#modal-abbr-L2').textContent = capitalize(lexicon.L2.abbr || 'L2');
-	eModal.querySelector('#modal-abbr-L1').textContent = capitalize(lexicon.L1.abbr || 'L1');
-	eModal.querySelector('#modal-sent-L2').textContent = trim(activeEntry.sents[sentId].L2 || '---', MODAL_FOCUS_MAXLEN);
-	eModal.querySelector('#modal-sent-L1').textContent = trim(activeEntry.sents[sentId].L1 || '---', MODAL_FOCUS_MAXLEN);
+	eModal.querySelector('#modal-abbr-L2').textContent = common.capitalize(lexicon.L2.abbr || 'L2');
+	eModal.querySelector('#modal-abbr-L1').textContent = common.capitalize(lexicon.L1.abbr || 'L1');
+	eModal.querySelector('#modal-sent-L2').textContent = common.truncate(activeEntry.sents[sentId].L2 || '---', MODAL_FOCUS_MAXLEN);
+	eModal.querySelector('#modal-sent-L1').textContent = common.truncate(activeEntry.sents[sentId].L1 || '---', MODAL_FOCUS_MAXLEN);
 	// modal actions
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.sents[sentId]);
@@ -2435,7 +2416,7 @@ const openModalDeleteSentence = (sentId) => {
 const openModalDeleteNote = (noteId) => {
 	const eModal = document.querySelector('#tpl-modal-delete-note').content.firstElementChild.cloneNode(true);
 	// modal content
-	eModal.querySelector('#modal-note').textContent = `"${trim(activeEntry.notes[noteId].note || '---', MODAL_FOCUS_MAXLEN)}"`;
+	eModal.querySelector('#modal-note').textContent = `"${common.truncate(activeEntry.notes[noteId].note || '---', MODAL_FOCUS_MAXLEN)}"`;
 	// modal actions
 	eModal.querySelector('#modal-action-delete').onclick = () => {
 		console.log(activeEntry.notes[noteId]);
@@ -2453,7 +2434,7 @@ const openModalDeleteNote = (noteId) => {
 const openModalCreateForm = (catg,parent) => {
 	const eModal = document.querySelector('#tpl-modal-create-form').content.firstElementChild.cloneNode(true);
 	// modal content
-	eModal.querySelector('#modal-catg').textContent = project.catgs[catg] || capitalize(catg);
+	eModal.querySelector('#modal-catg').textContent = project.catgs[catg] || common.capitalize(catg);
 	eModal.querySelector('select').replaceWith( document.querySelector('#tpl-form-select').content.firstElementChild.cloneNode(true) );
 	// modal actions
 	eModal.querySelector('#modal-action-create').onclick = () => {
@@ -2721,10 +2702,6 @@ const tryLoadProject = async (path) => {
 		console.error('Renderer failed to load project file. Aborting open project.');
 		return;
 	}
-	// file.isOpen = true;
-	// file.path = res.path.replace(/\\[^\\]+?$/,'');
-	// file.filename = res.path.replace(/^.+\\/,'');
-	// file.modified = false;
 	Object.assign(file, {
 		isOpen : true,
 		path : res.path.replace(/\\[^\\]+?$/,''),
@@ -2761,7 +2738,9 @@ const tryLoadProject = async (path) => {
 	console.log(`Media scanned in ${Math.round(t2_loadProject-t1_loadProject)} ms.`);
 
 	// rebuild lexicon tab
+	// TODO: should we clear search bars when loading a project?
 	populateLexicon();
+	filterLexicon();
 	if (project.activeEntry !== -1) {
 		console.log(`Loading entry ${project.activeEntry}`);
 		tryLoadEntry(project.activeEntry,true); // not async, but may fail to load
@@ -2882,11 +2861,6 @@ const importToolboxProject = async () => {
 
 //// MAIN-TO-RENDERER IPC TRIGGERS ////
 
-// //
-// window.electronAPI.onTriggerCreateProject(() => {
-// 	console.log(`IPC trigger: Create new project. Main has already verified there are no unsaved changes.`);
-// });
-
 // attach keyboard shortcuts
 window.electronAPI.onTriggerTab(tabId => {
 	console.log(`IPC trigger: Render tab ${tabId}.`);
@@ -2931,13 +2905,6 @@ init();
 // lexicon.accessA.x = 88; // works again
 // lexicon.checkUnderlying(); // 88,99
 
-// // test IPC file transfer mutability
-// (async () => {
-//     // test confirms objects get deep copied when piped from main to renderer
-//     // changes here will not mutate data on main
-//     let res = await window.electronAPI.requestObject();
-//     console.log(res);
-//     res.v = 9;
-//     console.log(res);
-//     window.electronAPI.checkObject();
-// })();
+
+
+// objects transfered via IPC are not linked copies; changes in renderer will not mutate original data on main
