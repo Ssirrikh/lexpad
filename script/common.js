@@ -3,9 +3,26 @@
 
 const VERSION = "v0.0.0";
 
+const DBG_DEV_MODE = true;
+
 const DEFAULTS = Object.freeze({
     //
 });
+
+
+
+//// JSON /////////////////////////////
+
+const tryParseJSON = (jsonStr) => {
+	// https://stackoverflow.com/a/20392392
+	try {
+		const o = JSON.parse(jsonStr);
+		if (o && typeof o === "object") return o;
+	} catch (err) {
+		console.error(`ERR File did not contain valid JSON. Unable to parse.`);
+	}
+	return null;
+};
 
 
 
@@ -81,7 +98,9 @@ const dateStr = () => {
 
 export {
     // LexPad
-    VERSION,
+    VERSION, DBG_DEV_MODE,
+    // JSON
+    tryParseJSON,
     // media
     MEDIA_TYPE_INVALID, MEDIA_TYPE_AUDIO, MEDIA_TYPE_IMAGE,
     SUPPORTED_AUDIO, RE_SUPPORTED_AUDIO,

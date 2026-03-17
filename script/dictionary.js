@@ -3,24 +3,13 @@ import * as common from "./common.js";
 
 
 
-//// global helpers ////
+//// HELPERS //////////////////////////
 
 const alphabetizeIndex = (a,b) => a.word.toLowerCase().localeCompare(b.word.toLowerCase());
 
-const tryParseJSON = (jsonStr) => {
-	// https://stackoverflow.com/a/20392392
-	try {
-		const o = JSON.parse(jsonStr);
-		if (o && typeof o === "object") return o;
-	} catch (err) {
-		console.error(`ERR File did not contain valid JSON. Unable to parse.`);
-	}
-	return null;
-}
 
 
-
-//// DEFAULTS AND PRESETS /////////////////////////////////////////////////////////////
+//// DEFAULTS AND PRESETS /////////////
 
 const L1 = Object.freeze({
 	"name" : "English",
@@ -28,6 +17,41 @@ const L1 = Object.freeze({
 	"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
 	"usesForms" : false
 });
+
+const TPL_NEW_PROJECT = `{
+	"lexpadVersion" : "${common.VERSION}",
+	"_WARNING" : "Before mucking around in here, SAVE A BACKUP. It will be annoying for everyone involved if you break something and don't know how to fix it.",
+	"project" : {
+		"authorship" : "",
+		"lastEdit" : -1,
+		"activeEntry" : -1,
+		"catgs" : {},
+		"ignorelist" : ""
+	},
+	"language" : {
+		"name" : "",
+		"abbr" : "",
+		"alph" : "a b c d e f g h i j k l m n o p q r s t u v w x y z",
+		"usesForms" : true,
+		"forms" : {}
+	},
+	"lexicon" : []
+}`;
+const BlankProject = () => {
+    return common.tryParseJSON(TPL_NEW_PROJECT);
+};
+const BlankEntry = (catg='') => {
+    return {
+        "L1" : "",
+        "catg" : catg,
+        "L2" : [],
+        "sents" : [],
+        "notes" : [],
+        "images" : [],
+        // "meta" : {},
+        "lastEdit" : common.dateStr(),
+    };
+};
 
 
 
@@ -554,18 +578,6 @@ const deleteForm = (catg,formNum) => {
 	return true;
 };
 
-const BlankEntry = (catg='') => {
-	return {
-		"L1" : "",
-		"catg" : catg,
-		"L2" : [],
-		"sents" : [],
-		"notes" : [],
-		"images" : [],
-		// "meta" : {},
-		"lastEdit" : common.dateStr(),
-	};
-};
 const createEntry = (catg) => {
 	data.push( BlankEntry(catg) );
 	indexing.orderedL1.push({ word:'', catg:catg, entryId:data.length-1, hasAudio:false, hasImage:false } );
@@ -602,7 +614,7 @@ const fromJSON = (jsonRaw) => {
 	// raw filestring will be GC'd after function completion
 
 	// store json parse in temp var, so currently-open project can remain open in case of parsing error
-	let jsonParse = tryParseJSON(jsonRaw);
+	let jsonParse = common.tryParseJSON(jsonRaw);
 	if (verboseParse) console.log(jsonParse);
 	if (!jsonParse) return false; // report failure
 	// check validity of project file
@@ -649,6 +661,8 @@ const toJSON = () => {
 //// API ////
 
 export {
+	// templates
+	BlankProject, BlankEntry,
 	// project components
 	file, fromJSON, toJSON,
 	project, L1, L2, data,
@@ -660,7 +674,5 @@ export {
 	// batch ops
 	createCatg, editCatg, deleteCatg,
 	createForm, editForm, deleteForm,
-	createEntry, deleteEntry,
-	// misc
-	BlankEntry
+	createEntry, deleteEntry
 };
